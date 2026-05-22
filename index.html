@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Dashboard Prototype</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-brand">
+      <span class="navbar-logo">◆</span>
+      <h1 class="navbar-title">QA Dashboard</h1>
+    </div>
+    <div class="navbar-center">
+      <select id="dashboard-select" class="dashboard-select"></select>
+    </div>
+    <div class="navbar-actions">
+      <button id="btn-catalog" class="btn btn-primary">+ KPI hinzufügen</button>
+      <button id="btn-columns" class="btn btn-secondary">Spalten</button>
+      <button id="btn-export" class="btn btn-secondary">Export</button>
+    </div>
+  </header>
+
+  <main class="dashboard-container">
+    <div id="dashboard-grid" class="dashboard-grid"></div>
+  </main>
+
+  <div id="catalog-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content catalog-modal">
+      <div class="modal-header">
+        <h2>KPI-Katalog</h2>
+        <button id="btn-close-catalog" class="btn-close">&times;</button>
+      </div>
+      <div class="catalog-toolbar">
+        <input type="text" id="catalog-search" class="catalog-search" placeholder="KPIs durchsuchen...">
+        <div class="catalog-filters">
+          <button class="filter-btn active" data-filter="all">Alle</button>
+          <button class="filter-btn" data-filter="dev">Dev</button>
+          <button class="filter-btn" data-filter="ops">Ops</button>
+        </div>
+      </div>
+      <div id="catalog-list" class="catalog-list"></div>
+    </div>
+  </div>
+
+  <div id="column-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content column-modal">
+      <div class="modal-header">
+        <h2>Spaltenanzahl anpassen</h2>
+        <button id="btn-close-columns" class="btn-close">&times;</button>
+      </div>
+      <div class="column-control">
+        <label for="column-slider">Spalten: <span id="column-value">4</span></label>
+        <input type="range" id="column-slider" min="2" max="8" value="4">
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="js/grid.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

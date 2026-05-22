@@ -1,0 +1,40 @@
+{
+  "dashboards": [
+    {
+      "id": "default",
+      "name": "QA Overview",
+      "columns": 4,
+      "is_favorite": true,
+      "tiles": [
+        { "id": "t1", "kpi_id": "pass-fail-rate", "x": 0, "y": 0, "w": 1, "h": 1 },
+        { "id": "t2", "kpi_id": "test-coverage-code", "x": 1, "y": 0, "w": 1, "h": 1 },
+        { "id": "t3", "kpi_id": "defect-density", "x": 2, "y": 0, "w": 1, "h": 1 },
+        { "id": "t4", "kpi_id": "open-bugs-priority", "x": 3, "y": 0, "w": 1, "h": 1 },
+        { "id": "t5", "kpi_id": "test-automation-rate", "x": 0, "y": 1, "w": 1, "h": 1 },
+        { "id": "t6", "kpi_id": "flaky-test-rate", "x": 1, "y": 1, "w": 1, "h": 1 },
+        { "id": "t7", "kpi_id": "mttr", "x": 2, "y": 1, "w": 1, "h": 1 },
+        { "id": "t8", "kpi_id": "error-log-density", "x": 3, "y": 1, "w": 1, "h": 1 },
+        { "id": "t9", "kpi_id": "uptime", "x": 0, "y": 2, "w": 1, "h": 1 },
+        { "id": "t10", "kpi_id": "api-response-time", "x": 1, "y": 2, "w": 1, "h": 1 },
+        { "id": "t11", "kpi_id": "a-bugs-post-release", "x": 2, "y": 2, "w": 2, "h": 1 },
+        { "id": "t12", "kpi_id": "change-failure-rate", "x": 0, "y": 3, "w": 2, "h": 1 }
+      ]
+    },
+    {
+      "id": "qa-ops",
+      "name": "QA Ops Monitor",
+      "columns": 3,
+      "is_favorite": false,
+      "tiles": [
+        { "id": "t13", "kpi_id": "uptime", "x": 0, "y": 0, "w": 1, "h": 1 },
+        { "id": "t14", "kpi_id": "error-rate-5xx", "x": 1, "y": 0, "w": 1, "h": 1 },
+        { "id": "t15", "kpi_id": "api-response-time", "x": 2, "y": 0, "w": 1, "h": 1 },
+        { "id": "t16", "kpi_id": "error-log-density", "x": 0, "y": 1, "w": 2, "h": 1 },
+        { "id": "t17", "kpi_id": "db-performance", "x": 2, "y": 1, "w": 1, "h": 1 },
+        { "id": "t18", "kpi_id": "cpu-mem-usage", "x": 0, "y": 2, "w": 1, "h": 1 },
+        { "id": "t19", "kpi_id": "throughput", "x": 1, "y": 2, "w": 1, "h": 1 },
+        { "id": "t20", "kpi_id": "backup-success-rate", "x": 2, "y": 2, "w": 1, "h": 1 }
+      ]
+    }
+  ]
+}
