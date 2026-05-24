@@ -46,7 +46,7 @@ const ChartEngine = (() => {
     ctx.arc(cx, cy, outerR - lw / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
     ctx.strokeStyle = getStatusColor(status);
     ctx.lineWidth = lw;
-    ctx.lineCap = 'round';
+    ctx.lineCap = 'butt';
     ctx.stroke();
 
     const displayVal = Number.isInteger(value) ? value.toString() : value.toFixed(1);

@@ -38,6 +38,7 @@ Jeder KPI-Tile zeigt ein automatisch generiertes Diagramm:
 | **Bar** (Balkendiagramm) | Numerische KPIs (Antwortzeiten, Fehlerzahlen, MTTR, etc.) — mit Schwellwert-Markierungen |
 
 - Farbe des Charts folgt dem Status (Grün/Gelb/Rot/Neutral)
+- **Harte Kante** am Donut-Ende (Butt-Cap) statt runder Überzeichnung
 - Doppelklick auf das Chart öffnet einen Inline-Editor für den Wert
 - Tiles werden automatisch auf Breite 2 × Höhe 2 vergrößert
 
@@ -52,6 +53,8 @@ Jeder KPI-Tile zeigt ein automatisch generiertes Diagramm:
 - **Resize**: Tiles per Ziehgriff unten rechts skalieren
 - **Spalten-Steuerung**: Slider (2-8 Spalten)
 - **Export**: Komplette Konfiguration + Werte als JSON herunterladen
+- **Werte-Tab**: Eigener Tab zum Anzeigen und Bearbeiten aller KPI-Werte des aktuellen Dashboards in einer Formular-Ansicht
+- **values.json-Download**: Nur die aktuellen KPI-Werte als `values.json` herunterladen, bereit zum Commit ins Repo
 - **localStorage**: Dashboard-Zustand + eingegebene Werte persistiert
 
 ## Datenmodell

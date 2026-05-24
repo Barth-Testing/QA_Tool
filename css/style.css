@@ -101,6 +101,31 @@ body {
 .btn-secondary:hover { background: var(--surface-hover); border-color: var(--text-muted); }
 .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
 
+/* ===== Tab Navigation ===== */
+.navbar-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0.75rem;
+}
+.tab-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.tab-btn:hover { color: var(--text); background: var(--surface-hover); }
+.tab-btn.active {
+  color: #fff;
+  background: var(--primary);
+}
+
+.hidden { display: none !important; }
+
 /* ===== Dashboard Container ===== */
 .dashboard-container {
   padding: 1.5rem;
@@ -535,6 +560,91 @@ body {
 .info-panel p { font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.5rem; }
 .info-panel .info-label { color: var(--text-muted); font-size: 0.78rem; }
 .info-panel .info-value { color: var(--text); font-weight: 500; }
+
+/* ===== Values Tab ===== */
+.values-tab {
+  padding: 0;
+}
+.values-tab.hidden { display: none; }
+.values-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.values-header h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.values-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.values-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+}
+.values-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.75rem;
+}
+.values-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  transition: border-color var(--transition);
+}
+.values-field:focus-within { border-color: var(--primary); }
+.values-field-label {
+  flex: 1;
+  min-width: 0;
+}
+.values-field-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.values-field-unit {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.values-field-input {
+  width: 100px;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: right;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.values-field-input:focus { border-color: var(--primary); }
+.values-field-input--changed { border-color: var(--yellow); }
+.values-field-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.values-field-badge.green { background: var(--green-bg); color: var(--green); }
+.values-field-badge.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.values-field-badge.red { background: var(--red-bg); color: var(--red); }
+.values-field-badge.neutral { background: var(--neutral-bg); color: var(--neutral); }
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {

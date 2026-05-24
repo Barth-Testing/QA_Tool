@@ -28,6 +28,10 @@
   const columnSlider = $('#column-slider');
   const columnValue = $('#column-value');
   const toastContainer = $('#toast-container');
+  const valuesTab = $('#values-tab');
+  const valuesForm = $('#values-form');
+  /* tab state */
+  let activeTab = 'dashboard';
 
   /* ===== Initialize ===== */
   async function init() {
@@ -352,6 +356,105 @@
     selectEl.value = db.id;
     columnSlider.value = db.columns;
     columnValue.textContent = db.columns;
+    if (activeTab === 'values') renderValuesTab();
+  }
+
+  /* ===== Tab Switching ===== */
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    const isDashboard = tab === 'dashboard';
+    gridEl.classList.toggle('hidden', !isDashboard);
+    valuesTab.classList.toggle('hidden', isDashboard);
+    document.querySelectorAll('.dashboard-only').forEach(el => el.style.display = isDashboard ? '' : 'none');
+    if (tab === 'values') renderValuesTab();
+  }
+
+  /* ===== Values Tab ===== */
+  function renderValuesTab() {
+    const db = getCurrentDashboard();
+    if (!db) {
+      valuesForm.innerHTML = '<div class="empty-state"><div class="empty-state-text">Kein Dashboard ausgewählt</div></div>';
+      return;
+    }
+    const vals = getCustomValues();
+    const tiles = db.tiles;
+    if (!tiles || tiles.length === 0) {
+      valuesForm.innerHTML = '<div class="empty-state"><div class="empty-state-text">Dieses Dashboard enthält noch keine KPIs</div></div>';
+      return;
+    }
+    const statusLabels = { green: 'Gut', yellow: 'Warnung', red: 'Kritisch', neutral: '—' };
+    const hasChanges = tiles.some(t => {
+      const kpi = kpiMap[t.kpi_id];
+      return kpi && vals[t.kpi_id] !== undefined && vals[t.kpi_id] !== kpi.example_value;
+    });
+
+    let html = '';
+    if (hasChanges) {
+      html += '<div style="grid-column:1/-1;font-size:0.82rem;color:var(--yellow);margin-bottom:0.25rem">⚡ Ungespeicherte Änderungen (Abweichungen von Standardwerten)</div>';
+    }
+
+    for (const tile of tiles) {
+      const kpi = kpiMap[tile.kpi_id];
+      if (!kpi) continue;
+      const currentVal = vals[tile.kpi_id] !== undefined ? vals[tile.kpi_id] : kpi.example_value;
+      const status = GridEngine.getStatus(kpi, currentVal);
+      const isChanged = vals[tile.kpi_id] !== undefined && vals[tile.kpi_id] !== kpi.example_value;
+      html += `
+        <div class="values-field" data-kpi-id="${kpi.id}">
+          <div class="values-field-label">
+            <div class="values-field-name">${kpi.name}</div>
+            <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
+          </div>
+          <input type="number" step="any" class="values-field-input${isChanged ? ' values-field-input--changed' : ''}" value="${currentVal}" data-kpi-id="${kpi.id}">
+          <span class="values-field-badge ${status}">${statusLabels[status]}</span>
+        </div>`;
+    }
+    valuesForm.innerHTML = html;
+
+    valuesForm.querySelectorAll('.values-field-input').forEach(input => {
+      const kpiId = input.dataset.kpiId;
+      const commit = () => {
+        const raw = input.value.trim();
+        if (raw === '') return;
+        const num = parseFloat(raw);
+        if (isNaN(num)) return;
+        const evt = new CustomEvent('tile:value-change', {
+          detail: { kpiId, value: num }
+        });
+        document.dispatchEvent(evt);
+      };
+      input.addEventListener('change', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      });
+    });
+  }
+
+  /* ===== Download Values as JSON ===== */
+  function downloadValues() {
+    const db = getCurrentDashboard();
+    if (!db || !db.tiles || db.tiles.length === 0) {
+      toast('Keine Werte zum Exportieren vorhanden.');
+      return;
+    }
+    const vals = getCustomValues();
+    const filtered = {};
+    for (const tile of db.tiles) {
+      const kpi = kpiMap[tile.kpi_id];
+      if (!kpi) continue;
+      const val = vals[tile.kpi_id] !== undefined ? vals[tile.kpi_id] : kpi.example_value;
+      filtered[tile.kpi_id] = val;
+    }
+    const data = JSON.stringify(filtered, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'values.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('values.json heruntergeladen');
   }
 
   function formatExportValue(v) {
@@ -412,6 +515,14 @@
 
     /* Export */
     $('#btn-export').addEventListener('click', exportConfig);
+
+    /* Tab switching */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    /* Download values */
+    $('#btn-download-values').addEventListener('click', downloadValues);
 
     /* Custom events from grid */
     document.addEventListener('tile:remove', (e) => removeTile(e.detail.tileId));
