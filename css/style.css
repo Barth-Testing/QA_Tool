@@ -264,13 +264,24 @@ body {
 .tile-info-btn:hover { color: var(--primary); }
 
 /* ===== AC Tile List ===== */
+.tile--ac {
+  min-height: 0;
+}
+.tile--ac .tile-chart-area {
+  flex: none;
+}
 .tile--ac .tile-chart { max-height: 90px; }
+.tile--ac .tile-ac-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 .tile-ac-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.25rem 0 0.1rem;
-  margin-top: auto;
+  align-content: flex-start;
+  gap: 0.3rem;
+  padding: 0.3rem 0 0.1rem;
 }
 .tile-ac-item {
   display: inline-flex;
