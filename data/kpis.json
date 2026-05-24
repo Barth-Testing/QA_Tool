@@ -309,6 +309,12 @@
     "thresholds": { "green": { "operator": "gte", "value": 80 }, "yellow": { "operator": "gte", "value": 50 }, "red": { "operator": "lt", "value": 50 } },
     "data_source_type": "manual",
     "tags": ["rfc", "acceptance-criteria", "coverage"],
-    "example_value": 60
+    "example_value": {
+      "acs": {
+        "AC1": { "text": "Benutzer kann sich mit gültigen Credentials anmelden", "passed": true },
+        "AC2": { "text": "Fehlerhafte Anmeldedaten zeigen eine Fehlermeldung", "passed": true },
+        "AC3": { "text": "System speichert letzten Login-Zeitpunkt", "passed": false }
+      }
+    }
   }
 ]

@@ -269,42 +269,53 @@ body {
 }
 .tile--ac .tile-chart-area {
   flex: none;
+  justify-content: center;
+  padding: 0.15rem 0 0;
 }
-.tile--ac .tile-chart { max-height: 90px; }
+.tile--ac .tile-chart {
+  height: 85px;
+  min-height: unset;
+}
 .tile--ac .tile-ac-list {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
 }
 .tile-ac-list {
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 0.3rem;
-  padding: 0.3rem 0 0.1rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem 0 0.15rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.2rem;
+  overflow-y: auto;
 }
 .tile-ac-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.4rem;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.15rem 0.55rem 0.15rem 0.35rem;
+  border-radius: 5px;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
   transition: all var(--transition);
   font-size: 0.72rem;
+  flex-shrink: 0;
 }
-.tile-ac-item:hover { border-color: var(--text-muted); background: var(--surface-hover); }
+.tile-ac-item:hover { border-color: var(--text-muted); }
 .tile-ac-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.tile-ac-dot.green { background: var(--green); }
-.tile-ac-dot.red { background: var(--red); }
-.tile-ac-name { color: var(--text-muted); font-weight: 500; }
+.tile-ac-dot.green { background: var(--green); box-shadow: 0 0 4px var(--green); }
+.tile-ac-dot.red { background: var(--red); box-shadow: 0 0 4px var(--red); }
+.tile-ac-name {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.7rem;
+}
 
 /* ===== Values Tab AC Form ===== */
 .values-ac-field {
