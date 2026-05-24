@@ -21,5 +21,16 @@
   "throughput": 2450,
   "cpu-mem-usage": 72,
   "backup-success-rate": 98.5,
-  "mtta": 23
+  "mtta": 23,
+  "test-coverage-rfc": {
+    "total": 5,
+    "covered": 3,
+    "acs": {
+      "AC1": { "text": "Benutzer kann sich mit gültigen Credentials anmelden", "passed": true },
+      "AC2": { "text": "Fehlerhafte Anmeldedaten zeigen eine Fehlermeldung", "passed": true },
+      "AC3": { "text": "System speichert letzten Login-Zeitpunkt", "passed": false },
+      "AC4": { "text": "Session-Timeout beträgt maximal 30 Minuten", "passed": true },
+      "AC5": { "text": "Abgemeldete Benutzer werden zur Login-Seite weitergeleitet", "passed": false }
+    }
+  }
 }

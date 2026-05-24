@@ -55,6 +55,7 @@ Jeder KPI-Tile zeigt ein automatisch generiertes Diagramm:
 - **Export**: Komplette Konfiguration + Werte als JSON herunterladen
 - **Werte-Tab**: Eigener Tab zum Anzeigen und Bearbeiten aller KPI-Werte des aktuellen Dashboards in einer Formular-Ansicht
 - **values.json-Download**: Nur die aktuellen KPI-Werte als `values.json` herunterladen, bereit zum Commit ins Repo
+- **Testabdeckung RFC (AC-KPI)**: Spezieller KPI-Typ "Testabdeckung RFC" mit individuellen Acceptance Criteria (ACs) — Donut-Chart zeigt prozentuale Abdeckung, darunter Liste aller ACs mit grün/rot-Status; Klick auf AC zeigt Detailtext; ACs können im Werte-Tab hinzugefügt/entfernt/bearbeitet werden
 - **localStorage**: Dashboard-Zustand + eingegebene Werte persistiert
 
 ## Datenmodell

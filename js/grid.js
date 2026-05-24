@@ -61,6 +61,17 @@ const GridEngine = (() => {
     return placed;
   }
 
+  function getAcValue(value) {
+    if (value && typeof value === 'object' && value.acs) {
+      const keys = Object.keys(value.acs);
+      const total = keys.length;
+      const covered = keys.filter(k => value.acs[k].passed).length;
+      const pct = total > 0 ? (covered / total) * 100 : 0;
+      return { pct, total, covered, acs: value.acs, raw: value };
+    }
+    return null;
+  }
+
   function setCustomValues(vals) {
     state.customValues = vals || {};
   }
@@ -107,7 +118,9 @@ const GridEngine = (() => {
         const kpi = state.kpiMap[tileData.kpi_id];
         if (!kpi) continue;
         const customVal = state.customValues[tileData.kpi_id];
-        const value = customVal !== undefined ? customVal : kpi.example_value;
+        const rawValue = customVal !== undefined ? customVal : kpi.example_value;
+        const acInfo = getAcValue(rawValue);
+        const value = acInfo ? acInfo.pct : rawValue;
         const status = getStatus(kpi, value);
         const chartType = ChartEngine.getChartType(kpi);
 
@@ -143,16 +156,32 @@ const GridEngine = (() => {
 
   function createTileElement(tile, kpi) {
     const customVal = state.customValues[tile.kpi_id];
-    const value = customVal !== undefined ? customVal : kpi.example_value;
+    const rawValue = customVal !== undefined ? customVal : kpi.example_value;
+    const acInfo = getAcValue(rawValue);
+    const value = acInfo ? acInfo.pct : rawValue;
     const status = getStatus(kpi, value);
     const el = document.createElement('div');
-    el.className = `tile status-${status}`;
+    const isAcKpi = !!acInfo;
+    el.className = `tile status-${status}${isAcKpi ? ' tile--ac' : ''}`;
     el.dataset.tileId = tile.id;
     el.draggable = true;
 
     const statusLabels = { green: '🟢 Gut', yellow: '🟡 Warnung', red: '🔴 Kritisch', neutral: '⚪ Keine Daten' };
-    const isCustom = customVal !== undefined;
     const chartType = ChartEngine.getChartType(kpi);
+
+    let acListHtml = '';
+    if (isAcKpi) {
+      const dots = { true: 'green', false: 'red' };
+      acListHtml = `<div class="tile-ac-list">`;
+      for (const [acId, ac] of Object.entries(acInfo.acs)) {
+        acListHtml += `
+          <div class="tile-ac-item" data-ac="${acId}" data-ac-text="${ac.text.replace(/"/g, '&quot;')}">
+            <span class="tile-ac-dot ${dots[ac.passed]}"></span>
+            <span class="tile-ac-name">${acId}</span>
+          </div>`;
+      }
+      acListHtml += `</div>`;
+    }
 
     el.innerHTML = `
       <div class="tile-status-bar"></div>
@@ -167,8 +196,9 @@ const GridEngine = (() => {
         <canvas class="tile-chart" data-chart-type="${chartType}"></canvas>
         <span class="tile-status-badge">${statusLabels[status]}</span>
       </div>
+      ${acListHtml}
       <div class="tile-footer">
-        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}</span>
+        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}</span>
         <button class="tile-info-btn" data-kpi-id="${kpi.id}">Details</button>
       </div>
       <div class="tile-resize-handle"></div>
@@ -197,6 +227,20 @@ const GridEngine = (() => {
       startValueEdit(el, tile, kpi);
     });
 
+    if (isAcKpi) {
+      el.querySelectorAll('.tile-ac-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const acId = item.dataset.ac;
+          const acText = item.dataset.acText;
+          const evt = new CustomEvent('tile:ac-detail', {
+            detail: { kpiName: kpi.name, acId, acText, kpiId: tile.kpi_id }
+          });
+          document.dispatchEvent(evt);
+        });
+      });
+    }
+
     return el;
   }
 
@@ -205,6 +249,10 @@ const GridEngine = (() => {
     if (!chartArea || chartArea.querySelector('.tile-edit-input')) return;
     const current = state.customValues[tile.kpi_id] !== undefined
       ? state.customValues[tile.kpi_id] : kpi.example_value;
+    if (current && typeof current === 'object') {
+      toast('AC-Werte im Werte-Tab bearbeiten');
+      return;
+    }
     const input = document.createElement('input');
     input.type = 'number';
     input.step = 'any';
@@ -332,6 +380,11 @@ const GridEngine = (() => {
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
+  }
+
+  function toast(msg) {
+    const evt = new CustomEvent('app:toast', { detail: { message: msg } });
+    document.dispatchEvent(evt);
   }
 
   return { init, renderGrid, compactGrid, findFreeSlot, getStatus, setCustomValues, onUpdate, getState: () => state };

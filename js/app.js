@@ -313,6 +313,24 @@
     return `<div class="info-label">Grenzwerte</div><div style="display:flex;gap:0.75rem;margin-top:0.3rem">${parts.join('')}</div>`;
   }
 
+  /* ===== AC Detail Panel ===== */
+  function showAcDetail(kpiName, acId, acText) {
+    const overlay = document.createElement('div');
+    overlay.className = 'info-panel-overlay';
+    overlay.innerHTML = `
+      <div class="info-panel">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1rem">
+          <h3>${kpiName} — ${acId}</h3>
+          <button class="btn-close" id="info-close">&times;</button>
+        </div>
+        <p style="font-size:0.95rem;line-height:1.6;color:var(--text)">${acText}</p>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.id === 'info-close') overlay.remove();
+    });
+  }
+
   /* ===== Toast ===== */
   function toast(message) {
     const el = document.createElement('div');
@@ -398,17 +416,23 @@
       const kpi = kpiMap[tile.kpi_id];
       if (!kpi) continue;
       const currentVal = vals[tile.kpi_id] !== undefined ? vals[tile.kpi_id] : kpi.example_value;
-      const status = GridEngine.getStatus(kpi, currentVal);
-      const isChanged = vals[tile.kpi_id] !== undefined && vals[tile.kpi_id] !== kpi.example_value;
-      html += `
-        <div class="values-field" data-kpi-id="${kpi.id}">
-          <div class="values-field-label">
-            <div class="values-field-name">${kpi.name}</div>
-            <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
-          </div>
-          <input type="number" step="any" class="values-field-input${isChanged ? ' values-field-input--changed' : ''}" value="${currentVal}" data-kpi-id="${kpi.id}">
-          <span class="values-field-badge ${status}">${statusLabels[status]}</span>
-        </div>`;
+      const isAcKpi = currentVal && typeof currentVal === 'object' && currentVal.acs;
+
+      if (isAcKpi) {
+        html += renderAcValuesField(kpi, currentVal, vals);
+      } else {
+        const status = GridEngine.getStatus(kpi, currentVal);
+        const isChanged = vals[tile.kpi_id] !== undefined && vals[tile.kpi_id] !== kpi.example_value;
+        html += `
+          <div class="values-field" data-kpi-id="${kpi.id}">
+            <div class="values-field-label">
+              <div class="values-field-name">${kpi.name}</div>
+              <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
+            </div>
+            <input type="number" step="any" class="values-field-input${isChanged ? ' values-field-input--changed' : ''}" value="${currentVal}" data-kpi-id="${kpi.id}">
+            <span class="values-field-badge ${status}">${statusLabels[status]}</span>
+          </div>`;
+      }
     }
     valuesForm.innerHTML = html;
 
@@ -429,6 +453,122 @@
         if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
       });
     });
+
+    setupAcFormEvents();
+  }
+
+  /* ===== AC Form Helpers ===== */
+  function renderAcValuesField(kpi, acValue) {
+    const acKeys = Object.keys(acValue.acs);
+    const total = acKeys.length;
+    const covered = acKeys.filter(k => acValue.acs[k].passed).length;
+    const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+    const dots = { true: 'green', false: 'red' };
+
+    let itemsHtml = '';
+    for (const acId of acKeys) {
+      const ac = acValue.acs[acId];
+      itemsHtml += `
+        <div class="values-ac-item" data-ac="${acId}">
+          <label class="values-ac-toggle" title="Bestanden/Nicht bestanden">
+            <input type="checkbox" class="values-ac-checkbox" ${ac.passed ? 'checked' : ''}>
+          </label>
+          <span class="values-ac-id">${acId}</span>
+          <input type="text" class="values-ac-text" value="${(ac.text || '').replace(/"/g, '&quot;')}" placeholder="AC-Text eingeben...">
+          <button class="values-ac-remove" title="AC entfernen">×</button>
+        </div>`;
+    }
+
+    return `
+      <div class="values-ac-field" data-kpi-id="${kpi.id}">
+        <div class="values-ac-field-header">
+          <div class="values-field-label">
+            <div class="values-field-name">${kpi.name}</div>
+            <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
+          </div>
+          <span class="values-ac-summary" style="font-size:0.85rem;font-weight:600;color:var(--text)">${covered}/${total} ACs · ${pct}%</span>
+        </div>
+        <div class="values-ac-items">${itemsHtml}</div>
+        <button class="btn btn-sm btn-secondary values-ac-add" style="align-self:flex-start;margin-top:0.5rem">+ AC hinzufügen</button>
+      </div>`;
+  }
+
+  function setupAcFormEvents() {
+    valuesForm.querySelectorAll('.values-ac-checkbox').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const field = cb.closest('.values-ac-field');
+        if (field) commitAcValues(field);
+      });
+    });
+
+    valuesForm.querySelectorAll('.values-ac-text').forEach(input => {
+      input.addEventListener('change', () => {
+        const field = input.closest('.values-ac-field');
+        if (field) commitAcValues(field);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      });
+    });
+
+    valuesForm.querySelectorAll('.values-ac-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.values-ac-item');
+        const field = btn.closest('.values-ac-field');
+        if (!item || !field) return;
+        const kpiId = field.dataset.kpiId;
+        const acId = item.dataset.ac;
+        const vals = getCustomValues();
+        const acValue = vals[kpiId];
+        if (acValue && acValue.acs) {
+          delete acValue.acs[acId];
+          setCustomValue(kpiId, acValue);
+          render();
+          toast(`„${kpiMap[kpiId]?.name}" — ${acId} entfernt`);
+        }
+      });
+    });
+
+    valuesForm.querySelectorAll('.values-ac-add').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const field = btn.closest('.values-ac-field');
+        if (!field) return;
+        const kpiId = field.dataset.kpiId;
+        const vals = getCustomValues();
+        const acValue = vals[kpiId];
+        if (!acValue || !acValue.acs) return;
+        const existingNums = Object.keys(acValue.acs).map(k => parseInt(k.replace('AC', '')) || 0);
+        const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+        const newId = 'AC' + nextNum;
+        acValue.acs[newId] = { text: '', passed: false };
+        setCustomValue(kpiId, acValue);
+        render();
+        toast(`„${kpiMap[kpiId]?.name}" — ${newId} hinzugefügt`);
+      });
+    });
+  }
+
+  function commitAcValues(field) {
+    const kpiId = field.dataset.kpiId;
+    const vals = getCustomValues();
+    const acValue = vals[kpiId];
+    if (!acValue || !acValue.acs) return;
+    for (const item of field.querySelectorAll('.values-ac-item')) {
+      const acId = item.dataset.ac;
+      const cb = item.querySelector('.values-ac-checkbox');
+      const textInput = item.querySelector('.values-ac-text');
+      if (!acValue.acs[acId]) continue;
+      acValue.acs[acId].passed = cb.checked;
+      acValue.acs[acId].text = textInput ? textInput.value : '';
+    }
+    setCustomValue(kpiId, acValue);
+    const keys = Object.keys(acValue.acs);
+    const total = keys.length;
+    const covered = keys.filter(k => acValue.acs[k].passed).length;
+    const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+    render();
+    const kpi = kpiMap[kpiId];
+    if (kpi) toast(`„${kpi.name}" → ${covered}/${total} · ${pct}%`);
   }
 
   /* ===== Download Values as JSON ===== */
@@ -529,12 +669,19 @@
     document.addEventListener('tile:swap', (e) => swapTiles(e.detail.sourceId, e.detail.targetId));
     document.addEventListener('tile:resize', (e) => resizeTile(e.detail.tileId, e.detail.w, e.detail.h));
     document.addEventListener('tile:info', (e) => showInfoPanel(e.detail.kpi));
+    document.addEventListener('tile:ac-detail', (e) => {
+      const { kpiName, acId, acText } = e.detail;
+      showAcDetail(kpiName, acId, acText);
+    });
+    document.addEventListener('app:toast', (e) => toast(e.detail.message));
     document.addEventListener('tile:value-change', (e) => {
       const { kpiId, value } = e.detail;
-      setCustomValue(kpiId, value);
+      const existing = getCustomValues()[kpiId];
+      const isAc = existing && typeof existing === 'object' && existing.acs;
+      if (!isAc) setCustomValue(kpiId, value);
       const kpi = kpiMap[kpiId];
       render();
-      if (kpi) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
+      if (kpi && !isAc) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
     });
 
     /* Keyboard */

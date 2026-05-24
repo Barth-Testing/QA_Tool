@@ -17,7 +17,8 @@
         { "id": "t9", "kpi_id": "uptime", "x": 0, "y": 2, "w": 1, "h": 1 },
         { "id": "t10", "kpi_id": "api-response-time", "x": 1, "y": 2, "w": 1, "h": 1 },
         { "id": "t11", "kpi_id": "a-bugs-post-release", "x": 2, "y": 2, "w": 2, "h": 1 },
-        { "id": "t12", "kpi_id": "change-failure-rate", "x": 0, "y": 3, "w": 2, "h": 1 }
+        { "id": "t12", "kpi_id": "change-failure-rate", "x": 0, "y": 3, "w": 2, "h": 1 },
+        { "id": "t21", "kpi_id": "test-coverage-rfc", "x": 2, "y": 3, "w": 2, "h": 2 }
       ]
     },
     {
