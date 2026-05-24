@@ -4,6 +4,7 @@ const GridEngine = (() => {
     columns: 4,
     tiles: [],
     kpiMap: {},
+    customValues: {},
     callbacks: { onUpdate: null }
   };
 
@@ -60,6 +61,10 @@ const GridEngine = (() => {
     return placed;
   }
 
+  function setCustomValues(vals) {
+    state.customValues = vals || {};
+  }
+
   function renderGrid(container, tiles, columns) {
     state.columns = columns || state.columns;
     state.tiles = tiles;
@@ -85,8 +90,34 @@ const GridEngine = (() => {
       container.appendChild(el);
     }
 
+    drawAllCharts(container);
     setupDragDrop(container);
     setupResize(container);
+  }
+
+  function drawAllCharts(container) {
+    requestAnimationFrame(() => {
+      const canvases = container.querySelectorAll('.tile-chart');
+      for (const canvas of canvases) {
+        const tile = canvas.closest('.tile');
+        if (!tile) continue;
+        const tileId = tile.dataset.tileId;
+        const tileData = state.tiles.find(t => t.id === tileId);
+        if (!tileData) continue;
+        const kpi = state.kpiMap[tileData.kpi_id];
+        if (!kpi) continue;
+        const customVal = state.customValues[tileData.kpi_id];
+        const value = customVal !== undefined ? customVal : kpi.example_value;
+        const status = getStatus(kpi, value);
+        const chartType = ChartEngine.getChartType(kpi);
+
+        if (chartType === 'donut') {
+          ChartEngine.drawDonut(canvas, value, kpi.unit, status);
+        } else {
+          ChartEngine.drawBar(canvas, value, kpi.unit, status, kpi.thresholds);
+        }
+      }
+    });
   }
 
   function getStatus(kpi, value) {
@@ -111,7 +142,8 @@ const GridEngine = (() => {
   }
 
   function createTileElement(tile, kpi) {
-    const value = kpi.example_value;
+    const customVal = state.customValues[tile.kpi_id];
+    const value = customVal !== undefined ? customVal : kpi.example_value;
     const status = getStatus(kpi, value);
     const el = document.createElement('div');
     el.className = `tile status-${status}`;
@@ -119,6 +151,8 @@ const GridEngine = (() => {
     el.draggable = true;
 
     const statusLabels = { green: '🟢 Gut', yellow: '🟡 Warnung', red: '🔴 Kritisch', neutral: '⚪ Keine Daten' };
+    const isCustom = customVal !== undefined;
+    const chartType = ChartEngine.getChartType(kpi);
 
     el.innerHTML = `
       <div class="tile-status-bar"></div>
@@ -129,9 +163,8 @@ const GridEngine = (() => {
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>
       </div>
-      <div class="tile-value-area">
-        <span class="tile-value">${formatValue(value, kpi.unit)}</span>
-        <span class="tile-unit">${kpi.unit || ''}</span>
+      <div class="tile-chart-area">
+        <canvas class="tile-chart" data-chart-type="${chartType}"></canvas>
         <span class="tile-status-badge">${statusLabels[status]}</span>
       </div>
       <div class="tile-footer">
@@ -159,7 +192,46 @@ const GridEngine = (() => {
       document.dispatchEvent(evt);
     });
 
+    el.querySelector('.tile-chart-area').addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      startValueEdit(el, tile, kpi);
+    });
+
     return el;
+  }
+
+  function startValueEdit(el, tile, kpi) {
+    const chartArea = el.querySelector('.tile-chart-area');
+    if (!chartArea || chartArea.querySelector('.tile-edit-input')) return;
+    const current = state.customValues[tile.kpi_id] !== undefined
+      ? state.customValues[tile.kpi_id] : kpi.example_value;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = 'any';
+    input.className = 'tile-edit-input';
+    input.value = current;
+
+    const commit = () => {
+      const raw = input.value.trim();
+      if (raw === '') return;
+      const num = parseFloat(raw);
+      if (isNaN(num)) return;
+      input.remove();
+      const evt = new CustomEvent('tile:value-change', {
+        detail: { kpiId: tile.kpi_id, tileId: tile.id, value: num }
+      });
+      document.dispatchEvent(evt);
+    };
+
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { input.blur(); }
+      if (e.key === 'Escape') { input.remove(); }
+    });
+
+    chartArea.appendChild(input);
+    input.focus();
+    input.select();
   }
 
   function formatValue(value, unit) {
@@ -262,5 +334,5 @@ const GridEngine = (() => {
     });
   }
 
-  return { init, renderGrid, compactGrid, findFreeSlot, getStatus, onUpdate, getState: () => state };
+  return { init, renderGrid, compactGrid, findFreeSlot, getStatus, setCustomValues, onUpdate, getState: () => state };
 })();

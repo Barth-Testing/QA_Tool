@@ -4,13 +4,17 @@
 
   const DASHBOARDS_URL = 'data/dashboards.json';
   const KPIS_URL = 'data/kpis.json';
+  const VALUES_URL = 'data/values.json';
+  const EXPORT_URL = 'data/qa-dashboard-export.json';
   const STORAGE_KEY = 'qa_dashboard_state';
+  const VALUES_KEY = 'qa_dashboard_values';
 
   let kpis = [];
   let kpiMap = {};
   let dashboards = [];
   let currentDashboardId = null;
   let currentTiles = [];
+  let fileValues = {};
 
   /* ===== DOM Refs ===== */
   const $ = (s) => document.querySelector(s);
@@ -30,24 +34,59 @@
     await loadData();
     setupEventListeners();
     restoreState();
+    ensureTileSizes();
     if (!currentDashboardId && dashboards.length > 0) {
       currentDashboardId = dashboards[0].id;
     }
     render();
   }
 
+  function ensureTileSizes() {
+    for (const db of dashboards) {
+      for (const tile of db.tiles) {
+        const kpi = kpiMap[tile.kpi_id];
+        if (!kpi) continue;
+        if (ChartEngine.getChartType(kpi)) {
+          if (tile.w < 2) tile.w = 2;
+          if (tile.h < 2) tile.h = 2;
+        }
+      }
+      db.tiles = Grid.compactGrid(db.tiles);
+    }
+  }
+
   /* ===== Data Loading ===== */
   async function loadData() {
     try {
-      const [kpiResp, dashResp] = await Promise.all([
+      const [kpiResp, dashResp, valuesResp, exportResp] = await Promise.all([
         fetch(KPIS_URL),
-        fetch(DASHBOARDS_URL)
+        fetch(DASHBOARDS_URL),
+        fetch(VALUES_URL).catch(() => null),
+        fetch(EXPORT_URL).catch(() => null)
       ]);
       kpis = await kpiResp.json();
       const dashData = await dashResp.json();
       dashboards = dashData.dashboards;
       kpiMap = {};
       for (const k of kpis) kpiMap[k.id] = k;
+
+      if (exportResp && exportResp.ok) {
+        const exportData = await exportResp.json();
+        if (exportData.customValues) {
+          fileValues = { ...fileValues, ...exportData.customValues };
+        }
+        if (exportData.dashboards) dashboards = exportData.dashboards;
+        if (exportData.kpis) {
+          kpis = exportData.kpis;
+          kpiMap = {};
+          for (const k of kpis) kpiMap[k.id] = k;
+        }
+      }
+
+      if (valuesResp && valuesResp.ok) {
+        const vals = await valuesResp.json();
+        fileValues = { ...fileValues, ...vals };
+      }
     } catch (err) {
       console.error('Failed to load data:', err);
       toast('Fehler beim Laden der Daten. Bitte sicherstellen, dass die JSON-Dateien existieren.');
@@ -86,23 +125,6 @@
     return db ? db.tiles : [];
   }
 
-  /* ===== Render ===== */
-  function render() {
-    const db = getCurrentDashboard();
-    if (!db) {
-      gridEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-text">Kein Dashboard vorhanden</div></div>`;
-      return;
-    }
-
-    currentTiles = db.tiles;
-    Grid.init(db.columns, kpiMap);
-    Grid.renderGrid(gridEl, db.tiles, db.columns);
-    renderDashboardSelect();
-    selectEl.value = db.id;
-    columnSlider.value = db.columns;
-    columnValue.textContent = db.columns;
-  }
-
   function renderDashboardSelect() {
     selectEl.innerHTML = dashboards.map(d =>
       `<option value="${d.id}">${d.is_favorite ? '★ ' : ''}${d.name}</option>`
@@ -131,8 +153,9 @@
       return;
     }
     const kpi = kpiMap[kpiId];
-    const w = kpi && kpi.id === 'a-bugs-post-release' ? 2 : 1;
-    const h = 1;
+    const hasChart = kpi && ChartEngine.getChartType(kpi);
+    const w = hasChart ? 2 : 1;
+    const h = hasChart ? 2 : 1;
     const slot = Grid.findFreeSlot(db.tiles, w, h);
     db.tiles.push({
       id: getNextTileId(),
@@ -299,9 +322,47 @@
     }, 2500);
   }
 
+  /* ===== Custom Values (Inline Editing) ===== */
+  function getCustomValues() {
+    try {
+      const local = JSON.parse(localStorage.getItem(VALUES_KEY)) || {};
+      return { ...fileValues, ...local };
+    } catch { return { ...fileValues }; }
+  }
+
+  function setCustomValue(kpiId, value) {
+    const vals = getCustomValues();
+    vals[kpiId] = value;
+    localStorage.setItem(VALUES_KEY, JSON.stringify(vals));
+  }
+
+  /* ===== Render ===== */
+  function render() {
+    const db = getCurrentDashboard();
+    if (!db) {
+      gridEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-text">Kein Dashboard vorhanden</div></div>`;
+      return;
+    }
+
+    currentTiles = db.tiles;
+    Grid.init(db.columns, kpiMap);
+    Grid.setCustomValues(getCustomValues());
+    Grid.renderGrid(gridEl, db.tiles, db.columns);
+    renderDashboardSelect();
+    selectEl.value = db.id;
+    columnSlider.value = db.columns;
+    columnValue.textContent = db.columns;
+  }
+
+  function formatExportValue(v) {
+    if (Number.isInteger(v)) return v.toString();
+    return v.toFixed(1);
+  }
+
   /* ===== Export ===== */
   function exportConfig() {
-    const data = JSON.stringify({ dashboards, kpis }, null, 2);
+    const customValues = getCustomValues();
+    const data = JSON.stringify({ dashboards, kpis, customValues }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -309,7 +370,7 @@
     a.download = 'qa-dashboard-export.json';
     a.click();
     URL.revokeObjectURL(url);
-    toast('Konfiguration exportiert');
+    toast('Konfiguration inkl. Werte exportiert');
   }
 
   /* ===== Event Listeners ===== */
@@ -357,6 +418,13 @@
     document.addEventListener('tile:swap', (e) => swapTiles(e.detail.sourceId, e.detail.targetId));
     document.addEventListener('tile:resize', (e) => resizeTile(e.detail.tileId, e.detail.w, e.detail.h));
     document.addEventListener('tile:info', (e) => showInfoPanel(e.detail.kpi));
+    document.addEventListener('tile:value-change', (e) => {
+      const { kpiId, value } = e.detail;
+      setCustomValue(kpiId, value);
+      const kpi = kpiMap[kpiId];
+      render();
+      if (kpi) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
+    });
 
     /* Keyboard */
     document.addEventListener('keydown', (e) => {
