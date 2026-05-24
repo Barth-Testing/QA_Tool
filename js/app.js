@@ -36,6 +36,7 @@
   /* ===== Initialize ===== */
   async function init() {
     await loadData();
+    migrateAcStorage();
     setupEventListeners();
     restoreState();
     ensureTileSizes();
@@ -344,11 +345,41 @@
     }, 2500);
   }
 
+  /* ===== Migrate stale AC localStorage entries ===== */
+  function migrateAcStorage() {
+    try {
+      const local = JSON.parse(localStorage.getItem(VALUES_KEY)) || {};
+      let changed = false;
+      for (const key of Object.keys(fileValues)) {
+        const fv = fileValues[key];
+        if (fv && typeof fv === 'object' && fv.acs) {
+          if (typeof local[key] === 'number') {
+            delete local[key];
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        localStorage.setItem(VALUES_KEY, JSON.stringify(local));
+      }
+    } catch {}
+  }
+
   /* ===== Custom Values (Inline Editing) ===== */
   function getCustomValues() {
     try {
       const local = JSON.parse(localStorage.getItem(VALUES_KEY)) || {};
-      return { ...fileValues, ...local };
+      const merged = { ...fileValues, ...local };
+      /* Protect AC-type objects (have .acs) from being overwritten by stale numbers in localStorage */
+      for (const key of Object.keys(fileValues)) {
+        const fv = fileValues[key];
+        if (fv && typeof fv === 'object' && fv.acs) {
+          if (typeof local[key] !== 'object') {
+            merged[key] = fv;
+          }
+        }
+      }
+      return merged;
     } catch { return { ...fileValues }; }
   }
 
