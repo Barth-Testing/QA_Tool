@@ -723,12 +723,133 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeCatalog();
+        $('#campaign-modal').classList.add('hidden');
         columnModal.classList.add('hidden');
         document.querySelectorAll('.info-panel-overlay').forEach(el => el.remove());
       }
     });
   }
 
+  /* ===== Campaign (Testkampagne) Engine ===== */
+  const CAMPAIGNS_KEY = 'qa_dashboard_campaigns';
+  let campaigns = [];
+
+  function loadCampaigns() {
+    try {
+      const saved = localStorage.getItem(CAMPAIGNS_KEY);
+      campaigns = saved ? JSON.parse(saved) : [];
+    } catch { campaigns = []; }
+  }
+
+  function saveCampaigns() {
+    try {
+      localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
+    } catch {}
+  }
+
+  function renderCampaigns() {
+    const list = $('#campaign-list');
+    list.innerHTML = campaigns.map(c => {
+      const avg = c.values.length > 0 ? Math.round(c.values.reduce((a, b) => a + b, 0) / c.values.length) : 0;
+      const miniLabels = ['Unit', 'Integration', 'E2E', 'Manual'];
+      return `
+        <div class="campaign-tile" data-campaign-id="${c.id}">
+          <div class="campaign-tile-header">Testkampagne ${c.version}</div>
+          <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+          <div class="campaign-mini-row">
+            ${c.values.map((v, i) => `
+              <div class="campaign-mini-donut-wrap" data-campaign-id="${c.id}" data-index="${i}">
+                <canvas class="campaign-mini-canvas" data-campaign-id="${c.id}" data-index="${i}"></canvas>
+                <span class="campaign-mini-label">${miniLabels[i] || ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+    }).join('');
+    requestAnimationFrame(drawCampaignDonuts);
+  }
+
+  function drawCampaignDonuts() {
+    for (const c of campaigns) {
+      const mainCanvas = document.querySelector(`.campaign-main-donut[data-campaign-id="${c.id}"]`);
+      if (mainCanvas) {
+        const avg = c.values.length > 0 ? Math.round(c.values.reduce((a, b) => a + b, 0) / c.values.length) : 0;
+        const status = avg >= 80 ? 'green' : avg >= 50 ? 'yellow' : 'red';
+        ChartEngine.drawDonut(mainCanvas, avg, '%', status);
+      }
+      document.querySelectorAll(`.campaign-mini-canvas[data-campaign-id="${c.id}"]`).forEach(canvas => {
+        const idx = parseInt(canvas.dataset.index);
+        const val = c.values[idx] || 0;
+        ChartEngine.drawMiniDonut(canvas, val);
+      });
+    }
+  }
+
+  function createCampaign(version) {
+    const id = 'cmp_' + Date.now();
+    const newCampaign = { id, version, values: [0, 0, 0, 0] };
+    campaigns.unshift(newCampaign);
+    saveCampaigns();
+    renderCampaigns();
+  }
+
+  function setupCampaignEvents() {
+    const modal = $('#campaign-modal');
+    const versionInput = $('#campaign-version');
+    const backdrop = modal.querySelector('.modal-backdrop');
+
+    $('#btn-add-campaign').addEventListener('click', () => {
+      versionInput.value = '';
+      modal.classList.remove('hidden');
+      setTimeout(() => versionInput.focus(), 50);
+    });
+
+    $('#btn-close-campaign').addEventListener('click', () => modal.classList.add('hidden'));
+    backdrop.addEventListener('click', () => modal.classList.add('hidden'));
+
+    $('#btn-create-campaign').addEventListener('click', () => {
+      const version = versionInput.value.trim();
+      if (!version) {
+        toast('Bitte eine Version eingeben');
+        return;
+      }
+      createCampaign(version);
+      modal.classList.add('hidden');
+      toast(`Testkampagne ${version} erstellt`);
+    });
+
+    versionInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#btn-create-campaign').click();
+    });
+
+    /* Mini donut value editing */
+    $('#campaign-list').addEventListener('click', (e) => {
+      const wrap = e.target.closest('.campaign-mini-donut-wrap');
+      if (!wrap) return;
+      const campaignId = wrap.dataset.campaignId;
+      const idx = parseInt(wrap.dataset.index);
+      const c = campaigns.find(c => c.id === campaignId);
+      if (!c) return;
+      const current = c.values[idx] || 0;
+      const input = prompt(`Wert für ${wrap.querySelector('.campaign-mini-label')?.textContent || 'Test'} eingeben (0-100):`, current);
+      if (input === null) return;
+      const num = parseFloat(input);
+      if (isNaN(num) || num < 0 || num > 100) {
+        toast('Bitte einen Wert zwischen 0 und 100 eingeben');
+        return;
+      }
+      c.values[idx] = num;
+      saveCampaigns();
+      renderCampaigns();
+    });
+  }
+
   /* ===== Start ===== */
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCampaigns();
+    init().then(() => {
+      renderCampaigns();
+      setupCampaignEvents();
+    });
+  });
 })(GridEngine);

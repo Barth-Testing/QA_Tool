@@ -27,17 +27,41 @@
   </header>
 
   <main class="dashboard-container">
-    <div id="dashboard-grid" class="dashboard-grid"></div>
-    <div id="values-tab" class="values-tab hidden">
-      <div class="values-header">
-        <h2>KPI-Werte bearbeiten</h2>
-        <div class="values-header-actions">
-          <button id="btn-download-values" class="btn btn-primary">Als JSON herunterladen</button>
-        </div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>Testkampagnen</h2>
+        <button id="btn-add-campaign" class="btn btn-primary btn-sm" title="Neue Testkampagne">+</button>
       </div>
-      <p class="values-info">Werte beziehen sich auf KPIs des aktuell ausgewählten Dashboards. Änderungen werden sofort übernommen.</p>
-      <div id="values-form" class="values-form"></div>
+      <div class="sidebar-list" id="campaign-list"></div>
+    </aside>
+    <div class="dashboard-main">
+      <div id="dashboard-grid" class="dashboard-grid"></div>
+      <div id="values-tab" class="values-tab hidden">
+        <div class="values-header">
+          <h2>KPI-Werte bearbeiten</h2>
+          <div class="values-header-actions">
+            <button id="btn-download-values" class="btn btn-primary">Als JSON herunterladen</button>
+          </div>
+        </div>
+        <p class="values-info">Werte beziehen sich auf KPIs des aktuell ausgewählten Dashboards. Änderungen werden sofort übernommen.</p>
+        <div id="values-form" class="values-form"></div>
+      </div>
     </div>
+
+  <div id="campaign-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content campaign-modal-content">
+      <div class="modal-header">
+        <h2>Neue Testkampagne</h2>
+        <button id="btn-close-campaign" class="btn-close">&times;</button>
+      </div>
+      <div class="campaign-form">
+        <label for="campaign-version">Version</label>
+        <input type="text" id="campaign-version" placeholder="z.B. 4.4.1">
+        <button id="btn-create-campaign" class="btn btn-primary">Erstellen</button>
+      </div>
+    </div>
+  </div>
 
   <div id="catalog-modal" class="modal hidden">
     <div class="modal-backdrop"></div>

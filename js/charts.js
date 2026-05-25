@@ -125,5 +125,45 @@ const ChartEngine = (() => {
     ctx.fillText(displayVal + (unit ? ' ' + unit : ''), w / 2, h * 0.2);
   }
 
-  return { getChartType, drawDonut, drawBar };
+  function drawMiniDonut(canvas, value) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const outerR = Math.min(w, h) / 2 - 4;
+    const innerR = outerR * 0.55;
+    const lw = outerR - innerR;
+
+    const pct = Math.min(Math.max(value / 100, 0), 1);
+    const status = value >= 80 ? 'green' : value >= 50 ? 'yellow' : 'red';
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - lw / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+    ctx.strokeStyle = getStatusColor(status);
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'butt';
+    ctx.stroke();
+
+    ctx.fillStyle = '#888ca3';
+    ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(value), cx, cy);
+  }
+
+  return { getChartType, drawDonut, drawBar, drawMiniDonut };
 })();
