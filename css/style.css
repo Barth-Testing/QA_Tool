@@ -250,7 +250,7 @@ body {
 .dashboard-grid {
   display: grid;
   gap: 1rem;
-  grid-auto-rows: minmax(180px, auto);
+  grid-auto-rows: minmax(140px, auto);
   position: relative;
 }
 
@@ -267,7 +267,6 @@ body {
   transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
   overflow: hidden;
   user-select: none;
-  aspect-ratio: 1;
 }
 .tile.tile--ac {
   aspect-ratio: unset;

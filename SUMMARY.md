@@ -39,21 +39,22 @@ Jeder KPI-Tile zeigt ein automatisch generiertes Diagramm:
 
 - Farbe des Charts folgt dem Status (Grün/Gelb/Rot/Neutral)
 - **Harte Kante** am Donut-Ende (Butt-Cap) statt runder Überzeichnung
-- Doppelklick auf das Chart öffnet einen Inline-Editor für den Wert
-- Tiles werden automatisch auf Breite 2 × Höhe 2 vergrößert
+- Klick auf das Chart öffnet einen Inline-Editor für den Wert
+- Tile-Größen entsprechen den deklarierten Werten aus dashboards.json (keine Mindestgröße 2×2 mehr); Tiles füllen den Grid automatisch aus
 
 ## Funktionsumfang
 
 - **2 Dashboards**: "QA Overview" (6 Spalten) + "QA Ops Monitor" (3 Spalten)
 - **21 KPIs** in 2 Kategorien: `dev` (13) + `ops` (8)
 - **KPI-Katalog-Modal**: Durchsuchen, Filtern (Dev/Ops), Hinzufügen
-- **Inline-Editing**: Doppelklick auf KPI-Wert → Zahleneingabe
+- **Inline-Editing**: Klick auf KPI-Wert/Chart → Zahleneingabe mit Persistenz in localStorage (gleicher Mechanismus wie Werte-Tab)
 - **Status-Ampel**: Grün/Gelb/Rot basierend auf konfigurierbaren Thresholds
 - **Drag & Drop**: Tiles per Drag neu anordnen
 - **Resize**: Tiles per Ziehgriff unten rechts skalieren
 - **Spalten-Steuerung**: Slider (2-8 Spalten)
 - **Export**: Komplette Konfiguration + Werte als JSON herunterladen
 - **Werte-Tab**: Eigener Tab zum Anzeigen und Bearbeiten aller KPI-Werte des aktuellen Dashboards in einer Formular-Ansicht
+- **Testkampagnen Sidebar**: Linke Spalte mit Kampagnen-Tiles; Mini-Donuts klickbar zur Werteingabe via Prompt; Labels: Manual, Automation, RFC, Mobile
 - **values.json-Download**: Nur die aktuellen KPI-Werte als `values.json` herunterladen, bereit zum Commit ins Repo
 - **Testabdeckung RFC (AC-KPI)**: Spezieller KPI-Typ "Testabdeckung RFC" mit individuellen Acceptance Criteria (ACs) — Donut-Chart zeigt prozentuale Abdeckung, darunter Liste aller ACs mit grün/rot-Status; Klick auf AC zeigt Detailtext; ACs können im Werte-Tab hinzugefügt/entfernt/bearbeitet werden
 - **localStorage**: Dashboard-Zustand + eingegebene Werte persistiert

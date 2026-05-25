@@ -51,10 +51,8 @@
       for (const tile of db.tiles) {
         const kpi = kpiMap[tile.kpi_id];
         if (!kpi) continue;
-        if (ChartEngine.getChartType(kpi)) {
-          if (tile.w < 2) tile.w = 2;
-          if (tile.h < 2) tile.h = 2;
-        }
+        if (tile.w < 1) tile.w = 1;
+        if (tile.h < 1) tile.h = 1;
       }
       db.tiles = Grid.compactGrid(db.tiles);
     }
@@ -751,7 +749,7 @@
     const list = $('#campaign-list');
     list.innerHTML = campaigns.map(c => {
       const avg = c.values.length > 0 ? Math.round(c.values.reduce((a, b) => a + b, 0) / c.values.length) : 0;
-      const miniLabels = ['Unit', 'Integration', 'E2E', 'Manual'];
+      const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
       return `
         <div class="campaign-tile" data-campaign-id="${c.id}">
           <div class="campaign-tile-header">Testkampagne ${c.version}</div>

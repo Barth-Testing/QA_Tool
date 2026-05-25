@@ -222,7 +222,8 @@ const GridEngine = (() => {
       document.dispatchEvent(evt);
     });
 
-    el.querySelector('.tile-chart-area').addEventListener('dblclick', (e) => {
+    el.querySelector('.tile-chart-area').addEventListener('click', (e) => {
+      if (e.target.closest('.tile-edit-input')) return;
       e.stopPropagation();
       startValueEdit(el, tile, kpi);
     });
