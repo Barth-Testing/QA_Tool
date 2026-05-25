@@ -266,6 +266,7 @@ body {
 /* ===== AC Tile List ===== */
 .tile--ac {
   min-height: 0;
+  overflow-y: auto;
 }
 .tile--ac .tile-chart-area {
   flex: none;

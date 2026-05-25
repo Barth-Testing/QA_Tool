@@ -82,6 +82,10 @@
         }
         if (exportData.dashboards) dashboards = exportData.dashboards;
         if (exportData.kpis) {
+          const exportIds = new Set(exportData.kpis.map(k => k.id));
+          for (const k of kpis) {
+            if (!exportIds.has(k.id)) exportData.kpis.push(k);
+          }
           kpis = exportData.kpis;
           kpiMap = {};
           for (const k of kpis) kpiMap[k.id] = k;
