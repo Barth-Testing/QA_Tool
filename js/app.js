@@ -736,6 +736,14 @@
     try {
       const saved = localStorage.getItem(CAMPAIGNS_KEY);
       campaigns = saved ? JSON.parse(saved) : [];
+      let changed = false;
+      for (const c of campaigns) {
+        if (!c.colors) {
+          c.colors = ['green', 'green', 'green', 'green', 'green'];
+          changed = true;
+        }
+      }
+      if (changed) saveCampaigns();
     } catch { campaigns = []; }
   }
 
@@ -750,15 +758,22 @@
     list.innerHTML = campaigns.map(c => {
       const avg = c.values.length > 0 ? Math.round(c.values.reduce((a, b) => a + b, 0) / c.values.length) : 0;
       const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
+      const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
+      const colorIcon = (clr) => {
+        const hex = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' }[clr] || '#6b7280';
+        return `<span class="campaign-color-dot" style="background:${hex}"></span>`;
+      };
       return `
         <div class="campaign-tile" data-campaign-id="${c.id}">
           <div class="campaign-tile-header">Testkampagne ${c.version}</div>
-          <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+          <div class="campaign-main-wrap" data-campaign-id="${c.id}" data-color-index="0" title="Klicken zum Farbe wechseln">
+            <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+          </div>
           <div class="campaign-mini-row">
             ${c.values.map((v, i) => `
               <div class="campaign-mini-donut-wrap" data-campaign-id="${c.id}" data-index="${i}">
                 <canvas class="campaign-mini-canvas" data-campaign-id="${c.id}" data-index="${i}"></canvas>
-                <span class="campaign-mini-label">${miniLabels[i] || ''}</span>
+                <span class="campaign-mini-label" data-color-index="${i + 1}" title="Klicken zum Farbe wechseln">${colorIcon(colors[i + 1])}${miniLabels[i] || ''}</span>
               </div>
             `).join('')}
           </div>
@@ -769,23 +784,23 @@
 
   function drawCampaignDonuts() {
     for (const c of campaigns) {
+      const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
       const mainCanvas = document.querySelector(`.campaign-main-donut[data-campaign-id="${c.id}"]`);
       if (mainCanvas) {
         const avg = c.values.length > 0 ? Math.round(c.values.reduce((a, b) => a + b, 0) / c.values.length) : 0;
-        const status = avg >= 80 ? 'green' : avg >= 50 ? 'yellow' : 'red';
-        ChartEngine.drawDonut(mainCanvas, avg, '%', status);
+        ChartEngine.drawDonut(mainCanvas, avg, '%', colors[0]);
       }
       document.querySelectorAll(`.campaign-mini-canvas[data-campaign-id="${c.id}"]`).forEach(canvas => {
         const idx = parseInt(canvas.dataset.index);
         const val = c.values[idx] || 0;
-        ChartEngine.drawMiniDonut(canvas, val);
+        ChartEngine.drawMiniDonut(canvas, val, colors[idx + 1]);
       });
     }
   }
 
   function createCampaign(version) {
     const id = 'cmp_' + Date.now();
-    const newCampaign = { id, version, values: [0, 0, 0, 0] };
+    const newCampaign = { id, version, values: [0, 0, 0, 0], colors: ['green', 'green', 'green', 'green', 'green'] };
     campaigns.unshift(newCampaign);
     saveCampaigns();
     renderCampaigns();
@@ -824,6 +839,7 @@
     $('#campaign-list').addEventListener('click', (e) => {
       const wrap = e.target.closest('.campaign-mini-donut-wrap');
       if (!wrap) return;
+      if (e.target.closest('.campaign-mini-label')) return;
       const campaignId = wrap.dataset.campaignId;
       const idx = parseInt(wrap.dataset.index);
       const c = campaigns.find(c => c.id === campaignId);
@@ -837,6 +853,37 @@
         return;
       }
       c.values[idx] = num;
+      saveCampaigns();
+      renderCampaigns();
+    });
+
+    /* Color cycling: mini label clicks */
+    $('#campaign-list').addEventListener('click', (e) => {
+      const label = e.target.closest('.campaign-mini-label');
+      if (!label) return;
+      const wrap = label.closest('.campaign-mini-donut-wrap');
+      if (!wrap) return;
+      const campaignId = wrap.dataset.campaignId;
+      const colorIdx = parseInt(label.dataset.colorIndex);
+      const c = campaigns.find(c => c.id === campaignId);
+      if (!c) return;
+      const cycle = { green: 'yellow', yellow: 'red', red: 'green' };
+      c.colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
+      c.colors[colorIdx] = cycle[c.colors[colorIdx]] || 'green';
+      saveCampaigns();
+      renderCampaigns();
+    });
+
+    /* Color cycling: main donut wrap clicks */
+    $('#campaign-list').addEventListener('click', (e) => {
+      const mainWrap = e.target.closest('.campaign-main-wrap');
+      if (!mainWrap) return;
+      const campaignId = mainWrap.dataset.campaignId;
+      const c = campaigns.find(c => c.id === campaignId);
+      if (!c) return;
+      const cycle = { green: 'yellow', yellow: 'red', red: 'green' };
+      c.colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
+      c.colors[0] = cycle[c.colors[0]] || 'green';
       saveCampaigns();
       renderCampaigns();
     });

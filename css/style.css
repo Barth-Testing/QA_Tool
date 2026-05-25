@@ -189,6 +189,22 @@ body {
   width: 120px;
   height: 120px;
 }
+.campaign-main-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  position: relative;
+}
+.campaign-color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
 .campaign-mini-row {
   display: flex;
   gap: 0.2rem;
@@ -213,6 +229,10 @@ body {
   color: var(--text-muted);
   text-align: center;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: pointer;
 }
 
 /* ===== Campaign Modal ===== */

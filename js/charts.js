@@ -125,7 +125,7 @@ const ChartEngine = (() => {
     ctx.fillText(displayVal + (unit ? ' ' + unit : ''), w / 2, h * 0.2);
   }
 
-  function drawMiniDonut(canvas, value) {
+  function drawMiniDonut(canvas, value, status) {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
@@ -143,7 +143,7 @@ const ChartEngine = (() => {
     const lw = outerR - innerR;
 
     const pct = Math.min(Math.max(value / 100, 0), 1);
-    const status = value >= 80 ? 'green' : value >= 50 ? 'yellow' : 'red';
+    if (status === undefined) status = value >= 80 ? 'green' : value >= 50 ? 'yellow' : 'red';
 
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
