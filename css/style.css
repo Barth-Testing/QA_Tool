@@ -658,6 +658,162 @@ body {
 }
 .values-rc-select:focus { border-color: var(--primary); }
 
+/* ===== Trend Indicators ===== */
+.trend-up { color: var(--green); font-size: 0.75rem; cursor: help; }
+.trend-down { color: var(--red); font-size: 0.75rem; cursor: help; }
+.trend-neutral { color: var(--text-muted); font-size: 0.7rem; }
+
+.col-trend { text-align: center; width: 32px; min-width: 32px; }
+
+/* ===== RC Chart Button ===== */
+.tile-rc-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+.tile-rc-chart-btn {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+.tile-rc-chart-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--primary-hover);
+}
+
+/* ===== Chart Modal ===== */
+.chart-modal-content {
+  width: 90vw;
+  max-width: 1100px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+.chart-modal-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+}
+#chart-modal-canvas {
+  max-width: 100%;
+  display: block;
+}
+
+/* ===== RC Add Release Modal ===== */
+.rc-add-modal-content {
+  width: 600px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+.rc-add-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+.rc-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+.rc-add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.rc-add-field label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.rc-add-field input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.rc-add-field input:focus { outline: none; border-color: var(--primary); }
+.rc-add-values-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.rc-add-values-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.rc-add-value-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  transition: background var(--transition);
+}
+.rc-add-value-row:hover { background: var(--surface-hover); }
+.rc-add-value-label {
+  font-size: 0.78rem;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-add-value-input {
+  width: 100px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-family: inherit;
+  text-align: right;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.rc-add-value-input:focus { border-color: var(--primary); }
+.rc-add-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+.values-rc-add-item {
+  display: flex;
+  align-items: flex-end;
+}
+.values-rc-add-item .btn {
+  margin-bottom: 1px;
+  white-space: nowrap;
+}
+
 /* ===== Chart Area ===== */
 .tile-chart-area {
   flex: 1;

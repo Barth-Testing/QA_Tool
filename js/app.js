@@ -525,8 +525,61 @@
               ${availableVersions.map(v => `<option value="${v}" ${v === previousVer ? 'selected' : ''}>${v}</option>`).join('')}
             </select>
           </div>
+          <div class="values-rc-config-item values-rc-add-item">
+            <label>&nbsp;</label>
+            <button class="btn btn-sm btn-secondary btn-rc-add-release" data-kpi-id="${kpi.id}">+ Neues Release</button>
+          </div>
         </div>
       </div>`;
+  }
+
+  /* ===== RC Add Release Modal ===== */
+  let rcAddKpiId = null;
+
+  function openRcAddModal(kpiId) {
+    rcAddKpiId = kpiId;
+    const vals = getCustomValues();
+    const rcVal = vals[kpiId];
+    if (!rcVal || !rcVal.testSituations) return;
+    $('#rc-add-title').textContent = `${kpiMap[kpiId]?.name || 'KPI'} — Neues Release`;
+    const list = $('#rc-add-values-list');
+    list.innerHTML = rcVal.testSituations.map((sit, i) => `
+      <div class="rc-add-value-row">
+        <span class="rc-add-value-label" title="${sit}">${sit}</span>
+        <input type="number" class="rc-add-value-input" data-index="${i}" placeholder="ms" value="0" min="0">
+      </div>
+    `).join('');
+    $('#rc-add-version').value = '';
+    $('#rc-add-modal').classList.remove('hidden');
+    setTimeout(() => $('#rc-add-version').focus(), 100);
+  }
+
+  function closeRcAddModal() {
+    $('#rc-add-modal').classList.add('hidden');
+    rcAddKpiId = null;
+  }
+
+  function saveRcAddRelease() {
+    const kpiId = rcAddKpiId;
+    if (!kpiId) return;
+    const version = $('#rc-add-version').value.trim();
+    if (!version) { toast('Bitte eine Version eingeben'); return; }
+    const vals = getCustomValues();
+    const rcVal = vals[kpiId];
+    if (!rcVal || !rcVal.testSituations) return;
+    if (rcVal.versionData[version]) { toast(`Release „${version}" existiert bereits`); return; }
+    const inputs = $('#rc-add-values-list').querySelectorAll('.rc-add-value-input');
+    const newValues = [];
+    for (const input of inputs) {
+      const raw = input.value.trim();
+      const num = raw !== '' ? parseFloat(raw) : 0;
+      newValues.push(isNaN(num) ? 0 : num);
+    }
+    rcVal.versionData[version] = newValues;
+    setCustomValue(kpiId, rcVal);
+    closeRcAddModal();
+    render();
+    toast(`Release „${version}" mit ${newValues.length} Messwerten hinzugefügt`);
   }
 
   function setupRcFormEvents() {
@@ -544,6 +597,13 @@
         render();
         const kpi = kpiMap[kpiId];
         if (kpi) toast(`„${kpi.name}" — ${key === 'currentVersion' ? 'Aktuelle Version' : 'Vorherige Version'} auf ${select.value} geändert`);
+      });
+    });
+
+    valuesForm.querySelectorAll('.btn-rc-add-release').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openRcAddModal(btn.dataset.kpiId);
       });
     });
   }
@@ -776,12 +836,34 @@
       if (kpi && !isAc && !isRc) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
     });
 
+    /* Chart modal */
+    document.addEventListener('tile:chart-modal', (e) => {
+      const { kpiId, kpi, data } = e.detail;
+      if (!data) return;
+      $('#chart-modal-title').textContent = `${kpi.name} — Frontend Response Times im Vergleich`;
+      $('#chart-modal').classList.remove('hidden');
+      requestAnimationFrame(() => {
+        const canvas = $('#chart-modal-canvas');
+        ChartEngine.drawResponseComparison(canvas, data);
+      });
+    });
+    $('#btn-close-chart').addEventListener('click', () => $('#chart-modal').classList.add('hidden'));
+    $('#chart-modal .modal-backdrop').addEventListener('click', () => $('#chart-modal').classList.add('hidden'));
+
+    /* RC Add Release modal */
+    $('#btn-close-rc-add').addEventListener('click', closeRcAddModal);
+    $('#btn-rc-add-cancel').addEventListener('click', closeRcAddModal);
+    $('#rc-add-modal .modal-backdrop').addEventListener('click', closeRcAddModal);
+    $('#btn-rc-add-save').addEventListener('click', saveRcAddRelease);
+
     /* Keyboard */
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeCatalog();
         $('#campaign-modal').classList.add('hidden');
         columnModal.classList.add('hidden');
+        $('#chart-modal').classList.add('hidden');
+        $('#rc-add-modal').classList.add('hidden');
         document.querySelectorAll('.info-panel-overlay').forEach(el => el.remove());
       }
     });

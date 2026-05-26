@@ -177,11 +177,8 @@ const ChartEngine = (() => {
 
     const w = rect.width;
     const h = rect.height;
-    const pad = { top: 16, bottom: 20, left: 140, right: 20 };
-    const rowH = 20;
-    const barH = 4;
-    const barGap = 2;
-    const groupGap = 4;
+    const pad = { top: 20, bottom: 40, left: 170, right: 80 };
+    const rowH = 26;
     const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
     const colors = ['#22c55e', '#6366f1', '#ef4444'];
     const labels = ['Aktuell', 'Vorher', 'Referenz'];
@@ -190,15 +187,12 @@ const ChartEngine = (() => {
     const numRows = situations.length;
     const totalH = numRows * rowH + pad.top + pad.bottom;
 
-    if (totalH > h) {
-      canvas.style.height = totalH + 'px';
-      canvas.width = rect.width * dpr;
-      canvas.height = totalH * dpr;
-      ctx.scale(dpr, dpr);
-    }
+    canvas.style.height = totalH + 'px';
+    canvas.width = rect.width * dpr;
+    canvas.height = totalH * dpr;
+    ctx.scale(dpr, dpr);
 
     const chartW = w - pad.left - pad.right;
-    const chartH = totalH - pad.top - pad.bottom;
 
     let maxVal = 0;
     for (const v of versions) {
@@ -211,22 +205,49 @@ const ChartEngine = (() => {
 
     ctx.clearRect(0, 0, w, totalH);
 
-    ctx.fillStyle = '#888ca3';
-    ctx.font = '10px -apple-system, sans-serif';
+    /* background alternating rows */
+    for (let i = 0; i < numRows; i++) {
+      if (i % 2 === 1) {
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fillRect(pad.left, pad.top + i * rowH, chartW, rowH);
+      }
+    }
+
+    /* y-axis labels */
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
+    for (let i = 0; i < numRows; i++) {
+      const y = pad.top + i * rowH + rowH / 2;
+      const sit = situations[i];
+      const short = sit.length > 32 ? sit.substring(0, 30) + '…' : sit;
+      ctx.fillStyle = '#e4e6ef';
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.fillText(short, pad.left - 10, y);
+    }
 
+    /* x-axis grid lines + labels */
+    const xSteps = 5;
+    ctx.fillStyle = '#888ca3';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let s = 0; s <= xSteps; s++) {
+      const x = pad.left + (chartW / xSteps) * s;
+      const val = (maxVal / xSteps) * s;
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.beginPath();
+      ctx.moveTo(x, pad.top);
+      ctx.lineTo(x, pad.top + numRows * rowH);
+      ctx.stroke();
+      ctx.fillStyle = '#888ca3';
+      ctx.fillText(Math.round(val) + ' ms', x, pad.top + numRows * rowH + 4);
+    }
+
+    /* bars */
+    const barH = 5;
+    const barGap = 3;
     for (let i = 0; i < numRows; i++) {
       const y = pad.top + i * rowH;
-      const sit = situations[i];
-
-      const short = sit.length > 28 ? sit.substring(0, 26) + '…' : sit;
-      ctx.fillStyle = '#e4e6ef';
-      ctx.font = '10px -apple-system, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(short, pad.left - 8, y + rowH / 2);
-
       for (let vi = 0; vi < versions.length; vi++) {
         const vals = data.versionData[versions[vi]] || [];
         const val = vals[i];
@@ -241,30 +262,26 @@ const ChartEngine = (() => {
 
         if (val !== null && val !== undefined) {
           ctx.fillStyle = '#888ca3';
-          ctx.font = '8px -apple-system, sans-serif';
+          ctx.font = '10px -apple-system, sans-serif';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText(val >= 1000 ? (val / 1000).toFixed(1) + 's' : val + 'ms', bx + bw + 3, by + barH / 2);
+          ctx.fillText(val + ' ms', bx + bw + 6, by + barH / 2);
         }
       }
     }
 
-    ctx.fillStyle = '#555a6a';
-    ctx.font = '10px -apple-system, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-
+    /* legend */
     const legendX = pad.left;
-    const legendY = totalH - 14;
+    const legendY = totalH - 28;
+    ctx.font = '12px -apple-system, sans-serif';
     for (let vi = 0; vi < versions.length; vi++) {
-      const lx = legendX + vi * 120;
+      const lx = legendX + vi * 160;
       ctx.fillStyle = colors[vi];
-      ctx.fillRect(lx, legendY + 2, 10, 10);
-      ctx.fillStyle = '#888ca3';
-      ctx.font = '10px -apple-system, sans-serif';
+      ctx.fillRect(lx, legendY + 2, 14, 14);
+      ctx.fillStyle = '#e4e6ef';
       ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(versions[vi] + ' (' + labels[vi] + ')', lx + 14, legendY);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(versions[vi] + ' (' + labels[vi] + ')', lx + 20, legendY + 9);
     }
   }
 

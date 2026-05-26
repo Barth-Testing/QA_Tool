@@ -96,6 +96,46 @@
     </div>
   </div>
 
+  <div id="chart-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content chart-modal-content">
+      <div class="modal-header">
+        <h2 id="chart-modal-title">Diagramm — Frontend Response Times</h2>
+        <button id="btn-close-chart" class="btn-close">&times;</button>
+      </div>
+      <div class="chart-modal-body">
+        <canvas id="chart-modal-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="rc-add-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content rc-add-modal-content">
+      <div class="modal-header">
+        <h2 id="rc-add-title">Neues Release hinzufügen</h2>
+        <button id="btn-close-rc-add" class="btn-close">&times;</button>
+      </div>
+      <div class="rc-add-body">
+        <div class="rc-add-form">
+          <div class="rc-add-field">
+            <label for="rc-add-version">Version</label>
+            <input type="text" id="rc-add-version" placeholder="z.B. R4.6.0">
+          </div>
+          <div class="rc-add-values-header">
+            <span>Testsituation</span>
+            <span>Wert (ms)</span>
+          </div>
+          <div id="rc-add-values-list" class="rc-add-values-list"></div>
+          <div class="rc-add-actions">
+            <button id="btn-rc-add-save" class="btn btn-primary">Speichern</button>
+            <button id="btn-rc-add-cancel" class="btn btn-secondary">Abbrechen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container" class="toast-container"></div>
 
   <script src="js/charts.js"></script>

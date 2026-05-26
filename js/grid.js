@@ -202,9 +202,20 @@ const GridEngine = (() => {
       const versionColors = ['status-green', 'status-blue', 'status-red'];
       const sits = rawValue.testSituations;
 
+      const computeTrend = (current, previous) => {
+        if (current === null || previous === null) return '';
+        const diff = current - previous;
+        if (diff < 0) return '<span class="trend-up" title="Verbesserung um ' + (-diff) + ' ms">▲</span>';
+        if (diff > 0) return '<span class="trend-down" title="Verschlechterung um ' + diff + ' ms">▼</span>';
+        return '<span class="trend-neutral" title="Unverändert">—</span>';
+      };
+
       rcTableHtml = `
         <div class="tile-rc-versions">
           ${versions.map((v, i) => `<span class="tile-rc-version-tag ${versionColors[i]}">${versionLabels[i]}: ${v}</span>`).join('')}
+        </div>
+        <div class="tile-rc-actions">
+          <button class="tile-rc-chart-btn" title="Diagramm anzeigen">📊 Diagramm</button>
         </div>
         <div class="tile-rc-table-wrap">
           <table class="tile-rc-table">
@@ -214,6 +225,7 @@ const GridEngine = (() => {
                 <th class="col-current">${rawValue.currentVersion}</th>
                 <th class="col-prev">${rawValue.previousVersion}</th>
                 <th class="col-ref">${rawValue.referenceVersion}</th>
+                <th class="col-trend">Trend</th>
               </tr>
             </thead>
             <tbody>
@@ -222,13 +234,14 @@ const GridEngine = (() => {
                   const vd = rawValue.versionData[v];
                   return vd && vd[si] !== null && vd[si] !== undefined ? vd[si] : null;
                 });
-                const fmt = (v) => v !== null ? (v >= 1000 ? (v / 1000).toFixed(2) + 's' : v + 'ms') : 'n.a.';
+                const fmt = (v) => v !== null ? v + ' ms' : 'n.a.';
                 return `
                   <tr>
                     <td class="tile-rc-sit">${sit}</td>
                     <td class="col-current">${fmt(vals[0])}</td>
                     <td class="col-prev">${fmt(vals[1])}</td>
                     <td class="col-ref">${fmt(vals[2])}</td>
+                    <td class="col-trend">${computeTrend(vals[0], vals[1])}</td>
                   </tr>`;
               }).join('')}
             </tbody>
@@ -238,7 +251,7 @@ const GridEngine = (() => {
 
     let chartAreaHtml = '';
     if (isRcKpi) {
-      chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"><canvas class="tile-chart tile-chart--rc" data-chart-type="response-comparison"></canvas></div>`;
+      chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"></div>`;
     } else {
       chartAreaHtml = `
         <div class="tile-chart-area">
@@ -290,6 +303,21 @@ const GridEngine = (() => {
         e.stopPropagation();
         startValueEdit(el, tile, kpi);
       });
+    }
+
+    if (isRcKpi) {
+      const chartBtn = el.querySelector('.tile-rc-chart-btn');
+      if (chartBtn) {
+        chartBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const rcVal = state.customValues[tile.kpi_id] !== undefined
+            ? state.customValues[tile.kpi_id] : kpi.example_value;
+          const evt = new CustomEvent('tile:chart-modal', {
+            detail: { kpiId: tile.kpi_id, kpi, data: rcVal }
+          });
+          document.dispatchEvent(evt);
+        });
+      }
     }
 
     if (isAcKpi) {
