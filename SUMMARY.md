@@ -1,105 +1,86 @@
-# QA Dashboard — Projekt-Übersicht
+# QA Dashboard — Session Summary
 
-## Standort
-`/home/toni/opencode_projects/qa-dashboard/`
+## Tech Stack
+Vanilla HTML/CSS/JS, Canvas 2D API, kein Framework, keine Build-Tools.
+Hosting: GitHub Pages (`Barth-Testing/QA_Tool`).
 
-## Tech-Stack
-- **Frontend**: Vanilla HTML/CSS/JS (kein Framework)
-- **Hosting**: GitHub Pages unter `Barth-Testing/QA_Tool`
-- **Deployment**: Push auf `main` → GitHub Pages liefert aus
+## Aktueller Stand (2026-05-27)
 
-## Projektstruktur
-
+### Dateien
 ```
 qa-dashboard/
-├── index.html              # Einstiegspunkt, Navbar + Modal-Struktur
-├── README.md               # Legacy (WSL2/VM-Setup-Notizen)
-├── SUMMARY.md              # Diese Datei
+├── index.html          # Einstieg, Navbar, Sidebars (links/rechts), Modals
+├── SUMMARY.md          # Diese Datei
 ├── css/
-│   └── style.css           # Dark-Theme-Styling (547 Zeilen)
+│   └── style.css      # Dark-Theme (1440 Zeilen)
 ├── js/
-│   ├── charts.js           # Chart-Engine: Donut- + Balkendiagramme auf Canvas
-│   ├── grid.js             # Grid-Engine: Rendering, Drag&Drop, Resize, Status-Logik
-│   └── app.js              # App-Logik: Daten laden, Dashboard-CRUD, Export, Events
+│   ├── charts.js      # ChartEngine: Donut, Bar, MiniDonut, ResponseComparison
+│   ├── grid.js         # GridEngine: Tile-Rendering, Drag&Drop, Resize, kompaktieren
+│   └── app.js          # App-Logik: Daten laden, Dashboard-CRUD, Campaigns, RFCs, Events
 └── data/
-    ├── dashboards.json     # Dashboard-Definitionen (Tiles + Layout)
-    ├── kpis.json            # KPI-Katalog (21 KPIs mit Metadaten)
-    ├── qa-dashboard-export.json  # Vollständiger Export (dashboards + kpis + values)
-    └── values.json          # *(optional)* KPI-Werte für Bot-Automation
+    ├── dashboards.json
+    ├── kpis.json
+    ├── values.json
+    └── qa-dashboard-export.json
 ```
 
-## Charts
+## KPI-Typen
+- `donut` (%-Werte): Testabdeckung, Raten, Uptime
+- `bar` (numerisch): Antwortzeiten, Fehlerzahlen, MTTR
+- `response-comparison` (`fe-response-dev`, `fe-response-sta`): 26 Testsituationen × 3 Versionen
 
-Jeder KPI-Tile zeigt ein automatisch generiertes Diagramm:
+## FE Response Comparison (t22/t23)
+- **26 feste Testsituationen** für Frontend-Antwortzeiten
+- **3 Versionen pro Chart**: Aktuell, Vorher, Referenz (R3.18.1)
+- R3.18.1 = fixe Referenz mit `null` für 15 attachment-lastige Situationen
+- Chart öffnet via `📊 Diagramm anzeigen`-Button im RC-Tile → Modal (Canvas 100%)
+- **Canvas-Layout**: 55% Chart (oben) + 45% Wertetabelle (unten)
+- **Chart**: Vertikale Gruppenbalken (Grün=Aktuell, Violett=Vorher, Rot=Referenz), Y-Achse mit ms-Gitterlinien, Index-Nummern (1–26) direkt unter den Balkengruppen
+- **Wertetabelle**: 4 Spalten — `#` (Index 1–26) | `Testsituation` (fett) | `Aktuell` | `Vorher` | `Referenz` — mit abwechselnden Zeilen-Hintergründen
+- **Neues Release**: Modal mit 26 zweispaltigen Eingabefeldern
+- Werte gespeichert in `values.json` + per KPI `rcValues` in localStorage
 
-| Chart-Typ | KPIs |
-|---|---|
-| **Donut** (Kreisdiagramm) | Alle %-KPIs (Testabdeckung, Raten, Uptime, etc.) — Wert + Einheit im Zentrum |
-| **Bar** (Balkendiagramm) | Numerische KPIs (Antwortzeiten, Fehlerzahlen, MTTR, etc.) — mit Schwellwert-Markierungen |
+## Rechte Sidebar (Testabdeckung RFC)
+- Eigenständiger Bereich rechts (260px, gleich breit wie linke Sidebar)
+- **Multi-Entry**: Mehrere RFCs parallel in `localStorage` (`qa_dashboard_rfc_entries`)
+- **AC-System**: 1–10 Acceptance Criteria pro RFC, einzeln togglegbar (grün=passed / rot=failed)
+- **Add-Dialog**: Freitext-Name + AC-Anzahl (Select 1–10) + dynamische Texteingaben
+- **Detail-Dialog**: Zeigt AC-ID, Text, Status; Klick toggelt in-place
+- **Migration**: Alter Einzel-Eintrag (`test-coverage-rfc`) wird automatisch ins neue Format überführt
+- **Donut**: 120×120, gleiche Darstellung wie Testkampagnen-Donut
 
-- Farbe des Charts folgt dem Status (Grün/Gelb/Rot/Neutral)
-- **Harte Kante** am Donut-Ende (Butt-Cap) statt runder Überzeichnung
-- Klick auf das Chart öffnet einen Inline-Editor für den Wert
-- Tile-Größen entsprechen den deklarierten Werten aus dashboards.json (keine Mindestgröße 2×2 mehr); Tiles füllen den Grid automatisch aus
+## Linke Sidebar (Testkampagnen)
+- Multi-Entry mit Donut-Farben (grün/gelb/rot), durchklickbar
+- Farbe zyklisch via Klick auf Donut oder Mini-Label
 
-## Funktionsumfang
+## Dashboard-Grid
+- 4 Spalten (konfigurierbar 2–8)
+- Drag & Drop + Resize via Ziehgriff
+- Grid-Kompaktierung (`Grid.compactGrid`) bei jedem `render()` → Lücken automatisch geschlossen
+- Tile-Höhe 780px (fixed) für RC-Tiles
+- Trend-Indikatoren (▲/▼) in RC-Tabelle
 
-- **2 Dashboards**: "QA Overview" (6 Spalten) + "QA Ops Monitor" (3 Spalten)
-- **21 KPIs** in 2 Kategorien: `dev` (13) + `ops` (8)
-- **KPI-Katalog-Modal**: Durchsuchen, Filtern (Dev/Ops), Hinzufügen
-- **Inline-Editing**: Klick auf KPI-Wert/Chart → Zahleneingabe mit Persistenz in localStorage (gleicher Mechanismus wie Werte-Tab)
-- **Status-Ampel**: Grün/Gelb/Rot basierend auf konfigurierbaren Thresholds
-- **Drag & Drop**: Tiles per Drag neu anordnen
-- **Resize**: Tiles per Ziehgriff unten rechts skalieren
-- **Spalten-Steuerung**: Slider (2-8 Spalten)
-- **Export**: Komplette Konfiguration + Werte als JSON herunterladen
-- **Werte-Tab**: Eigener Tab zum Anzeigen und Bearbeiten aller KPI-Werte des aktuellen Dashboards in einer Formular-Ansicht
-- **Testkampagnen Sidebar**: Linke Spalte mit Kampagnen-Tiles; Mini-Donuts klickbar zur Werteingabe via Prompt (0-100); Labels: Manual, Automation, RFC, Mobile; Farben (grün/gelb/rot) pro Donut einstellbar durch Klick auf Label (Mini) oder Donut (Haupt-Donut)
-- **values.json-Download**: Nur die aktuellen KPI-Werte als `values.json` herunterladen, bereit zum Commit ins Repo
-- **Testabdeckung RFC (AC-KPI)**: Spezieller KPI-Typ "Testabdeckung RFC" mit individuellen Acceptance Criteria (ACs) — Donut-Chart zeigt prozentuale Abdeckung, darunter Liste aller ACs mit grün/rot-Status; Klick auf AC zeigt Detailtext; ACs können im Werte-Tab hinzugefügt/entfernt/bearbeitet werden
-- **localStorage**: Dashboard-Zustand + eingegebene Werte persistiert
+## Chart-Rendering (charts.js `drawResponseComparison`)
+- Layout-Split: `chartShare = 0.55` (55% Chart, 45% Tabelle)
+- Padding: `pad.bottom = max(18, 12%)` (klein, da keine diagonalen Labels mehr)
+- Index-Nummern: `idxY = pad.top + chartH + 2` (direkt unter Balkenende)
+- Tabelle: beginnt bei `chartBottom + 14` (27px Abstand zu Index-Nummern)
+- Column-Layout: `# (7%) | Testsituation (33%) | Aktuell (19%) | Vorher (19%) | Referenz (19%)`
 
-## Datenmodell
+## Zentrale UI-Modals
+- **Chart-Modal**: 95vw / 92vh, `overflow: auto`
+- **RC-Add-Modal**: 2-Spalten-Grid für 26 Eingabefelder
+- **RFC-Add-Modal**: Freitext-Name + AC-Select + AC-Textfelder
+- **RFC-Detail-Modal**: AC-ID, Text, Status-Toggle
 
-### KPI (`data/kpis.json`)
-```
-{
-  id, name, category ("dev"|"ops"), description, formula, benefit,
-  unit, thresholds: { green/yellow/red: { operator, value } },
-  data_source_type ("api"|"manual"), tags[], example_value
-}
-```
+## Daten-Persistenz
+- `fileValues` (aus JSON) + `localStorage` (user edits) → `getCustomValues()` merged
+- Dashboard-Zustand in `localStorage` (`qa_dashboard_state`)
+- Campaigns in `localStorage` (`qa_dashboard_campaigns`)
+- RFC-Entries in `localStorage` (`qa_dashboard_rfc_entries`)
+- Export (JSON) inkludiert alle Werte + Konfiguration
 
-### Dashboard (`data/dashboards.json`)
-```
-{ dashboards: [{ id, name, columns, is_favorite, tiles: [{ id, kpi_id, x, y, w, h }] }] }
-```
-
-### Values (`data/values.json`)
-```
-{ "pass-fail-rate": 95, "uptime": 99.99, ... }
-```
-Einfaches Key-Value-Mapping → wird beim App-Start geladen und mit localStorage gemerged.
-
-## Automation / Bot-Integration
-
-KPIs können automatisch befüllt werden:
-
-1. **`data/values.json`** — Nur die Werte, minimales Format:
-   ```json
-   { "pass-fail-rate": 95, "test-coverage-code": 82, "uptime": 99.97 }
-   ```
-
-2. **`data/qa-dashboard-export.json`** — Kompletter Export inkl. Dashboards + KPIs + Values:
-   ```json
-   { "dashboards": [...], "kpis": [...], "customValues": { "pass-fail-rate": 95 } }
-   ```
-
-Bot-Workflow: Script generiert Datei → Commit → Push → GitHub Pages aktualisiert automatisch.
-
-## Wichtige offene Punkte
-
-- README.md enthält nur WSL2/Metasploitable-Notizen, keine Projektdoku
-- Kein CI-Test oder Build-Script vorhanden
-- Werte-Persistenz aktuell nur in localStorage (clientseitig)
-- Keine API-Anbindung implementiert (KPI-Daten manuell oder per Bot-JSON)
+## Bekannte Einschränkungen
+- Bei 800px Viewport sind die Index-Nummern und die Tabelle sehr kompakt (nur ~11 Tabellenzeilen sichtbar, scrollbar)
+- Die Chart-Balken sind bei sehr großen Ausreißern (180s+) extrem kurz für niedrige Werte
+- Keine API-Anbindung (Daten rein manuell/per Export)

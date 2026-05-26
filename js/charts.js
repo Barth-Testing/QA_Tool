@@ -266,22 +266,16 @@ const ChartEngine = (() => {
       }
     }
 
-    /* x-axis index numbers above separator (1–26, horizontal) */
+    /* x-axis index numbers (1–26) just below bar bottom */
     ctx.fillStyle = '#888ca3';
     ctx.font = `600 ${axisFontSize}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
+    const idxY = pad.top + chartH + 2;
     for (let i = 0; i < numRows; i++) {
       const cx = pad.left + i * groupW + groupW / 2;
-      ctx.fillText(String(i + 1), cx, chartBottom - Math.round(axisFontSize * 1.1));
+      ctx.fillText(String(i + 1), cx, idxY);
     }
-
-    /* x-axis short label (chart type) */
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = `400 9px -apple-system, sans-serif`;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('Testsituationen: Nr. → Tabelle ↓', w - pad.right, chartBottom - 4);
 
     /* ---- separator line between chart and table ---- */
     ctx.strokeStyle = 'rgba(255,255,255,0.12)';
@@ -296,22 +290,26 @@ const ChartEngine = (() => {
     const tLeft = tPad;
     const tRight = w - tPad;
     const tWidth = tRight - tLeft;
-    const tableStartY = chartBottom + 10;
+    const tableStartY = chartBottom + 14;
 
-    /* column widths: situation name (flexible) + 3 value columns */
-    const sitColW = Math.round(tWidth * 0.36);
-    const valColW = Math.round(tWidth * 0.20);
+    /* column widths: # (row index) + situation name + 3 value columns */
+    const idxColW = Math.round(tWidth * 0.07);
+    const sitColW = Math.round(tWidth * 0.33);
+    const valColW = Math.round(tWidth * 0.19);
     const headerY = tableStartY;
 
     /* table header */
     ctx.font = `600 ${tableHeaderFont}px -apple-system, sans-serif`;
     ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#888ca3';
+    ctx.fillText('#', tLeft + idxColW / 2, headerY);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e4e6ef';
-    ctx.fillText('Testsituation', tLeft, headerY);
+    ctx.fillText('Testsituation', tLeft + idxColW + 4, headerY);
 
     for (let vi = 0; vi < versions.length; vi++) {
-      const tx = tLeft + sitColW + vi * valColW;
+      const tx = tLeft + idxColW + sitColW + vi * valColW;
       ctx.fillStyle = colors[vi];
       ctx.textAlign = 'center';
       ctx.fillText(versionLabels[vi], tx + valColW / 2, headerY);
@@ -342,18 +340,24 @@ const ChartEngine = (() => {
         ctx.fillRect(tLeft, ry - rowH_table / 2, tWidth, rowH_table);
       }
 
-      ctx.textAlign = 'left';
+      /* row # */
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#e4e6ef';
-      ctx.fillStyle = '#e4e6ef';
+      ctx.fillStyle = '#888ca3';
       ctx.font = `600 ${tableFontSize}px -apple-system, sans-serif`;
-      ctx.fillText(shortSit, tLeft, ry);
+      ctx.fillText(String(i + 1), tLeft + idxColW / 2, ry);
+
+      /* situation name */
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#e4e6ef';
+      ctx.fillText(shortSit, tLeft + idxColW + 4, ry);
       ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
+      /* version values */
       for (let vi = 0; vi < versions.length; vi++) {
         const vals = data.versionData[versions[vi]] || [];
         const val = vals[i];
-        const tx = tLeft + sitColW + vi * valColW;
+        const tx = tLeft + idxColW + sitColW + vi * valColW;
         ctx.fillStyle = colors[vi];
         ctx.textAlign = 'center';
         ctx.fillText(val !== null && val !== undefined ? val + ' ms' : 'n.a.', tx + valColW / 2, ry);
