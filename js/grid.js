@@ -214,9 +214,6 @@ const GridEngine = (() => {
         <div class="tile-rc-versions">
           ${versions.map((v, i) => `<span class="tile-rc-version-tag ${versionColors[i]}">${versionLabels[i]}: ${v}</span>`).join('')}
         </div>
-        <div class="tile-rc-actions">
-          <button class="tile-rc-chart-btn" title="Diagramm anzeigen">📊 Diagramm</button>
-        </div>
         <div class="tile-rc-table-wrap">
           <table class="tile-rc-table">
             <thead>
@@ -246,6 +243,9 @@ const GridEngine = (() => {
               }).join('')}
             </tbody>
           </table>
+        </div>
+        <div class="tile-rc-actions">
+          <button class="tile-rc-chart-btn" title="Diagramm anzeigen">📊 Diagramm anzeigen</button>
         </div>`;
     }
 
