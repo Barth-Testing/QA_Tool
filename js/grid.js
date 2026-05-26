@@ -106,6 +106,10 @@ const GridEngine = (() => {
     setupResize(container);
   }
 
+  function isResponseComparisonValue(val) {
+    return val && typeof val === 'object' && val.versionData && val.testSituations;
+  }
+
   function drawAllCharts(container) {
     requestAnimationFrame(() => {
       const canvases = container.querySelectorAll('.tile-chart');
@@ -120,12 +124,15 @@ const GridEngine = (() => {
         const customVal = state.customValues[tileData.kpi_id];
         const rawValue = customVal !== undefined ? customVal : kpi.example_value;
         const acInfo = getAcValue(rawValue);
-        const value = acInfo ? acInfo.pct : rawValue;
-        const status = getStatus(kpi, value);
+        const rcInfo = isResponseComparisonValue(rawValue);
+        const value = acInfo ? acInfo.pct : (rcInfo ? null : rawValue);
+        const status = rcInfo ? 'neutral' : getStatus(kpi, value);
         const chartType = ChartEngine.getChartType(kpi);
 
         if (chartType === 'donut') {
           ChartEngine.drawDonut(canvas, value, kpi.unit, status);
+        } else if (chartType === 'response-comparison' && rcInfo) {
+          ChartEngine.drawResponseComparison(canvas, rawValue);
         } else {
           ChartEngine.drawBar(canvas, value, kpi.unit, status, kpi.thresholds);
         }
@@ -158,11 +165,16 @@ const GridEngine = (() => {
     const customVal = state.customValues[tile.kpi_id];
     const rawValue = customVal !== undefined ? customVal : kpi.example_value;
     const acInfo = getAcValue(rawValue);
-    const value = acInfo ? acInfo.pct : rawValue;
-    const status = getStatus(kpi, value);
+    const rcInfo = isResponseComparisonValue(rawValue);
+    const value = acInfo ? acInfo.pct : (rcInfo ? null : rawValue);
+    const status = rcInfo ? 'neutral' : getStatus(kpi, value);
     const el = document.createElement('div');
     const isAcKpi = !!acInfo;
-    el.className = `tile status-${status}${isAcKpi ? ' tile--ac' : ''}`;
+    const isRcKpi = !!rcInfo;
+    let extraClass = '';
+    if (isAcKpi) extraClass += ' tile--ac';
+    if (isRcKpi) extraClass += ' tile--rc';
+    el.className = `tile status-${status}${extraClass}`;
     el.dataset.tileId = tile.id;
     el.draggable = true;
 
@@ -183,6 +195,58 @@ const GridEngine = (() => {
       acListHtml += `</div>`;
     }
 
+    let rcTableHtml = '';
+    if (isRcKpi) {
+      const versions = [rawValue.currentVersion, rawValue.previousVersion, rawValue.referenceVersion];
+      const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
+      const versionColors = ['status-green', 'status-blue', 'status-red'];
+      const sits = rawValue.testSituations;
+
+      rcTableHtml = `
+        <div class="tile-rc-versions">
+          ${versions.map((v, i) => `<span class="tile-rc-version-tag ${versionColors[i]}">${versionLabels[i]}: ${v}</span>`).join('')}
+        </div>
+        <div class="tile-rc-table-wrap">
+          <table class="tile-rc-table">
+            <thead>
+              <tr>
+                <th>Testsituation</th>
+                <th class="col-current">${rawValue.currentVersion}</th>
+                <th class="col-prev">${rawValue.previousVersion}</th>
+                <th class="col-ref">${rawValue.referenceVersion}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sits.map((sit, si) => {
+                const vals = versions.map(v => {
+                  const vd = rawValue.versionData[v];
+                  return vd && vd[si] !== null && vd[si] !== undefined ? vd[si] : null;
+                });
+                const fmt = (v) => v !== null ? (v >= 1000 ? (v / 1000).toFixed(2) + 's' : v + 'ms') : 'n.a.';
+                return `
+                  <tr>
+                    <td class="tile-rc-sit">${sit}</td>
+                    <td class="col-current">${fmt(vals[0])}</td>
+                    <td class="col-prev">${fmt(vals[1])}</td>
+                    <td class="col-ref">${fmt(vals[2])}</td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    let chartAreaHtml = '';
+    if (isRcKpi) {
+      chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"><canvas class="tile-chart tile-chart--rc" data-chart-type="response-comparison"></canvas></div>`;
+    } else {
+      chartAreaHtml = `
+        <div class="tile-chart-area">
+          <canvas class="tile-chart" data-chart-type="${chartType}"></canvas>
+          <span class="tile-status-badge">${statusLabels[status]}</span>
+        </div>`;
+    }
+
     el.innerHTML = `
       <div class="tile-status-bar"></div>
       <div class="tile-header">
@@ -192,13 +256,11 @@ const GridEngine = (() => {
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>
       </div>
-      <div class="tile-chart-area">
-        <canvas class="tile-chart" data-chart-type="${chartType}"></canvas>
-        <span class="tile-status-badge">${statusLabels[status]}</span>
-      </div>
+      ${isRcKpi ? rcTableHtml : ''}
+      ${chartAreaHtml}
       ${acListHtml}
       <div class="tile-footer">
-        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}</span>
+        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}</span>
         <button class="tile-info-btn" data-kpi-id="${kpi.id}">Details</button>
       </div>
       <div class="tile-resize-handle"></div>
@@ -222,11 +284,13 @@ const GridEngine = (() => {
       document.dispatchEvent(evt);
     });
 
-    el.querySelector('.tile-chart-area').addEventListener('click', (e) => {
-      if (e.target.closest('.tile-edit-input')) return;
-      e.stopPropagation();
-      startValueEdit(el, tile, kpi);
-    });
+    if (!isRcKpi) {
+      el.querySelector('.tile-chart-area').addEventListener('click', (e) => {
+        if (e.target.closest('.tile-edit-input')) return;
+        e.stopPropagation();
+        startValueEdit(el, tile, kpi);
+      });
+    }
 
     if (isAcKpi) {
       el.querySelectorAll('.tile-ac-item').forEach(item => {

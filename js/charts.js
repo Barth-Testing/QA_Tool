@@ -10,6 +10,7 @@ const ChartEngine = (() => {
       'error-rate-5xx', 'cpu-mem-usage', 'backup-success-rate'
     ];
     if (donutIds.includes(kpi.id)) return 'donut';
+    if (kpi.id === 'fe-response-dev' || kpi.id === 'fe-response-sta') return 'response-comparison';
     return 'bar';
   }
 
@@ -165,5 +166,107 @@ const ChartEngine = (() => {
     ctx.fillText(Math.round(value), cx, cy);
   }
 
-  return { getChartType, drawDonut, drawBar, drawMiniDonut };
+  function drawResponseComparison(canvas, data) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const pad = { top: 16, bottom: 20, left: 140, right: 20 };
+    const rowH = 20;
+    const barH = 4;
+    const barGap = 2;
+    const groupGap = 4;
+    const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
+    const colors = ['#22c55e', '#6366f1', '#ef4444'];
+    const labels = ['Aktuell', 'Vorher', 'Referenz'];
+
+    const situations = data.testSituations;
+    const numRows = situations.length;
+    const totalH = numRows * rowH + pad.top + pad.bottom;
+
+    if (totalH > h) {
+      canvas.style.height = totalH + 'px';
+      canvas.width = rect.width * dpr;
+      canvas.height = totalH * dpr;
+      ctx.scale(dpr, dpr);
+    }
+
+    const chartW = w - pad.left - pad.right;
+    const chartH = totalH - pad.top - pad.bottom;
+
+    let maxVal = 0;
+    for (const v of versions) {
+      const vals = data.versionData[v] || [];
+      for (const val of vals) {
+        if (val !== null && val > maxVal) maxVal = val;
+      }
+    }
+    if (maxVal <= 0) maxVal = 1;
+
+    ctx.clearRect(0, 0, w, totalH);
+
+    ctx.fillStyle = '#888ca3';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < numRows; i++) {
+      const y = pad.top + i * rowH;
+      const sit = situations[i];
+
+      const short = sit.length > 28 ? sit.substring(0, 26) + '…' : sit;
+      ctx.fillStyle = '#e4e6ef';
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(short, pad.left - 8, y + rowH / 2);
+
+      for (let vi = 0; vi < versions.length; vi++) {
+        const vals = data.versionData[versions[vi]] || [];
+        const val = vals[i];
+        const bx = pad.left;
+        const by = y + (rowH - (barH * 3 + barGap * 2)) / 2 + vi * (barH + barGap);
+        const bw = val !== null && val !== undefined ? Math.max((val / maxVal) * chartW, 2) : 0;
+
+        ctx.fillStyle = colors[vi];
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, barH, 2);
+        ctx.fill();
+
+        if (val !== null && val !== undefined) {
+          ctx.fillStyle = '#888ca3';
+          ctx.font = '8px -apple-system, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(val >= 1000 ? (val / 1000).toFixed(1) + 's' : val + 'ms', bx + bw + 3, by + barH / 2);
+        }
+      }
+    }
+
+    ctx.fillStyle = '#555a6a';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    const legendX = pad.left;
+    const legendY = totalH - 14;
+    for (let vi = 0; vi < versions.length; vi++) {
+      const lx = legendX + vi * 120;
+      ctx.fillStyle = colors[vi];
+      ctx.fillRect(lx, legendY + 2, 10, 10);
+      ctx.fillStyle = '#888ca3';
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(versions[vi] + ' (' + labels[vi] + ')', lx + 14, legendY);
+    }
+  }
+
+  return { getChartType, drawDonut, drawBar, drawMiniDonut, drawResponseComparison };
 })();

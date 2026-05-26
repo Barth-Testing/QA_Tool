@@ -422,6 +422,10 @@
   }
 
   /* ===== Values Tab ===== */
+  function isResponseComparisonValue(val) {
+    return val && typeof val === 'object' && val.versionData && val.testSituations;
+  }
+
   function renderValuesTab() {
     const db = getCurrentDashboard();
     if (!db) {
@@ -450,9 +454,12 @@
       if (!kpi) continue;
       const currentVal = vals[tile.kpi_id] !== undefined ? vals[tile.kpi_id] : kpi.example_value;
       const isAcKpi = currentVal && typeof currentVal === 'object' && currentVal.acs;
+      const isRcKpi = isResponseComparisonValue(currentVal);
 
       if (isAcKpi) {
         html += renderAcValuesField(kpi, currentVal, vals);
+      } else if (isRcKpi) {
+        html += renderRcValuesField(kpi, currentVal);
       } else {
         const status = GridEngine.getStatus(kpi, currentVal);
         const isChanged = vals[tile.kpi_id] !== undefined && vals[tile.kpi_id] !== kpi.example_value;
@@ -487,7 +494,58 @@
       });
     });
 
+    setupRcFormEvents();
     setupAcFormEvents();
+  }
+
+  function renderRcValuesField(kpi, currentVal) {
+    const availableVersions = Object.keys(currentVal.versionData);
+    const currentVer = currentVal.currentVersion;
+    const previousVer = currentVal.previousVersion;
+
+    return `
+      <div class="values-rc-field" data-kpi-id="${kpi.id}">
+        <div class="values-rc-header">
+          <div class="values-field-label">
+            <div class="values-field-name">${kpi.name}</div>
+            <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
+          </div>
+          <span class="values-rc-info">${currentVal.testSituations.length} Testsituationen · Referenz ${currentVal.referenceVersion} fest</span>
+        </div>
+        <div class="values-rc-config">
+          <div class="values-rc-config-item">
+            <label>Aktuelle Version</label>
+            <select class="values-rc-select" data-rc-key="currentVersion">
+              ${availableVersions.map(v => `<option value="${v}" ${v === currentVer ? 'selected' : ''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div class="values-rc-config-item">
+            <label>Vorherige Version</label>
+            <select class="values-rc-select" data-rc-key="previousVersion">
+              ${availableVersions.map(v => `<option value="${v}" ${v === previousVer ? 'selected' : ''}>${v}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function setupRcFormEvents() {
+    valuesForm.querySelectorAll('.values-rc-select').forEach(select => {
+      select.addEventListener('change', () => {
+        const field = select.closest('.values-rc-field');
+        if (!field) return;
+        const kpiId = field.dataset.kpiId;
+        const vals = getCustomValues();
+        const rcVal = vals[kpiId];
+        if (!rcVal || !rcVal.versionData) return;
+        const key = select.dataset.rcKey;
+        rcVal[key] = select.value;
+        setCustomValue(kpiId, rcVal);
+        render();
+        const kpi = kpiMap[kpiId];
+        if (kpi) toast(`„${kpi.name}" — ${key === 'currentVersion' ? 'Aktuelle Version' : 'Vorherige Version'} auf ${select.value} geändert`);
+      });
+    });
   }
 
   /* ===== AC Form Helpers ===== */
@@ -711,10 +769,11 @@
       const { kpiId, value } = e.detail;
       const existing = getCustomValues()[kpiId];
       const isAc = existing && typeof existing === 'object' && existing.acs;
-      if (!isAc) setCustomValue(kpiId, value);
+      const isRc = existing && typeof existing === 'object' && existing.versionData;
+      if (!isAc && !isRc) setCustomValue(kpiId, value);
       const kpi = kpiMap[kpiId];
       render();
-      if (kpi && !isAc) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
+      if (kpi && !isAc && !isRc) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
     });
 
     /* Keyboard */
