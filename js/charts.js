@@ -189,7 +189,7 @@ const ChartEngine = (() => {
     const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
 
     /* ---- layout split: chart (top) + value table (bottom) ---- */
-    const chartShare = 0.50;
+    const chartShare = 0.55;
     const chartBottom = Math.round(h * chartShare);
 
     /* chart-area padding */
@@ -198,8 +198,7 @@ const ChartEngine = (() => {
       left: Math.max(55, Math.round(w * 0.06)),
       right: Math.max(10, Math.round(w * 0.015))
     };
-    /* generous bottom padding for diagonal x-labels — prevents bar overlap */
-    pad.bottom = Math.max(80, Math.round((chartBottom - pad.top) * 0.40));
+    pad.bottom = Math.max(18, Math.round((chartBottom - pad.top) * 0.12));
 
     const chartH = chartBottom - pad.top - pad.bottom;
     const chartW = w - pad.left - pad.right;
@@ -267,22 +266,22 @@ const ChartEngine = (() => {
       }
     }
 
-    /* x-axis diagonal labels — full name, bold, anchored near chart bottom edge */
+    /* x-axis index numbers above separator (1–26, horizontal) */
+    ctx.fillStyle = '#888ca3';
+    ctx.font = `600 ${axisFontSize}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
     for (let i = 0; i < numRows; i++) {
       const cx = pad.left + i * groupW + groupW / 2;
-      const labelY = chartBottom - 2;
-      const name = situations[i];
-
-      ctx.save();
-      ctx.translate(cx, labelY);
-      ctx.rotate(-Math.PI / 4);
-      ctx.fillStyle = '#e4e6ef';
-      ctx.font = `700 ${labelFontSize}px -apple-system, sans-serif`;
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(name, 0, 0);
-      ctx.restore();
+      ctx.fillText(String(i + 1), cx, chartBottom - Math.round(axisFontSize * 1.1));
     }
+
+    /* x-axis short label (chart type) */
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = `400 9px -apple-system, sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('Testsituationen: Nr. → Tabelle ↓', w - pad.right, chartBottom - 4);
 
     /* ---- separator line between chart and table ---- */
     ctx.strokeStyle = 'rgba(255,255,255,0.12)';
@@ -346,7 +345,10 @@ const ChartEngine = (() => {
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#e4e6ef';
+      ctx.fillStyle = '#e4e6ef';
+      ctx.font = `600 ${tableFontSize}px -apple-system, sans-serif`;
       ctx.fillText(shortSit, tLeft, ry);
+      ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
       for (let vi = 0; vi < versions.length; vi++) {
         const vals = data.versionData[versions[vi]] || [];
