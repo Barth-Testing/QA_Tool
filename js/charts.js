@@ -185,26 +185,34 @@ const ChartEngine = (() => {
     const situations = data.testSituations;
     const numRows = situations.length;
     const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
-    const colors = ['#22c55e', '#6366f1', '#ef4444'];
+    const colors = ['#22c55e', '#818cf8', '#ef4444'];
     const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
 
+    /* padding: left for labels, right for value columns, top/bottom */
+    const labelW = Math.max(140, Math.round(w * 0.13));
+    const valColW = Math.round(w * 0.20);
     const pad = {
       top: Math.max(20, Math.round(h * 0.025)),
       bottom: Math.max(40, Math.round(h * 0.05)),
-      left: Math.max(150, Math.round(w * 0.14)),
-      right: Math.max(70, Math.round(w * 0.06))
+      left: labelW,
+      right: valColW + Math.round(w * 0.03)
     };
 
-    const chartW = Math.max(w - pad.left - pad.right, 100);
-    const chartH = Math.max(h - pad.top - pad.bottom, 100);
+    const chartW = Math.max(w - pad.left - pad.right, 80);
+    const chartH = Math.max(h - pad.top - pad.bottom, 80);
     const rowH = Math.max(chartH / numRows, 22);
 
     const labelFontSize = Math.min(Math.max(11, Math.round(rowH * 0.4)), 16);
-    const valueFontSize = Math.min(Math.max(10, Math.round(rowH * 0.35)), 14);
+    const valFontSize = Math.min(Math.max(10, Math.round(rowH * 0.35)), 14);
     const axisFontSize = Math.min(Math.max(10, Math.round(rowH * 0.3)), 13);
+    const headerFontSize = Math.min(labelFontSize + 1, 15);
 
     const barH = Math.max(5, Math.round(rowH * 0.2));
     const barGap = Math.max(2, Math.round(barH * 0.4));
+
+    const valueColX = w - pad.right + Math.round(w * 0.015);
+    const valueColW = pad.right - Math.round(w * 0.045);
+    const valCellW = Math.round(valueColW / 3);
 
     let maxVal = 0;
     for (const v of versions) {
@@ -217,37 +225,57 @@ const ChartEngine = (() => {
 
     ctx.clearRect(0, 0, w, h);
 
-    /* background alternating rows */
+    /* --- background alternating rows + row separators --- */
     for (let i = 0; i < numRows; i++) {
+      const ry = pad.top + i * rowH;
       if (i % 2 === 1) {
         ctx.fillStyle = 'rgba(255,255,255,0.03)';
-        ctx.fillRect(pad.left, pad.top + i * rowH, chartW, rowH);
+        ctx.fillRect(pad.left, ry, w - pad.left, rowH);
       }
+      /* separator line between rows */
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, ry);
+      ctx.lineTo(w - pad.right, ry);
+      ctx.stroke();
     }
 
-    /* y-axis labels */
+    /* --- value column header row --- */
+    const headerY = pad.top - rowH * 0.3;
+    ctx.font = `600 ${axisFontSize}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    for (let vi = 0; vi < versions.length; vi++) {
+      const hx = valueColX + vi * valCellW + valCellW / 2;
+      ctx.fillStyle = colors[vi];
+      const short = versions[vi].length > 10 ? versions[vi].substring(0, 8) + '…' : versions[vi];
+      ctx.fillText(short, hx, pad.top - 4);
+    }
+
+    /* --- y-axis labels (situation names) --- */
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     ctx.font = `500 ${labelFontSize}px -apple-system, sans-serif`;
     for (let i = 0; i < numRows; i++) {
       const y = pad.top + i * rowH + rowH / 2;
       const sit = situations[i];
-      const maxChars = Math.max(15, Math.round(pad.left / (labelFontSize * 0.55)));
+      const maxChars = Math.max(12, Math.round(labelW / (labelFontSize * 0.55)));
       const short = sit.length > maxChars ? sit.substring(0, maxChars - 1) + '…' : sit;
       ctx.fillStyle = '#e4e6ef';
-      ctx.fillText(short, pad.left - 10, y);
+      ctx.fillText(short, pad.left - 8, y);
     }
 
-    /* x-axis grid lines + labels */
+    /* --- x-axis grid lines + labels --- */
     const xSteps = Math.max(4, Math.min(8, Math.round(chartW / 140)));
     ctx.font = `${axisFontSize}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
+    ctx.lineWidth = 1;
     for (let s = 0; s <= xSteps; s++) {
       const x = pad.left + (chartW / xSteps) * s;
       const val = (maxVal / xSteps) * s;
       ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, pad.top);
       ctx.lineTo(x, pad.top + numRows * rowH);
@@ -256,7 +284,8 @@ const ChartEngine = (() => {
       ctx.fillText(Math.round(val) + ' ms', x, pad.top + numRows * rowH + 4);
     }
 
-    /* bars */
+    /* --- bars with value labels in right panel --- */
+    ctx.textBaseline = 'middle';
     for (let i = 0; i < numRows; i++) {
       const y = pad.top + i * rowH;
       for (let vi = 0; vi < versions.length; vi++) {
@@ -264,28 +293,35 @@ const ChartEngine = (() => {
         const val = vals[i];
         const bx = pad.left;
         const by = y + (rowH - (barH * 3 + barGap * 2)) / 2 + vi * (barH + barGap);
-        const bw = val !== null && val !== undefined ? Math.max((val / maxVal) * chartW, 2) : 0;
+        const bw = val !== null && val !== undefined ? Math.max((val / maxVal) * chartW, 3) : 0;
 
         ctx.fillStyle = colors[vi];
         ctx.beginPath();
         ctx.roundRect(bx, by, bw, barH, Math.min(3, barH / 2));
         ctx.fill();
 
-        if (val !== null && val !== undefined) {
-          ctx.fillStyle = '#888ca3';
-          ctx.font = `${valueFontSize}px -apple-system, sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(val + ' ms', bx + bw + 6, by + barH / 2);
-        }
+        /* value text in right column */
+        const vx = valueColX + vi * valCellW;
+        ctx.fillStyle = colors[vi];
+        ctx.font = `600 ${valFontSize}px -apple-system, sans-serif`;
+        ctx.textAlign = 'center';
+        const display = val !== null && val !== undefined ? val + ' ms' : 'n.a.';
+        ctx.fillText(display, vx + valCellW / 2, by + barH / 2);
       }
     }
 
-    /* legend */
-    const legendY = h - Math.max(25, pad.bottom * 0.7);
-    const legendFontSize = Math.min(labelFontSize + 1, 15);
-    ctx.font = `500 ${legendFontSize}px -apple-system, sans-serif`;
-    const boxSize = Math.max(12, legendFontSize - 1);
+    /* --- separator line above legend --- */
+    const legendY = h - Math.max(28, pad.bottom * 0.7);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, legendY - 8);
+    ctx.lineTo(w - pad.right, legendY - 8);
+    ctx.stroke();
+
+    /* --- legend --- */
+    ctx.font = `500 ${headerFontSize}px -apple-system, sans-serif`;
+    const boxSize = Math.max(12, headerFontSize - 1);
     for (let vi = 0; vi < versions.length; vi++) {
       const lx = pad.left + vi * Math.round(w * 0.16);
       ctx.fillStyle = colors[vi];
@@ -293,7 +329,7 @@ const ChartEngine = (() => {
       ctx.fillStyle = '#e4e6ef';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(versions[vi] + ' (' + versionLabels[vi] + ')', lx + boxSize + 8, legendY + boxSize / 2);
+      ctx.fillText(versionLabels[vi], lx + boxSize + 8, legendY + boxSize / 2);
     }
   }
 

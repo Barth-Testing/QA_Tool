@@ -50,6 +50,7 @@
     <aside class="sidebar sidebar-right" id="sidebar-rfc">
       <div class="sidebar-header">
         <h2>Testabdeckung RFC</h2>
+        <button id="btn-add-rfc" class="btn btn-primary btn-sm" title="Neues RFC">+</button>
       </div>
       <div class="sidebar-list" id="rfc-list"></div>
     </aside>
@@ -67,6 +68,53 @@
         <input type="text" id="campaign-version" placeholder="z.B. 4.4.1">
         <button id="btn-create-campaign" class="btn btn-primary">Erstellen</button>
       </div>
+    </div>
+  </div>
+
+  <div id="rfc-add-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content rfc-add-modal-content">
+      <div class="modal-header">
+        <h2>Neues RFC hinzufügen</h2>
+        <button id="btn-close-rfc-add" class="btn-close">&times;</button>
+      </div>
+      <div class="rfc-add-body">
+        <div class="rfc-add-field">
+          <label for="rfc-add-name">RFC-Name</label>
+          <input type="text" id="rfc-add-name" placeholder="z.B. RFC-231, RFC-378.01">
+        </div>
+        <div class="rfc-add-field">
+          <label for="rfc-add-ac-count">Anzahl Acceptance Criteria</label>
+          <select id="rfc-add-ac-count">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div class="rfc-add-ac-list" id="rfc-add-ac-list"></div>
+        <div class="rfc-add-actions">
+          <button id="btn-rfc-add-save" class="btn btn-primary">Erstellen</button>
+          <button id="btn-rfc-add-cancel" class="btn btn-secondary">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rfc-detail-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content rfc-detail-modal-content">
+      <div class="modal-header">
+        <h2 id="rfc-detail-title">RFC Details</h2>
+        <button id="btn-close-rfc-detail" class="btn-close">&times;</button>
+      </div>
+      <div class="rfc-detail-body" id="rfc-detail-body"></div>
     </div>
   </div>
 

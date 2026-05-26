@@ -399,10 +399,10 @@
       return;
     }
 
-    currentTiles = db.tiles;
+    currentTiles = Grid.compactGrid(db.tiles);
     Grid.init(db.columns, kpiMap);
     Grid.setCustomValues(getCustomValues());
-    Grid.renderGrid(gridEl, db.tiles, db.columns);
+    Grid.renderGrid(gridEl, currentTiles, db.columns);
     renderDashboardSelect();
     selectEl.value = db.id;
     columnSlider.value = db.columns;
@@ -1032,66 +1032,216 @@
   }
 
   /* ===== RFC (Testabdeckung RFC) Engine ===== */
-  function loadRfcData() {
-    return getCustomValues()['test-coverage-rfc'] || null;
+  const RFC_KEY = 'qa_dashboard_rfc_entries';
+  let rfcEntries = [];
+
+  function loadRfcEntries() {
+    try {
+      const saved = localStorage.getItem(RFC_KEY);
+      rfcEntries = saved ? JSON.parse(saved) : [];
+      /* migrate old single-entry format from values system */
+      if (rfcEntries.length === 0) {
+        const old = getCustomValues()['test-coverage-rfc'];
+        if (old && old.acs && typeof old.acs === 'object') {
+          const acs = {};
+          for (const [k, v] of Object.entries(old.acs)) {
+            acs[k] = { text: v.text || k, passed: !!v.passed };
+          }
+          rfcEntries.push({ id: 'rfc_' + Date.now(), name: 'RFC (migriert)', acs });
+          saveRfcEntries();
+        }
+      }
+    } catch { rfcEntries = []; }
+  }
+
+  function saveRfcEntries() {
+    try {
+      localStorage.setItem(RFC_KEY, JSON.stringify(rfcEntries));
+    } catch {}
   }
 
   function renderRfcSidebar() {
     const list = $('#rfc-list');
-    const rfc = loadRfcData();
-    if (!rfc || !rfc.acs || typeof rfc.acs !== 'object') {
+    if (!rfcEntries || rfcEntries.length === 0) {
       list.innerHTML = '<div class="empty-state-text" style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem">Keine RFC-Daten vorhanden</div>';
       return;
     }
 
-    const acEntries = Object.entries(rfc.acs);
-    const total = acEntries.length;
-    const covered = acEntries.filter(([, ac]) => ac.passed).length;
-    const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+    list.innerHTML = rfcEntries.map((entry, idx) => {
+      const acEntries = Object.entries(entry.acs);
+      const total = acEntries.length;
+      const covered = acEntries.filter(([, ac]) => ac.passed).length;
+      const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
 
-    let acGridHtml = '';
-    for (const [acId, ac] of acEntries) {
-      const st = ac.passed ? 'passed' : 'failed';
-      acGridHtml += `<div class="rfc-ac-item ${st}" data-ac-id="${acId}" title="${(ac.text || acId).replace(/"/g, '&quot;')}">${acId}</div>`;
-    }
-
-    list.innerHTML = `
-      <div class="rfc-tile">
-        <div class="rfc-tile-header">RFC Acceptance Criteria</div>
-        <div class="rfc-main-donut-wrap">
-          <canvas class="rfc-main-donut" id="rfc-main-donut"></canvas>
-          <span class="rfc-coverage-label">${pct}% abgedeckt</span>
-        </div>
-        <div class="rfc-ac-grid">
-          ${acGridHtml}
-        </div>
-      </div>`;
-
-    requestAnimationFrame(() => {
-      const canvas = document.getElementById('rfc-main-donut');
-      if (canvas) {
-        const status = pct >= 80 ? 'green' : pct >= 50 ? 'yellow' : 'red';
-        ChartEngine.drawDonut(canvas, pct, '%', status);
+      let acGridHtml = '';
+      for (const [acId, ac] of acEntries) {
+        const st = ac.passed ? 'passed' : 'failed';
+        acGridHtml += `<div class="rfc-ac-item ${st}" data-entry-id="${entry.id}" data-ac-id="${acId}">${acId}</div>`;
       }
-    });
+
+      return `
+        <div class="rfc-tile">
+          <div class="rfc-tile-header">${entry.name}</div>
+          <div class="rfc-main-donut-wrap">
+            <canvas class="rfc-main-donut" data-entry-id="${entry.id}"></canvas>
+            <span class="rfc-coverage-label">${pct}% abgedeckt</span>
+          </div>
+          <div class="rfc-ac-grid">
+            ${acGridHtml}
+          </div>
+          <button class="rfc-detail-btn" data-entry-id="${entry.id}">Details</button>
+        </div>`;
+    }).join('');
+
+    requestAnimationFrame(drawRfcDonuts);
+  }
+
+  function drawRfcDonuts() {
+    for (const entry of rfcEntries) {
+      const canvas = document.querySelector(`.rfc-main-donut[data-entry-id="${entry.id}"]`);
+      if (!canvas) continue;
+      const acEntries = Object.entries(entry.acs);
+      const total = acEntries.length;
+      const covered = acEntries.filter(([, ac]) => ac.passed).length;
+      const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+      const status = pct >= 80 ? 'green' : pct >= 50 ? 'yellow' : 'red';
+      ChartEngine.drawDonut(canvas, pct, '%', status);
+    }
+  }
+
+  function toggleRfcAc(entryId, acId) {
+    const entry = rfcEntries.find(e => e.id === entryId);
+    if (!entry || !entry.acs[acId]) return;
+    entry.acs[acId].passed = !entry.acs[acId].passed;
+    const merged = getCustomValues();
+    /* sync first entry to the KPI value for consistency */
+    if (rfcEntries.length > 0) {
+      merged['test-coverage-rfc'] = { entries: rfcEntries };
+    }
+    setCustomValue('test-coverage-rfc', merged['test-coverage-rfc']);
+    saveRfcEntries();
+    renderRfcSidebar();
+  }
+
+  function createRfcEntry(name) {
+    const id = 'rfc_' + Date.now();
+    const acCount = parseInt(document.getElementById('rfc-add-ac-count').value) || 3;
+    const acInputs = document.querySelectorAll('.rfc-add-ac-row input');
+    const acs = {};
+    for (let i = 0; i < acCount; i++) {
+      const acId = 'AC' + (i + 1);
+      const text = acInputs[i] ? acInputs[i].value.trim() : 'AC ' + (i + 1);
+      acs[acId] = { text: text || 'AC ' + (i + 1), passed: true };
+    }
+    const newEntry = { id, name, acs };
+    rfcEntries.unshift(newEntry);
+    saveRfcEntries();
+    renderRfcSidebar();
+  }
+
+  function renderRfcAddAcFields() {
+    const count = parseInt(document.getElementById('rfc-add-ac-count').value) || 3;
+    const list = document.getElementById('rfc-add-ac-list');
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      html += `
+        <div class="rfc-add-ac-row">
+          <span class="rfc-add-ac-label">AC${i + 1}</span>
+          <input type="text" placeholder="Beschreibung für AC${i + 1}" value="">
+        </div>`;
+    }
+    list.innerHTML = html;
   }
 
   function setupRfcEvents() {
+    /* + button → open add modal */
+    $('#btn-add-rfc').addEventListener('click', () => {
+      document.getElementById('rfc-add-name').value = '';
+      document.getElementById('rfc-add-ac-count').value = '5';
+      renderRfcAddAcFields();
+      document.getElementById('rfc-add-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('rfc-add-name').focus(), 50);
+    });
+
+    /* close add modal */
+    const closeAdd = () => document.getElementById('rfc-add-modal').classList.add('hidden');
+    $('#btn-close-rfc-add').addEventListener('click', closeAdd);
+    $('#btn-rfc-add-cancel').addEventListener('click', closeAdd);
+    document.querySelector('#rfc-add-modal .modal-backdrop').addEventListener('click', closeAdd);
+
+    /* AC count change → re-render fields */
+    document.getElementById('rfc-add-ac-count').addEventListener('change', renderRfcAddAcFields);
+
+    /* save new RFC */
+    $('#btn-rfc-add-save').addEventListener('click', () => {
+      const name = document.getElementById('rfc-add-name').value.trim();
+      if (!name) {
+        toast('Bitte einen RFC-Namen eingeben');
+        return;
+      }
+      createRfcEntry(name);
+      document.getElementById('rfc-add-modal').classList.add('hidden');
+      toast(`RFC ${name} erstellt`);
+    });
+
+    /* AC toggle in sidebar */
     $('#rfc-list').addEventListener('click', (e) => {
       const item = e.target.closest('.rfc-ac-item');
       if (!item) return;
-      const acId = item.dataset.acId;
-      const rfc = loadRfcData();
-      if (!rfc || !rfc.acs || !rfc.acs[acId]) return;
-      rfc.acs[acId].passed = !rfc.acs[acId].passed;
-      setCustomValue('test-coverage-rfc', rfc);
-      renderRfcSidebar();
+      toggleRfcAc(item.dataset.entryId, item.dataset.acId);
     });
+
+    /* Detail button → open detail modal */
+    $('#rfc-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.rfc-detail-btn');
+      if (!btn) return;
+      const entryId = btn.dataset.entryId;
+      const entry = rfcEntries.find(e => e.id === entryId);
+      if (!entry) return;
+      document.getElementById('rfc-detail-title').textContent = 'Details: ' + entry.name;
+      const body = document.getElementById('rfc-detail-body');
+      body.innerHTML = Object.entries(entry.acs).map(([acId, ac]) => {
+        const st = ac.passed ? 'green' : 'red';
+        const statusText = ac.passed ? 'Bestanden' : 'Offen';
+        return `
+          <div class="rfc-detail-item" data-entry-id="${entry.id}" data-ac-id="${acId}">
+            <span class="rfc-detail-dot ${st}"></span>
+            <span class="rfc-detail-id">${acId}</span>
+            <span class="rfc-detail-text">${ac.text || ''}</span>
+            <span class="rfc-detail-status ${st}">${statusText}</span>
+          </div>`;
+      }).join('');
+      document.getElementById('rfc-detail-modal').classList.remove('hidden');
+    });
+
+    /* toggle AC from detail modal — update in place, no close/reopen */
+    document.getElementById('rfc-detail-body').addEventListener('click', (e) => {
+      const item = e.target.closest('.rfc-detail-item');
+      if (!item) return;
+      const entryId = item.dataset.entryId;
+      const acId = item.dataset.acId;
+      toggleRfcAc(entryId, acId);
+      /* update this item's appearance only */
+      const entry = rfcEntries.find(e => e.id === entryId);
+      if (!entry || !entry.acs[acId]) return;
+      const ac = entry.acs[acId];
+      const st = ac.passed ? 'green' : 'red';
+      const statusText = ac.passed ? 'Bestanden' : 'Offen';
+      item.querySelector('.rfc-detail-dot').className = 'rfc-detail-dot ' + st;
+      item.querySelector('.rfc-detail-status').className = 'rfc-detail-status ' + st;
+      item.querySelector('.rfc-detail-status').textContent = statusText;
+    });
+
+    /* close detail modal */
+    const closeDetail = () => document.getElementById('rfc-detail-modal').classList.add('hidden');
+    $('#btn-close-rfc-detail').addEventListener('click', closeDetail);
+    document.querySelector('#rfc-detail-modal .modal-backdrop').addEventListener('click', closeDetail);
   }
 
   /* ===== Start ===== */
   document.addEventListener('DOMContentLoaded', () => {
     loadCampaigns();
+    loadRfcEntries();
     init().then(() => {
       renderCampaigns();
       setupCampaignEvents();
