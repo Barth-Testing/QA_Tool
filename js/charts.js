@@ -189,7 +189,7 @@ const ChartEngine = (() => {
     const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
 
     /* ---- layout split: chart (top) + value table (bottom) ---- */
-    const chartShare = 0.55;
+    const chartShare = 0.50;
     const chartBottom = Math.round(h * chartShare);
 
     /* chart-area padding */
@@ -198,8 +198,8 @@ const ChartEngine = (() => {
       left: Math.max(55, Math.round(w * 0.06)),
       right: Math.max(10, Math.round(w * 0.015))
     };
-    /* bottom padding for diagonal x-labels — relative to chart height */
-    pad.bottom = Math.max(50, Math.round((chartBottom - pad.top) * 0.2));
+    /* generous bottom padding for diagonal x-labels — prevents bar overlap */
+    pad.bottom = Math.max(80, Math.round((chartBottom - pad.top) * 0.40));
 
     const chartH = chartBottom - pad.top - pad.bottom;
     const chartW = w - pad.left - pad.right;
@@ -211,10 +211,10 @@ const ChartEngine = (() => {
     const groupOffset = (groupW - (barW * 3 + barGap * 2)) / 2;
 
     /* font sizes */
-    const labelFontSize = Math.min(Math.max(8, Math.round(groupW * 0.16)), 11);
+    const labelFontSize = Math.min(Math.max(9, Math.round(groupW * 0.2)), 12);
     const axisFontSize = Math.min(Math.max(9, Math.round(groupW * 0.14)), 12);
     const tableHeaderFont = Math.min(Math.max(11, Math.round((h - chartBottom) * 0.05)), 13);
-    const tableFontSize = Math.max(9, Math.min(Math.round((h - chartBottom) * 0.038), 12));
+    const tableFontSize = Math.max(9, Math.min(Math.round((h - chartBottom) * 0.04), 12));
 
     const barRound = Math.min(2, Math.round(barW * 0.25));
 
@@ -267,22 +267,20 @@ const ChartEngine = (() => {
       }
     }
 
-    /* x-axis diagonal labels */
+    /* x-axis diagonal labels — full name, bold, anchored near chart bottom edge */
     for (let i = 0; i < numRows; i++) {
       const cx = pad.left + i * groupW + groupW / 2;
-      const labelY = chartBottom - 4;
-      const sit = situations[i];
-      const maxChars = Math.max(10, Math.round(groupW / (labelFontSize * 0.45)));
-      const short = sit.length > maxChars ? sit.substring(0, maxChars - 1) + '…' : sit;
+      const labelY = chartBottom - 2;
+      const name = situations[i];
 
       ctx.save();
       ctx.translate(cx, labelY);
       ctx.rotate(-Math.PI / 4);
       ctx.fillStyle = '#e4e6ef';
-      ctx.font = `500 ${labelFontSize}px -apple-system, sans-serif`;
+      ctx.font = `700 ${labelFontSize}px -apple-system, sans-serif`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(short, 0, 0);
+      ctx.fillText(name, 0, 0);
       ctx.restore();
     }
 
