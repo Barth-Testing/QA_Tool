@@ -103,14 +103,6 @@
           "h": 1
         },
         {
-          "id": "t21",
-          "kpi_id": "test-coverage-rfc",
-          "x": 2,
-          "y": 3,
-          "w": 2,
-          "h": 2
-        },
-        {
           "id": "t22",
           "kpi_id": "fe-response-dev",
           "x": 0,

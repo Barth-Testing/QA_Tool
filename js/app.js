@@ -408,6 +408,7 @@
     columnSlider.value = db.columns;
     columnValue.textContent = db.columns;
     if (activeTab === 'values') renderValuesTab();
+    renderRfcSidebar();
   }
 
   /* ===== Tab Switching ===== */
@@ -1030,12 +1031,72 @@
     });
   }
 
+  /* ===== RFC (Testabdeckung RFC) Engine ===== */
+  function loadRfcData() {
+    return getCustomValues()['test-coverage-rfc'] || null;
+  }
+
+  function renderRfcSidebar() {
+    const list = $('#rfc-list');
+    const rfc = loadRfcData();
+    if (!rfc || !rfc.acs || typeof rfc.acs !== 'object') {
+      list.innerHTML = '<div class="empty-state-text" style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem">Keine RFC-Daten vorhanden</div>';
+      return;
+    }
+
+    const acEntries = Object.entries(rfc.acs);
+    const total = acEntries.length;
+    const covered = acEntries.filter(([, ac]) => ac.passed).length;
+    const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+
+    let acGridHtml = '';
+    for (const [acId, ac] of acEntries) {
+      const st = ac.passed ? 'passed' : 'failed';
+      acGridHtml += `<div class="rfc-ac-item ${st}" data-ac-id="${acId}" title="${(ac.text || acId).replace(/"/g, '&quot;')}">${acId}</div>`;
+    }
+
+    list.innerHTML = `
+      <div class="rfc-tile">
+        <div class="rfc-tile-header">RFC Acceptance Criteria</div>
+        <div class="rfc-main-donut-wrap">
+          <canvas class="rfc-main-donut" id="rfc-main-donut"></canvas>
+          <span class="rfc-coverage-label">${pct}% abgedeckt</span>
+        </div>
+        <div class="rfc-ac-grid">
+          ${acGridHtml}
+        </div>
+      </div>`;
+
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('rfc-main-donut');
+      if (canvas) {
+        const status = pct >= 80 ? 'green' : pct >= 50 ? 'yellow' : 'red';
+        ChartEngine.drawDonut(canvas, pct, '%', status);
+      }
+    });
+  }
+
+  function setupRfcEvents() {
+    $('#rfc-list').addEventListener('click', (e) => {
+      const item = e.target.closest('.rfc-ac-item');
+      if (!item) return;
+      const acId = item.dataset.acId;
+      const rfc = loadRfcData();
+      if (!rfc || !rfc.acs || !rfc.acs[acId]) return;
+      rfc.acs[acId].passed = !rfc.acs[acId].passed;
+      setCustomValue('test-coverage-rfc', rfc);
+      renderRfcSidebar();
+    });
+  }
+
   /* ===== Start ===== */
   document.addEventListener('DOMContentLoaded', () => {
     loadCampaigns();
     init().then(() => {
       renderCampaigns();
       setupCampaignEvents();
+      renderRfcSidebar();
+      setupRfcEvents();
     });
   });
 })(GridEngine);

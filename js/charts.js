@@ -168,31 +168,43 @@ const ChartEngine = (() => {
 
   function drawResponseComparison(canvas, data) {
     const dpr = window.devicePixelRatio || 1;
+
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    const w = rect.width;
+    const h = rect.height;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
 
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
-    const w = rect.width;
-    const h = rect.height;
-    const pad = { top: 20, bottom: 40, left: 170, right: 80 };
-    const rowH = 26;
-    const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
-    const colors = ['#22c55e', '#6366f1', '#ef4444'];
-    const labels = ['Aktuell', 'Vorher', 'Referenz'];
-
     const situations = data.testSituations;
     const numRows = situations.length;
-    const totalH = numRows * rowH + pad.top + pad.bottom;
+    const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
+    const colors = ['#22c55e', '#6366f1', '#ef4444'];
+    const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
 
-    canvas.style.height = totalH + 'px';
-    canvas.width = rect.width * dpr;
-    canvas.height = totalH * dpr;
-    ctx.scale(dpr, dpr);
+    const pad = {
+      top: Math.max(20, Math.round(h * 0.025)),
+      bottom: Math.max(40, Math.round(h * 0.05)),
+      left: Math.max(150, Math.round(w * 0.14)),
+      right: Math.max(70, Math.round(w * 0.06))
+    };
 
-    const chartW = w - pad.left - pad.right;
+    const chartW = Math.max(w - pad.left - pad.right, 100);
+    const chartH = Math.max(h - pad.top - pad.bottom, 100);
+    const rowH = Math.max(chartH / numRows, 22);
+
+    const labelFontSize = Math.min(Math.max(11, Math.round(rowH * 0.4)), 16);
+    const valueFontSize = Math.min(Math.max(10, Math.round(rowH * 0.35)), 14);
+    const axisFontSize = Math.min(Math.max(10, Math.round(rowH * 0.3)), 13);
+
+    const barH = Math.max(5, Math.round(rowH * 0.2));
+    const barGap = Math.max(2, Math.round(barH * 0.4));
 
     let maxVal = 0;
     for (const v of versions) {
@@ -203,7 +215,7 @@ const ChartEngine = (() => {
     }
     if (maxVal <= 0) maxVal = 1;
 
-    ctx.clearRect(0, 0, w, totalH);
+    ctx.clearRect(0, 0, w, h);
 
     /* background alternating rows */
     for (let i = 0; i < numRows; i++) {
@@ -216,25 +228,26 @@ const ChartEngine = (() => {
     /* y-axis labels */
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
+    ctx.font = `500 ${labelFontSize}px -apple-system, sans-serif`;
     for (let i = 0; i < numRows; i++) {
       const y = pad.top + i * rowH + rowH / 2;
       const sit = situations[i];
-      const short = sit.length > 32 ? sit.substring(0, 30) + '…' : sit;
+      const maxChars = Math.max(15, Math.round(pad.left / (labelFontSize * 0.55)));
+      const short = sit.length > maxChars ? sit.substring(0, maxChars - 1) + '…' : sit;
       ctx.fillStyle = '#e4e6ef';
-      ctx.font = '11px -apple-system, sans-serif';
       ctx.fillText(short, pad.left - 10, y);
     }
 
     /* x-axis grid lines + labels */
-    const xSteps = 5;
-    ctx.fillStyle = '#888ca3';
-    ctx.font = '10px -apple-system, sans-serif';
+    const xSteps = Math.max(4, Math.min(8, Math.round(chartW / 140)));
+    ctx.font = `${axisFontSize}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (let s = 0; s <= xSteps; s++) {
       const x = pad.left + (chartW / xSteps) * s;
       const val = (maxVal / xSteps) * s;
-      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, pad.top);
       ctx.lineTo(x, pad.top + numRows * rowH);
@@ -244,8 +257,6 @@ const ChartEngine = (() => {
     }
 
     /* bars */
-    const barH = 5;
-    const barGap = 3;
     for (let i = 0; i < numRows; i++) {
       const y = pad.top + i * rowH;
       for (let vi = 0; vi < versions.length; vi++) {
@@ -257,12 +268,12 @@ const ChartEngine = (() => {
 
         ctx.fillStyle = colors[vi];
         ctx.beginPath();
-        ctx.roundRect(bx, by, bw, barH, 2);
+        ctx.roundRect(bx, by, bw, barH, Math.min(3, barH / 2));
         ctx.fill();
 
         if (val !== null && val !== undefined) {
           ctx.fillStyle = '#888ca3';
-          ctx.font = '10px -apple-system, sans-serif';
+          ctx.font = `${valueFontSize}px -apple-system, sans-serif`;
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
           ctx.fillText(val + ' ms', bx + bw + 6, by + barH / 2);
@@ -271,17 +282,18 @@ const ChartEngine = (() => {
     }
 
     /* legend */
-    const legendX = pad.left;
-    const legendY = totalH - 28;
-    ctx.font = '12px -apple-system, sans-serif';
+    const legendY = h - Math.max(25, pad.bottom * 0.7);
+    const legendFontSize = Math.min(labelFontSize + 1, 15);
+    ctx.font = `500 ${legendFontSize}px -apple-system, sans-serif`;
+    const boxSize = Math.max(12, legendFontSize - 1);
     for (let vi = 0; vi < versions.length; vi++) {
-      const lx = legendX + vi * 160;
+      const lx = pad.left + vi * Math.round(w * 0.16);
       ctx.fillStyle = colors[vi];
-      ctx.fillRect(lx, legendY + 2, 14, 14);
+      ctx.fillRect(lx, legendY, boxSize, boxSize);
       ctx.fillStyle = '#e4e6ef';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(versions[vi] + ' (' + labels[vi] + ')', lx + 20, legendY + 9);
+      ctx.fillText(versions[vi] + ' (' + versionLabels[vi] + ')', lx + boxSize + 8, legendY + boxSize / 2);
     }
   }
 

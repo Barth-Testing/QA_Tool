@@ -130,7 +130,7 @@ body {
 .dashboard-container {
   display: flex;
   gap: 1rem;
-  padding: 0 1.5rem 1.5rem 0;
+  padding: 0 0.75rem 1.5rem;
   align-items: flex-start;
 }
 .dashboard-main {
@@ -163,6 +163,91 @@ body {
   gap: 0.75rem;
   overflow-y: auto;
   max-height: calc(100vh - 160px);
+}
+
+.sidebar-right {
+  padding-left: 0;
+  padding-right: 0.75rem;
+}
+.sidebar-right .sidebar-list {
+  max-height: calc(100vh - 120px);
+}
+
+/* ===== RFC Tile ===== */
+.rfc-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rfc-tile-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  width: 100%;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+.rfc-main-donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+}
+.rfc-main-donut {
+  width: 120px;
+  height: 120px;
+}
+.rfc-coverage-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.rfc-ac-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  margin-top: 0.15rem;
+}
+.rfc-ac-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(25% - 0.3rem);
+  min-width: 44px;
+  padding: 0.3rem 0.15rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  text-align: center;
+  box-sizing: border-box;
+}
+.rfc-ac-item.passed {
+  background: rgba(34,197,94,0.18);
+  border-color: var(--green);
+  color: var(--green);
+}
+.rfc-ac-item.failed {
+  background: rgba(239,68,68,0.18);
+  border-color: var(--red);
+  color: var(--red);
+}
+.rfc-ac-item:hover {
+  opacity: 0.8;
+  transform: scale(1.06);
 }
 
 /* ===== Campaign Tile ===== */
@@ -696,16 +781,16 @@ body {
 }
 .chart-modal-body {
   flex: 1;
-  overflow: auto;
-  padding: 1.25rem;
+  overflow: hidden;
+  padding: 0.75rem 1.25rem 1.25rem;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: stretch;
 }
 #chart-modal-canvas {
-  max-width: 100%;
+  width: 100%;
+  height: 100%;
   display: block;
-  min-width: 600px;
 }
 
 /* ===== RC Add Release Modal ===== */
