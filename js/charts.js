@@ -11,6 +11,7 @@ const ChartEngine = (() => {
     ];
     if (donutIds.includes(kpi.id)) return 'donut';
     if (kpi.id === 'fe-response-dev' || kpi.id === 'fe-response-sta') return 'response-comparison';
+    if (kpi.unit === 'Anzahl') return 'numeric';
     return 'bar';
   }
 

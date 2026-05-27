@@ -133,7 +133,7 @@ const GridEngine = (() => {
           ChartEngine.drawDonut(canvas, value, kpi.unit, status);
         } else if (chartType === 'response-comparison' && rcInfo) {
           ChartEngine.drawResponseComparison(canvas, rawValue);
-        } else {
+        } else if (chartType !== 'numeric') {
           ChartEngine.drawBar(canvas, value, kpi.unit, status, kpi.thresholds);
         }
       }
@@ -252,6 +252,11 @@ const GridEngine = (() => {
     let chartAreaHtml = '';
     if (isRcKpi) {
       chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"></div>`;
+    } else if (chartType === 'numeric') {
+      chartAreaHtml = `
+        <div class="tile-chart-area tile-chart-area--numeric">
+          <div class="tile-numeric-value">${value} <span class="tile-numeric-unit">${kpi.unit || ''}</span></div>
+        </div>`;
     } else {
       chartAreaHtml = `
         <div class="tile-chart-area">
