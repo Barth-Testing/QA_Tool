@@ -169,6 +169,19 @@
     "example_value": 20
   },
   {
+    "id": "rfc-tests",
+    "name": "RFC Tests",
+    "category": "dev",
+    "description": "Anzahl der RFC-bezogenen Testfälle",
+    "formula": "COUNT(RFC Testfälle)",
+    "benefit": "Erfasst das Testaufkommen spezifisch für RFCs",
+    "unit": "Tests",
+    "thresholds": null,
+    "data_source_type": "manual",
+    "tags": ["tests", "rfc", "count"],
+    "example_value": 45
+  },
+  {
     "id": "flaky-test-rate",
     "name": "Flaky Test Rate",
     "category": "dev",

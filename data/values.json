@@ -6,6 +6,7 @@
   "automated-tests": 130,
   "manual-tests": 70,
   "mobile-tests": 20,
+  "rfc-tests": 45,
   "flaky-test-rate": 3,
   "mttr": 6,
   "error-log-density": 22,

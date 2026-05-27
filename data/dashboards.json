@@ -17,6 +17,7 @@
         { "id": "t6", "kpi_id": "flaky-test-rate", "x": 0, "y": 2, "w": 1, "h": 1 },
         { "id": "t7", "kpi_id": "mttr", "x": 1, "y": 2, "w": 1, "h": 1 },
         { "id": "t8", "kpi_id": "error-log-density", "x": 2, "y": 2, "w": 1, "h": 1 },
+        { "id": "t27", "kpi_id": "rfc-tests", "x": 3, "y": 2, "w": 1, "h": 1 },
         { "id": "t9", "kpi_id": "uptime", "x": 0, "y": 3, "w": 1, "h": 1 },
         { "id": "t10", "kpi_id": "api-response-time", "x": 1, "y": 3, "w": 1, "h": 1 },
         { "id": "t11", "kpi_id": "a-bugs-post-release", "x": 2, "y": 3, "w": 2, "h": 1 },
