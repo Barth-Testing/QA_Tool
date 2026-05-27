@@ -188,10 +188,18 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
-  text-align: center;
   width: 100%;
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.3rem;
+}
+.rfc-tile-header span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rfc-main-donut-wrap {
   display: flex;
@@ -288,6 +296,33 @@ body {
   width: 100%;
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.3rem;
+}
+.campaign-btn-remove,
+.rfc-btn-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  opacity: 0;
+}
+.campaign-tile:hover .campaign-btn-remove,
+.rfc-tile:hover .rfc-btn-remove {
+  opacity: 1;
+}
+.campaign-btn-remove:hover,
+.rfc-btn-remove:hover {
+  color: var(--red);
+  background: var(--red-bg);
 }
 .campaign-main-donut {
   width: 120px;
@@ -1413,6 +1448,19 @@ body {
 }
 .values-field-input:focus { border-color: var(--primary); }
 .values-field-input--changed { border-color: var(--yellow); }
+.values-field--computed {
+  opacity: 0.85;
+  background: rgba(99,102,241,0.06);
+  border-color: rgba(99,102,241,0.2);
+}
+.values-field-computed-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 0.3rem 0.6rem;
+  min-width: 80px;
+  text-align: right;
+}
 .values-field-badge {
   font-size: 0.65rem;
   font-weight: 600;

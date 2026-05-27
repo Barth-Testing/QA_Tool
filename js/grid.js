@@ -297,7 +297,7 @@ const GridEngine = (() => {
       document.dispatchEvent(evt);
     });
 
-    if (!isRcKpi) {
+    if (!isRcKpi && kpi.data_source_type !== 'computed') {
       el.querySelector('.tile-chart-area').addEventListener('click', (e) => {
         if (e.target.closest('.tile-edit-input')) return;
         e.stopPropagation();

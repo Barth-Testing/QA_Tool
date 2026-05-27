@@ -11,15 +11,18 @@
         { "id": "t3", "kpi_id": "defect-density", "x": 2, "y": 0, "w": 1, "h": 1 },
         { "id": "t4", "kpi_id": "open-bugs-priority", "x": 3, "y": 0, "w": 1, "h": 1 },
         { "id": "t5", "kpi_id": "test-automation-rate", "x": 0, "y": 1, "w": 1, "h": 1 },
-        { "id": "t6", "kpi_id": "flaky-test-rate", "x": 1, "y": 1, "w": 1, "h": 1 },
-        { "id": "t7", "kpi_id": "mttr", "x": 2, "y": 1, "w": 1, "h": 1 },
-        { "id": "t8", "kpi_id": "error-log-density", "x": 3, "y": 1, "w": 1, "h": 1 },
-        { "id": "t9", "kpi_id": "uptime", "x": 0, "y": 2, "w": 1, "h": 1 },
-        { "id": "t10", "kpi_id": "api-response-time", "x": 1, "y": 2, "w": 1, "h": 1 },
-        { "id": "t11", "kpi_id": "a-bugs-post-release", "x": 2, "y": 2, "w": 2, "h": 1 },
-        { "id": "t12", "kpi_id": "change-failure-rate", "x": 0, "y": 3, "w": 2, "h": 1 },
-        { "id": "t22", "kpi_id": "fe-response-dev", "x": 0, "y": 4, "w": 4, "h": 4 },
-        { "id": "t23", "kpi_id": "fe-response-sta", "x": 0, "y": 8, "w": 4, "h": 4 }
+        { "id": "t24", "kpi_id": "automated-tests", "x": 1, "y": 1, "w": 1, "h": 1 },
+        { "id": "t25", "kpi_id": "manual-tests", "x": 2, "y": 1, "w": 1, "h": 1 },
+        { "id": "t26", "kpi_id": "mobile-tests", "x": 3, "y": 1, "w": 1, "h": 1 },
+        { "id": "t6", "kpi_id": "flaky-test-rate", "x": 0, "y": 2, "w": 1, "h": 1 },
+        { "id": "t7", "kpi_id": "mttr", "x": 1, "y": 2, "w": 1, "h": 1 },
+        { "id": "t8", "kpi_id": "error-log-density", "x": 2, "y": 2, "w": 1, "h": 1 },
+        { "id": "t9", "kpi_id": "uptime", "x": 0, "y": 3, "w": 1, "h": 1 },
+        { "id": "t10", "kpi_id": "api-response-time", "x": 1, "y": 3, "w": 1, "h": 1 },
+        { "id": "t11", "kpi_id": "a-bugs-post-release", "x": 2, "y": 3, "w": 2, "h": 1 },
+        { "id": "t12", "kpi_id": "change-failure-rate", "x": 0, "y": 4, "w": 2, "h": 1 },
+        { "id": "t22", "kpi_id": "fe-response-dev", "x": 0, "y": 5, "w": 4, "h": 4 },
+        { "id": "t23", "kpi_id": "fe-response-sta", "x": 0, "y": 9, "w": 4, "h": 4 }
       ]
     },
     {

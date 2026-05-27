@@ -367,6 +367,24 @@
     } catch {}
   }
 
+  /* ===== Computed KPIs (automatisch berechnet) ===== */
+  const COMPUTED_KPIS = {
+    'test-automation-rate': (vals) => {
+      const auto = vals['automated-tests'];
+      const manual = vals['manual-tests'];
+      if (auto != null && manual != null && (auto + manual) > 0) {
+        return Math.round((auto / (auto + manual)) * 100);
+      }
+      return 0;
+    }
+  };
+
+  const COMPUTED_KPI_IDS = new Set(Object.keys(COMPUTED_KPIS));
+
+  function isComputedKpi(kpiId) {
+    return COMPUTED_KPI_IDS.has(kpiId);
+  }
+
   /* ===== Custom Values (Inline Editing) ===== */
   function getCustomValues() {
     try {
@@ -380,6 +398,10 @@
             merged[key] = fv;
           }
         }
+      }
+      /* Apply computed KPIs (override any stale stored values) */
+      for (const [kpiId, fn] of Object.entries(COMPUTED_KPIS)) {
+        merged[kpiId] = fn(merged);
       }
       return merged;
     } catch { return { ...fileValues }; }
@@ -461,6 +483,17 @@
         html += renderAcValuesField(kpi, currentVal, vals);
       } else if (isRcKpi) {
         html += renderRcValuesField(kpi, currentVal);
+      } else if (isComputedKpi(kpi.id)) {
+        const status = GridEngine.getStatus(kpi, currentVal);
+        html += `
+          <div class="values-field values-field--computed" data-kpi-id="${kpi.id}">
+            <div class="values-field-label">
+              <div class="values-field-name">${kpi.name}</div>
+              <div class="values-field-unit">${kpi.unit || '—'} · automatisch berechnet</div>
+            </div>
+            <div class="values-field-computed-value">${currentVal}${kpi.unit ? ' ' + kpi.unit : ''}</div>
+            <span class="values-field-badge ${status}">${statusLabels[status]}</span>
+          </div>`;
       } else {
         const status = GridEngine.getStatus(kpi, currentVal);
         const isChanged = vals[tile.kpi_id] !== undefined && vals[tile.kpi_id] !== kpi.example_value;
@@ -828,6 +861,7 @@
     document.addEventListener('app:toast', (e) => toast(e.detail.message));
     document.addEventListener('tile:value-change', (e) => {
       const { kpiId, value } = e.detail;
+      if (isComputedKpi(kpiId)) return;
       const existing = getCustomValues()[kpiId];
       const isAc = existing && typeof existing === 'object' && existing.acs;
       const isRc = existing && typeof existing === 'object' && existing.versionData;
@@ -907,7 +941,10 @@
       };
       return `
         <div class="campaign-tile" data-campaign-id="${c.id}">
-          <div class="campaign-tile-header">Testkampagne ${c.version}</div>
+          <div class="campaign-tile-header">
+            <span>Testkampagne ${c.version}</span>
+            <button class="campaign-btn-remove" title="Entfernen" data-campaign-id="${c.id}">✕</button>
+          </div>
           <div class="campaign-main-wrap" data-campaign-id="${c.id}" data-color-index="0" title="Klicken zum Farbe wechseln">
             <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
           </div>
@@ -948,10 +985,25 @@
     renderCampaigns();
   }
 
+  function removeCampaign(id) {
+    campaigns = campaigns.filter(c => c.id !== id);
+    saveCampaigns();
+    renderCampaigns();
+    toast('Testkampagne entfernt');
+  }
+
   function setupCampaignEvents() {
     const modal = $('#campaign-modal');
     const versionInput = $('#campaign-version');
     const backdrop = modal.querySelector('.modal-backdrop');
+
+    /* delete campaign */
+    $('#campaign-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.campaign-btn-remove');
+      if (!btn) return;
+      e.stopPropagation();
+      removeCampaign(btn.dataset.campaignId);
+    });
 
     $('#btn-add-campaign').addEventListener('click', () => {
       versionInput.value = '';
@@ -1081,7 +1133,10 @@
 
       return `
         <div class="rfc-tile">
-          <div class="rfc-tile-header">${entry.name}</div>
+          <div class="rfc-tile-header">
+            <span>${entry.name}</span>
+            <button class="rfc-btn-remove" title="Entfernen" data-entry-id="${entry.id}">✕</button>
+          </div>
           <div class="rfc-main-donut-wrap">
             <canvas class="rfc-main-donut" data-entry-id="${entry.id}"></canvas>
             <span class="rfc-coverage-label">${pct}% abgedeckt</span>
@@ -1153,7 +1208,22 @@
     list.innerHTML = html;
   }
 
+  function removeRfcEntry(id) {
+    rfcEntries = rfcEntries.filter(e => e.id !== id);
+    saveRfcEntries();
+    renderRfcSidebar();
+    toast('RFC entfernt');
+  }
+
   function setupRfcEvents() {
+    /* delete RFC */
+    $('#rfc-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.rfc-btn-remove');
+      if (!btn) return;
+      e.stopPropagation();
+      removeRfcEntry(btn.dataset.entryId);
+    });
+
     /* + button → open add modal */
     $('#btn-add-rfc').addEventListener('click', () => {
       document.getElementById('rfc-add-name').value = '';
