@@ -35,7 +35,12 @@
     await loadData();
     migrateAcStorage();
     setupEventListeners();
+    const savedColumns = {};
+    for (const db of dashboards) savedColumns[db.id] = db.columns;
     restoreState();
+    for (const db of dashboards) {
+      if (savedColumns[db.id] !== undefined) db.columns = savedColumns[db.id];
+    }
     ensureTileSizes();
     if (!currentDashboardId && dashboards.length > 0) {
       currentDashboardId = dashboards[0].id;
