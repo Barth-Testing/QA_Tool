@@ -1104,18 +1104,19 @@ body {
   align-items: center;
 }
 .tile-numeric-value {
-  font-size: 2.8rem;
+  font-size: 3.6rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1;
   text-align: center;
 }
 .tile-numeric-unit {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0;
+  margin-left: 0.15rem;
 }
 
 /* ===== Value Input ===== */
