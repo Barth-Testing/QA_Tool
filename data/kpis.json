@@ -68,14 +68,14 @@
     "id": "test-exec-time",
     "name": "Test Execution Time",
     "category": "dev",
-    "description": "Gesamtdauer der Test Suite Ausführung",
-    "formula": "Endzeit – Startzeit",
-    "benefit": "Erkennt Performance-Regressionen in Test Suites frühzeitig",
-    "unit": "min",
-    "thresholds": { "green": { "operator": "lt", "value": 10 }, "yellow": { "operator": "lt", "value": 30 }, "red": { "operator": "gte", "value": 30 } },
-    "data_source_type": "api",
-    "tags": ["performance", "suite", "duration"],
-    "example_value": 14
+    "description": "Gesamtdauer der Test Suite Ausführung in Personentagen",
+    "formula": "Summe(PT pro Testfall)",
+    "benefit": "Erkennt Aufwandsveränderungen in Test Suites frühzeitig",
+    "unit": "PT",
+    "thresholds": { "green": { "operator": "lt", "value": 2 }, "yellow": { "operator": "lt", "value": 5 }, "red": { "operator": "gte", "value": 5 } },
+    "data_source_type": "manual",
+    "tags": ["performance", "suite", "duration", "effort"],
+    "example_value": 3
   },
   {
     "id": "open-bugs-priority",

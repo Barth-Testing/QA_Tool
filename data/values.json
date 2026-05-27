@@ -14,7 +14,7 @@
   "a-bugs-post-release": 1,
   "change-failure-rate": 4,
   "test-coverage-req": 88,
-  "test-exec-time": 14,
+  "test-exec-time": 3,
   "failed-releases": 8,
   "code-review-coverage": 95,
   "mttd": 36,
