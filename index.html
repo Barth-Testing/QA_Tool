@@ -71,6 +71,31 @@
     </div>
   </div>
 
+  <div id="campaign-edit-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content campaign-edit-modal-content">
+      <div class="modal-header">
+        <h2 id="campaign-edit-title">Werte bearbeiten</h2>
+        <button id="btn-close-campaign-edit" class="btn-close">&times;</button>
+      </div>
+      <div class="campaign-edit-body">
+        <div class="campaign-edit-field">
+          <label for="campaign-edit-planned">Geplante Testfälle</label>
+          <input type="number" id="campaign-edit-planned" min="0" step="1" placeholder="0">
+        </div>
+        <div class="campaign-edit-field">
+          <label for="campaign-edit-executed">Ausgeführte Testfälle</label>
+          <input type="number" id="campaign-edit-executed" min="0" step="1" placeholder="0">
+        </div>
+        <div class="campaign-edit-preview" id="campaign-edit-preview">—</div>
+        <div class="campaign-edit-actions">
+          <button id="btn-campaign-edit-save" class="btn btn-primary">Speichern</button>
+          <button id="btn-campaign-edit-cancel" class="btn btn-secondary">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="rfc-add-modal" class="modal hidden">
     <div class="modal-backdrop"></div>
     <div class="modal-content rfc-add-modal-content">

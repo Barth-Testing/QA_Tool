@@ -872,6 +872,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeCatalog();
+        closeCampaignEdit();
         $('#campaign-modal').classList.add('hidden');
         $('#chart-modal').classList.add('hidden');
         $('#rc-add-modal').classList.add('hidden');
@@ -890,6 +891,21 @@
       campaigns = saved ? JSON.parse(saved) : [];
       let changed = false;
       for (const c of campaigns) {
+        /* Migrate old numeric values [{planned, executed}] */
+        if (c.values.length > 0 && typeof c.values[0] === 'number') {
+          c.values = c.values.map(v => ({ planned: 100, executed: Math.round(v) }));
+          changed = true;
+        }
+        while (c.values.length < 4) {
+          c.values.push({ planned: 0, executed: 0 });
+          changed = true;
+        }
+        for (let i = 0; i < c.values.length; i++) {
+          if (typeof c.values[i] === 'number') {
+            c.values[i] = { planned: 100, executed: Math.round(c.values[i]) };
+            changed = true;
+          }
+        }
         if (!c.colors) {
           c.colors = ['green', 'green', 'green', 'green', 'green'];
           changed = true;
@@ -908,7 +924,9 @@
   function renderCampaigns() {
     const list = $('#campaign-list');
     list.innerHTML = campaigns.map(c => {
-      const avg = c.values.length > 0 ? Math.round(c.values.reduce((a, b) => a + b, 0) / c.values.length) : 0;
+      const totalPlanned = c.values.reduce((s, v) => s + (v.planned || 0), 0);
+      const totalExecuted = c.values.reduce((s, v) => s + (v.executed || 0), 0);
+      const avg = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
       const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
       const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
       const colorIcon = (clr) => {
@@ -925,12 +943,14 @@
             <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
           </div>
           <div class="campaign-mini-row">
-            ${c.values.map((v, i) => `
-              <div class="campaign-mini-donut-wrap" data-campaign-id="${c.id}" data-index="${i}">
-                <canvas class="campaign-mini-canvas" data-campaign-id="${c.id}" data-index="${i}"></canvas>
-                <span class="campaign-mini-label" data-color-index="${i + 1}" title="Klicken zum Farbe wechseln">${colorIcon(colors[i + 1])}${miniLabels[i] || ''}</span>
-              </div>
-            `).join('')}
+            ${c.values.map((v, i) => {
+              const pct = v.planned > 0 ? Math.round((v.executed / v.planned) * 100) : 0;
+              return `
+                <div class="campaign-mini-donut-wrap" data-campaign-id="${c.id}" data-index="${i}">
+                  <canvas class="campaign-mini-canvas" data-campaign-id="${c.id}" data-index="${i}"></canvas>
+                  <span class="campaign-mini-label" data-color-index="${i + 1}" title="Klicken zum Farbe wechseln">${colorIcon(colors[i + 1])}${miniLabels[i] || ''}</span>
+                </div>`;
+            }).join('')}
           </div>
         </div>`;
     }).join('');
@@ -942,20 +962,32 @@
       const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
       const mainCanvas = document.querySelector(`.campaign-main-donut[data-campaign-id="${c.id}"]`);
       if (mainCanvas) {
-        const avg = c.values.length > 0 ? Math.round(c.values.reduce((a, b) => a + b, 0) / c.values.length) : 0;
+        const totalPlanned = c.values.reduce((s, v) => s + (v.planned || 0), 0);
+        const totalExecuted = c.values.reduce((s, v) => s + (v.executed || 0), 0);
+        const avg = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
         ChartEngine.drawDonut(mainCanvas, avg, '%', colors[0]);
       }
       document.querySelectorAll(`.campaign-mini-canvas[data-campaign-id="${c.id}"]`).forEach(canvas => {
         const idx = parseInt(canvas.dataset.index);
-        const val = c.values[idx] || 0;
-        ChartEngine.drawMiniDonut(canvas, val, colors[idx + 1]);
+        const v = c.values[idx] || {};
+        const pct = (v.planned || 0) > 0 ? Math.round(((v.executed || 0) / (v.planned || 1)) * 100) : 0;
+        ChartEngine.drawMiniDonut(canvas, pct, colors[idx + 1]);
       });
     }
   }
 
   function createCampaign(version) {
     const id = 'cmp_' + Date.now();
-    const newCampaign = { id, version, values: [0, 0, 0, 0], colors: ['green', 'green', 'green', 'green', 'green'] };
+    const newCampaign = {
+      id, version,
+      values: [
+        { planned: 0, executed: 0 },
+        { planned: 0, executed: 0 },
+        { planned: 0, executed: 0 },
+        { planned: 0, executed: 0 }
+      ],
+      colors: ['green', 'green', 'green', 'green', 'green']
+    };
     campaigns.unshift(newCampaign);
     saveCampaigns();
     renderCampaigns();
@@ -966,6 +998,59 @@
     saveCampaigns();
     renderCampaigns();
     toast('Testkampagne entfernt');
+  }
+
+  /* ===== Campaign Edit Modal ===== */
+  let campaignEditCampaignId = null;
+  let campaignEditIndex = -1;
+
+  function openCampaignEdit(campaignId, index) {
+    campaignEditCampaignId = campaignId;
+    campaignEditIndex = index;
+    const c = campaigns.find(c => c.id === campaignId);
+    if (!c) return;
+    const v = c.values[index] || {};
+    const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
+    $('#campaign-edit-title').textContent = `${miniLabels[index] || 'Test'} — ${c.version}`;
+    $('#campaign-edit-planned').value = v.planned || 0;
+    $('#campaign-edit-executed').value = v.executed || 0;
+    updateCampaignEditPreview();
+    $('#campaign-edit-modal').classList.remove('hidden');
+    setTimeout(() => $('#campaign-edit-planned').focus(), 50);
+  }
+
+  function closeCampaignEdit() {
+    $('#campaign-edit-modal').classList.add('hidden');
+    campaignEditCampaignId = null;
+    campaignEditIndex = -1;
+  }
+
+  function updateCampaignEditPreview() {
+    const planned = parseInt($('#campaign-edit-planned').value) || 0;
+    const executed = parseInt($('#campaign-edit-executed').value) || 0;
+    const pct = planned > 0 ? Math.round((executed / planned) * 100) : 0;
+    $('#campaign-edit-preview').textContent = planned > 0
+      ? `${executed} / ${planned} = ${pct}%`
+      : 'Bitte geplante Testfälle eingeben';
+  }
+
+  function saveCampaignEdit() {
+    const cId = campaignEditCampaignId;
+    const idx = campaignEditIndex;
+    if (!cId || idx < 0) return;
+    const c = campaigns.find(c => c.id === cId);
+    if (!c) return;
+    const planned = parseInt($('#campaign-edit-planned').value) || 0;
+    const executed = parseInt($('#campaign-edit-executed').value) || 0;
+    if (planned < 0 || executed < 0) {
+      toast('Werte dürfen nicht negativ sein');
+      return;
+    }
+    c.values[idx] = { planned, executed };
+    closeCampaignEdit();
+    saveCampaigns();
+    renderCampaigns();
+    toast('Werte gespeichert');
   }
 
   function setupCampaignEvents() {
@@ -1005,7 +1090,23 @@
       if (e.key === 'Enter') $('#btn-create-campaign').click();
     });
 
-    /* Mini donut value editing */
+    /* Campaign edit modal events */
+    $('#btn-close-campaign-edit').addEventListener('click', closeCampaignEdit);
+    $('#btn-campaign-edit-cancel').addEventListener('click', closeCampaignEdit);
+    $('#campaign-edit-modal .modal-backdrop').addEventListener('click', closeCampaignEdit);
+    $('#btn-campaign-edit-save').addEventListener('click', saveCampaignEdit);
+
+    $('#campaign-edit-planned').addEventListener('input', updateCampaignEditPreview);
+    $('#campaign-edit-executed').addEventListener('input', updateCampaignEditPreview);
+
+    $('#campaign-edit-planned').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#campaign-edit-executed').focus();
+    });
+    $('#campaign-edit-executed').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveCampaignEdit();
+    });
+
+    /* Mini donut value editing — opens edit modal */
     $('#campaign-list').addEventListener('click', (e) => {
       const wrap = e.target.closest('.campaign-mini-donut-wrap');
       if (!wrap) return;
@@ -1014,17 +1115,7 @@
       const idx = parseInt(wrap.dataset.index);
       const c = campaigns.find(c => c.id === campaignId);
       if (!c) return;
-      const current = c.values[idx] || 0;
-      const input = prompt(`Wert für ${wrap.querySelector('.campaign-mini-label')?.textContent || 'Test'} eingeben (0-100):`, current);
-      if (input === null) return;
-      const num = parseFloat(input);
-      if (isNaN(num) || num < 0 || num > 100) {
-        toast('Bitte einen Wert zwischen 0 und 100 eingeben');
-        return;
-      }
-      c.values[idx] = num;
-      saveCampaigns();
-      renderCampaigns();
+      openCampaignEdit(campaignId, idx);
     });
 
     /* Color cycling: mini label clicks */

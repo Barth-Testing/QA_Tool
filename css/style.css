@@ -503,6 +503,57 @@ body {
 .rfc-detail-status.green { background: var(--green-bg); color: var(--green); }
 .rfc-detail-status.red { background: var(--red-bg); color: var(--red); }
 
+/* ===== Campaign Edit Modal ===== */
+.campaign-edit-modal-content {
+  max-width: 340px;
+}
+.campaign-edit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.25rem;
+}
+.campaign-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.campaign-edit-field label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.campaign-edit-field input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.campaign-edit-field input:focus {
+  border-color: var(--primary);
+}
+.campaign-edit-preview {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 0.4rem 0;
+  background: rgba(99,102,241,0.08);
+  border-radius: 6px;
+}
+.campaign-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
 /* ===== Campaign Modal ===== */
 .campaign-modal-content {
   max-width: 360px;
