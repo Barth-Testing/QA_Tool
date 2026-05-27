@@ -281,7 +281,7 @@ const GridEngine = (() => {
         <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}</span>
         <button class="tile-info-btn" data-kpi-id="${kpi.id}">Details</button>
       </div>
-      <div class="tile-resize-handle"></div>
+      ${chartType !== 'numeric' ? '<div class="tile-resize-handle"></div>' : ''}
     `;
 
     el.querySelector('.tile-btn-remove').addEventListener('click', (e) => {
