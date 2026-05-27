@@ -1224,7 +1224,7 @@ body {
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 .catalog-modal { width: 600px; max-width: 90vw; }
-.column-modal { width: 380px; max-width: 90vw; }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -1332,20 +1332,6 @@ body {
 .btn-add-kpi {
   padding: 0.35rem 0.8rem;
   font-size: 0.78rem;
-}
-
-/* ===== Column Slider ===== */
-.column-control {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.column-control label { font-size: 0.9rem; color: var(--text-muted); }
-.column-control label span { color: var(--text); font-weight: 600; }
-.column-control input[type="range"] {
-  width: 100%;
-  accent-color: var(--primary);
 }
 
 /* ===== Toast ===== */

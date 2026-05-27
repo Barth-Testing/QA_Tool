@@ -24,9 +24,6 @@
   const catalogModal = $('#catalog-modal');
   const catalogList = $('#catalog-list');
   const catalogSearch = $('#catalog-search');
-  const columnModal = $('#column-modal');
-  const columnSlider = $('#column-slider');
-  const columnValue = $('#column-value');
   const toastContainer = $('#toast-container');
   const valuesTab = $('#values-tab');
   const valuesForm = $('#values-form');
@@ -210,16 +207,6 @@
     db.tiles = Grid.compactGrid(db.tiles);
     saveState();
     render();
-  }
-
-  function setColumnCount(n) {
-    const db = getCurrentDashboard();
-    if (!db) return;
-    db.columns = n;
-    db.tiles = Grid.compactGrid(db.tiles);
-    saveState();
-    render();
-    toast(`Spaltenanzahl auf ${n} geändert`);
   }
 
   /* ===== Catalog ===== */
@@ -427,8 +414,6 @@
     Grid.renderGrid(gridEl, currentTiles, db.columns);
     renderDashboardSelect();
     selectEl.value = db.id;
-    columnSlider.value = db.columns;
-    columnValue.textContent = db.columns;
     if (activeTab === 'values') renderValuesTab();
     renderRfcSidebar();
   }
@@ -825,19 +810,6 @@
       });
     });
 
-    /* Column modal */
-    $('#btn-columns').addEventListener('click', () => columnModal.classList.remove('hidden'));
-    $('#btn-close-columns').addEventListener('click', () => columnModal.classList.add('hidden'));
-    columnModal.querySelector('.modal-backdrop').addEventListener('click', () => columnModal.classList.add('hidden'));
-
-    columnSlider.addEventListener('input', () => {
-      columnValue.textContent = columnSlider.value;
-    });
-    columnSlider.addEventListener('change', () => {
-      setColumnCount(parseInt(columnSlider.value));
-      columnModal.classList.add('hidden');
-    });
-
     /* Export */
     $('#btn-export').addEventListener('click', exportConfig);
 
@@ -896,7 +868,6 @@
       if (e.key === 'Escape') {
         closeCatalog();
         $('#campaign-modal').classList.add('hidden');
-        columnModal.classList.add('hidden');
         $('#chart-modal').classList.add('hidden');
         $('#rc-add-modal').classList.add('hidden');
         document.querySelectorAll('.info-panel-overlay').forEach(el => el.remove());

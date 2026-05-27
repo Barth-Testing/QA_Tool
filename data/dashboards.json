@@ -3,7 +3,7 @@
     {
       "id": "default",
       "name": "QA Overview",
-      "columns": 4,
+      "columns": 6,
       "is_favorite": true,
       "tiles": [
         { "id": "t1", "kpi_id": "pass-fail-rate", "x": 0, "y": 0, "w": 1, "h": 1 },
