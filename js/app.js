@@ -937,6 +937,7 @@
         closeCatalog();
         closeCampaignEdit();
         $('#campaign-modal').classList.add('hidden');
+        $('#campaign-archive-modal').classList.add('hidden');
         $('#chart-modal').classList.add('hidden');
         $('#rc-add-modal').classList.add('hidden');
         document.querySelectorAll('.info-panel-overlay').forEach(el => el.remove());
@@ -973,6 +974,10 @@
           c.colors = ['green', 'green', 'green', 'green', 'green'];
           changed = true;
         }
+        if (c.archived === undefined) {
+          c.archived = false;
+          changed = true;
+        }
       }
       if (changed) saveCampaigns();
     } catch { campaigns = []; }
@@ -986,7 +991,9 @@
 
   function renderCampaigns() {
     const list = $('#campaign-list');
-    list.innerHTML = campaigns.map(c => {
+    const active = campaigns.filter(c => !c.archived);
+    const archivedCount = campaigns.filter(c => c.archived).length;
+    list.innerHTML = active.map(c => {
       const totalPlanned = c.values.reduce((s, v) => s + (v.planned || 0), 0);
       const totalExecuted = c.values.reduce((s, v) => s + (v.executed || 0), 0);
       const avg = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
@@ -997,10 +1004,13 @@
         return `<span class="campaign-color-dot" style="background:${hex}"></span>`;
       };
       return `
-        <div class="campaign-tile" data-campaign-id="${c.id}">
+        <div class="campaign-tile" data-campaign-id="${c.id}" draggable="true">
           <div class="campaign-tile-header">
             <span>Testkampagne ${c.version}</span>
-            <button class="campaign-btn-remove" title="Entfernen" data-campaign-id="${c.id}">✕</button>
+            <div style="display:flex;gap:0.1rem;align-items:center">
+              <button class="campaign-btn-archive" title="Archivieren" data-campaign-id="${c.id}">📦</button>
+              <button class="campaign-btn-remove" title="Entfernen" data-campaign-id="${c.id}">✕</button>
+            </div>
           </div>
           <div class="campaign-main-wrap" data-campaign-id="${c.id}" data-color-index="0" title="Klicken zum Farbe wechseln">
             <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
@@ -1017,6 +1027,15 @@
           </div>
         </div>`;
     }).join('');
+
+    if (archivedCount > 0) {
+      const link = document.createElement('div');
+      link.className = 'sidebar-archive-link';
+      link.innerHTML = `<button class="btn-archive-link">📦 Archiv (${archivedCount})</button>`;
+      list.appendChild(link);
+      link.querySelector('.btn-archive-link').addEventListener('click', () => openCampaignArchive());
+    }
+
     requestAnimationFrame(drawCampaignDonuts);
   }
 
@@ -1061,6 +1080,66 @@
     saveCampaigns();
     render();
     toast('Testkampagne entfernt');
+  }
+
+  function archiveCampaign(id) {
+    const c = campaigns.find(c => c.id === id);
+    if (!c) return;
+    c.archived = true;
+    saveCampaigns();
+    render();
+    toast(`Testkampagne „${c.version}" archiviert`);
+  }
+
+  function unarchiveCampaign(id) {
+    const c = campaigns.find(c => c.id === id);
+    if (!c) return;
+    c.archived = false;
+    saveCampaigns();
+    render();
+    toast(`Testkampagne „${c.version}" wiederhergestellt`);
+  }
+
+  function openCampaignArchive() {
+    const list = $('#archive-list');
+    const archived = campaigns.filter(c => c.archived);
+    if (archived.length === 0) {
+      list.innerHTML = '<div class="archive-empty">Keine archivierten Testkampagnen</div>';
+    } else {
+      list.innerHTML = archived.map(c => {
+        const totalPlanned = c.values.reduce((s, v) => s + (v.planned || 0), 0);
+        const totalExecuted = c.values.reduce((s, v) => s + (v.executed || 0), 0);
+        const avg = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
+        const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
+        const colorIcon = (clr) => {
+          const hex = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' }[clr] || '#6b7280';
+          return `<span class="campaign-color-dot" style="background:${hex}"></span>`;
+        };
+        const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
+        return `
+          <div class="archive-campaign-tile" data-campaign-id="${c.id}">
+            <div class="archive-campaign-header">
+              <span>Testkampagne ${c.version}</span>
+              <button class="btn-campaign-restore" data-campaign-id="${c.id}">Wiederherstellen</button>
+            </div>
+            <div class="campaign-main-wrap" data-campaign-id="${c.id}">
+              <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+            </div>
+            <div class="campaign-mini-row">
+              ${c.values.map((v, i) => {
+                const pct = v.planned > 0 ? Math.round((v.executed / v.planned) * 100) : 0;
+                return `
+                  <div class="campaign-mini-donut-wrap">
+                    <canvas class="campaign-mini-canvas" data-campaign-id="${c.id}" data-index="${i}"></canvas>
+                    <span class="campaign-mini-label">${colorIcon(colors[i + 1])}${miniLabels[i] || ''}</span>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }).join('');
+    }
+    $('#campaign-archive-modal').classList.remove('hidden');
+    requestAnimationFrame(drawCampaignDonuts);
   }
 
   /* ===== Campaign Edit Modal ===== */
@@ -1127,6 +1206,14 @@
       if (!btn) return;
       e.stopPropagation();
       removeCampaign(btn.dataset.campaignId);
+    });
+
+    /* archive campaign */
+    $('#campaign-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.campaign-btn-archive');
+      if (!btn) return;
+      e.stopPropagation();
+      archiveCampaign(btn.dataset.campaignId);
     });
 
     $('#btn-add-campaign').addEventListener('click', () => {
@@ -1210,6 +1297,75 @@
       c.colors[0] = cycle[c.colors[0]] || 'green';
       saveCampaigns();
       renderCampaigns();
+    });
+
+    /* Archive modal */
+    $('#btn-close-archive').addEventListener('click', () => {
+      $('#campaign-archive-modal').classList.add('hidden');
+    });
+    $('#campaign-archive-modal .modal-backdrop').addEventListener('click', () => {
+      $('#campaign-archive-modal').classList.add('hidden');
+    });
+
+    /* Restore from archive */
+    $('#archive-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-campaign-restore');
+      if (!btn) return;
+      unarchiveCampaign(btn.dataset.campaignId);
+      $('#campaign-archive-modal').classList.add('hidden');
+    });
+
+    /* Drag & drop reordering for campaigns */
+    let dragCampaignId = null;
+
+    $('#campaign-list').addEventListener('dragstart', (e) => {
+      const tile = e.target.closest('.campaign-tile');
+      if (!tile) return;
+      dragCampaignId = tile.dataset.campaignId;
+      tile.classList.add('drag-src');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragCampaignId);
+    });
+
+    $('#campaign-list').addEventListener('dragend', (e) => {
+      const tile = e.target.closest('.campaign-tile');
+      if (tile) tile.classList.remove('drag-src');
+      $('#campaign-list').querySelectorAll('.campaign-tile.drag-over').forEach(el => el.classList.remove('drag-over'));
+      dragCampaignId = null;
+    });
+
+    $('#campaign-list').addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const tile = e.target.closest('.campaign-tile');
+      if (tile && tile.dataset.campaignId !== dragCampaignId) {
+        tile.classList.add('drag-over');
+      }
+    });
+
+    $('#campaign-list').addEventListener('dragleave', (e) => {
+      const tile = e.target.closest('.campaign-tile');
+      if (tile) tile.classList.remove('drag-over');
+    });
+
+    $('#campaign-list').addEventListener('drop', (e) => {
+      e.preventDefault();
+      $('#campaign-list').querySelectorAll('.campaign-tile.drag-over').forEach(el => el.classList.remove('drag-over'));
+      if (!dragCampaignId) return;
+      const targetTile = e.target.closest('.campaign-tile');
+      if (!targetTile) return;
+      const targetId = targetTile.dataset.campaignId;
+      if (dragCampaignId === targetId) return;
+
+      const srcIdx = campaigns.findIndex(c => c.id === dragCampaignId);
+      const tgtIdx = campaigns.findIndex(c => c.id === targetId);
+      if (srcIdx === -1 || tgtIdx === -1) return;
+
+      const [moved] = campaigns.splice(srcIdx, 1);
+      const newTgtIdx = campaigns.findIndex(c => c.id === targetId);
+      campaigns.splice(newTgtIdx, 0, moved);
+      saveCampaigns();
+      render();
     });
   }
 

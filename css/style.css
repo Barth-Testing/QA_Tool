@@ -161,16 +161,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  overflow-y: auto;
-  max-height: calc(100vh - 160px);
 }
 
 .sidebar-right {
   padding-left: 0;
   padding-right: 0.75rem;
-}
-.sidebar-right .sidebar-list {
-  max-height: calc(100vh - 120px);
 }
 
 /* ===== RFC Tile ===== */
@@ -1176,6 +1171,126 @@ body {
   color: var(--text);
 }
 
+/* ===== Campaign Archive ===== */
+.campaign-btn-archive {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  opacity: 0;
+}
+.campaign-tile:hover .campaign-btn-archive {
+  opacity: 1;
+}
+.campaign-btn-archive:hover {
+  color: var(--yellow);
+  background: var(--yellow-bg);
+}
+.sidebar-archive-link {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.btn-archive-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.3rem 0;
+  width: 100%;
+  text-align: center;
+  transition: color var(--transition);
+  font-family: inherit;
+}
+.btn-archive-link:hover {
+  color: var(--primary);
+}
+
+/* ===== Campaign Drag & Drop ===== */
+.campaign-tile.drag-src {
+  opacity: 0.4;
+}
+.campaign-tile.drag-over {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.campaign-tile[draggable="true"] {
+  cursor: grab;
+}
+.campaign-tile[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+/* ===== Archive Modal ===== */
+.archive-modal-content {
+  width: 650px;
+  max-width: 90vw;
+  max-height: 85vh;
+}
+.archive-modal-body {
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 60vh;
+}
+.archive-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 2rem 0;
+}
+.archive-campaign-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.75;
+}
+.archive-campaign-tile:hover {
+  opacity: 1;
+  border-color: var(--text-muted);
+}
+.archive-campaign-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  width: 100%;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn-campaign-restore {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition);
+  font-family: inherit;
+}
+.btn-campaign-restore:hover {
+  background: var(--primary-hover);
+}
+
 /* ===== Numeric Tile (reine Zahlenanzeige) ===== */
 .tile-chart-area--numeric {
   justify-content: center;
@@ -1565,8 +1680,7 @@ body {
   .navbar { flex-wrap: wrap; padding: 0.5rem 1rem; }
   .navbar-center { order: 3; flex: 0 0 100%; justify-content: stretch; }
   .dashboard-container { flex-direction: column; padding: 0 0.75rem 0.75rem 0.75rem; }
-  .sidebar { width: 100%; max-height: 300px; }
-  .sidebar-list { max-height: 240px; }
+  .sidebar { width: 100%; }
   .dashboard-grid { gap: 0.6rem; }
   .tile-value { font-size: 1.5rem; }
   .catalog-modal { max-width: 95vw; }
