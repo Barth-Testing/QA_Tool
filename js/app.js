@@ -55,6 +55,11 @@
         if (!kpi) continue;
         if (tile.w < 1) tile.w = 1;
         if (tile.h < 1) tile.h = 1;
+        if (tile.kpi_id === 'rfc-tests') {
+          const size = Math.max(tile.w, tile.h, 1);
+          tile.w = size;
+          tile.h = size;
+        }
       }
       db.tiles = Grid.compactGrid(db.tiles);
     }
@@ -162,9 +167,10 @@
       return;
     }
     const kpi = kpiMap[kpiId];
-    const hasChart = kpi && ChartEngine.getChartType(kpi);
-    const w = hasChart ? 2 : 1;
-    const h = hasChart ? 2 : 1;
+    const isRfcTests = kpiId === 'rfc-tests';
+    const hasChart = !isRfcTests && kpi && ChartEngine.getChartType(kpi);
+    const w = isRfcTests ? 1 : (hasChart ? 2 : 1);
+    const h = isRfcTests ? 1 : (hasChart ? 2 : 1);
     const slot = Grid.findFreeSlot(db.tiles, w, h);
     db.tiles.push({
       id: getNextTileId(),
@@ -207,8 +213,14 @@
     if (!db) return;
     const tile = db.tiles.find(t => t.id === tileId);
     if (!tile) return;
-    tile.w = w;
-    tile.h = h;
+    if (tile.kpi_id === 'rfc-tests') {
+      const size = Math.max(w, h, 1);
+      tile.w = size;
+      tile.h = size;
+    } else {
+      tile.w = w;
+      tile.h = h;
+    }
     db.tiles = Grid.compactGrid(db.tiles);
     saveState();
     render();
@@ -377,6 +389,25 @@
     return COMPUTED_KPI_IDS.has(kpiId);
   }
 
+  /* ===== RFC Tests Campaign Selection ===== */
+  const RFC_TESTS_CAMPAIGN_KEY = 'qa_dashboard_rfc_tests_campaign';
+
+  function getRfcTestsCampaignId() {
+    try {
+      return localStorage.getItem(RFC_TESTS_CAMPAIGN_KEY);
+    } catch { return null; }
+  }
+
+  function setRfcTestsCampaignId(id) {
+    try {
+      if (id) {
+        localStorage.setItem(RFC_TESTS_CAMPAIGN_KEY, id);
+      } else {
+        localStorage.removeItem(RFC_TESTS_CAMPAIGN_KEY);
+      }
+    } catch {}
+  }
+
   /* ===== Custom Values (Inline Editing) ===== */
   function getCustomValues() {
     try {
@@ -394,6 +425,15 @@
       /* Apply computed KPIs (override any stale stored values) */
       for (const [kpiId, fn] of Object.entries(COMPUTED_KPIS)) {
         merged[kpiId] = fn(merged);
+      }
+      /* RFC Tests value from campaigns */
+      const rfcCampId = getRfcTestsCampaignId();
+      const rfcC = rfcCampId ? campaigns.find(c => c.id === rfcCampId) : null;
+      const rfcFallback = !rfcC && campaigns.length > 0 ? campaigns[0] : null;
+      const rfcSrc = rfcC || rfcFallback;
+      if (rfcSrc && rfcSrc.values[2]) {
+        merged['rfc-tests'] = rfcSrc.values[2].planned || 0;
+        if (!rfcC && rfcFallback) setRfcTestsCampaignId(rfcFallback.id);
       }
       return merged;
     } catch { return { ...fileValues }; }
@@ -416,10 +456,12 @@
     currentTiles = Grid.compactGrid(db.tiles);
     Grid.init(db.columns, kpiMap);
     Grid.setCustomValues(getCustomValues());
+    Grid.setCampaigns(campaigns, getRfcTestsCampaignId());
     Grid.renderGrid(gridEl, currentTiles, db.columns);
     renderDashboardSelect();
     selectEl.value = db.id;
     if (activeTab === 'values') renderValuesTab();
+    renderCampaigns();
     renderRfcSidebar();
   }
 
@@ -839,6 +881,20 @@
     document.addEventListener('tile:value-change', (e) => {
       const { kpiId, value } = e.detail;
       if (isComputedKpi(kpiId)) return;
+      if (kpiId === 'rfc-tests') {
+        const campaignId = getRfcTestsCampaignId();
+        const campaign = campaigns.find(c => c.id === campaignId);
+        if (campaign && campaign.values[2]) {
+          campaign.values[2].planned = value;
+        } else if (campaigns.length > 0) {
+          campaigns[0].values[2] = { ...campaigns[0].values[2], planned: value };
+          setRfcTestsCampaignId(campaigns[0].id);
+        }
+        saveCampaigns();
+        render();
+        toast(`„RFC Tests" → ${formatExportValue(value)} Tests`);
+        return;
+      }
       const existing = getCustomValues()[kpiId];
       const isAc = existing && typeof existing === 'object' && existing.acs;
       const isRc = existing && typeof existing === 'object' && existing.versionData;
@@ -846,6 +902,13 @@
       const kpi = kpiMap[kpiId];
       render();
       if (kpi && !isAc && !isRc) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
+    });
+
+    /* RFC campaign version change (from tile version selector) */
+    document.addEventListener('tile:rfc-campaign-change', (e) => {
+      const { campaignId } = e.detail;
+      setRfcTestsCampaignId(campaignId);
+      render();
     });
 
     /* Chart modal */
@@ -990,13 +1053,13 @@
     };
     campaigns.unshift(newCampaign);
     saveCampaigns();
-    renderCampaigns();
+    render();
   }
 
   function removeCampaign(id) {
     campaigns = campaigns.filter(c => c.id !== id);
     saveCampaigns();
-    renderCampaigns();
+    render();
     toast('Testkampagne entfernt');
   }
 
@@ -1049,7 +1112,7 @@
     c.values[idx] = { planned, executed };
     closeCampaignEdit();
     saveCampaigns();
-    renderCampaigns();
+    render();
     toast('Werte gespeichert');
   }
 

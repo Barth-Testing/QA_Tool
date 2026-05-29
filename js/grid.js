@@ -5,7 +5,9 @@ const GridEngine = (() => {
     tiles: [],
     kpiMap: {},
     customValues: {},
-    callbacks: { onUpdate: null }
+    callbacks: { onUpdate: null },
+    campaigns: [],
+    selectedRfcCampaignId: null
   };
 
   function init(columns, kpiMap) {
@@ -74,6 +76,17 @@ const GridEngine = (() => {
 
   function setCustomValues(vals) {
     state.customValues = vals || {};
+  }
+
+  function setCampaigns(campaigns, selectedId) {
+    state.campaigns = campaigns || [];
+    if (selectedId && state.campaigns.some(c => c.id === selectedId)) {
+      state.selectedRfcCampaignId = selectedId;
+    } else if (state.campaigns.length > 0) {
+      state.selectedRfcCampaignId = state.campaigns[0].id;
+    } else {
+      state.selectedRfcCampaignId = null;
+    }
   }
 
   function renderGrid(container, tiles, columns) {
@@ -265,6 +278,21 @@ const GridEngine = (() => {
         </div>`;
     }
 
+    let rfcVersionHtml = '';
+    if (tile.kpi_id === 'rfc-tests') {
+      let optionsHtml = '<option value="">Version wählen...</option>';
+      for (const c of state.campaigns) {
+        const selected = c.id === state.selectedRfcCampaignId ? ' selected' : '';
+        optionsHtml += `<option value="${c.id}"${selected}>${c.version}</option>`;
+      }
+      rfcVersionHtml = `
+        <div class="tile-rfc-version-row">
+          <select class="tile-rfc-version-select">${optionsHtml}</select>
+        </div>`;
+    }
+
+    const hasResizeHandle = chartType !== 'numeric' || tile.kpi_id === 'rfc-tests';
+
     el.innerHTML = `
       <div class="tile-status-bar"></div>
       <div class="tile-header">
@@ -274,6 +302,7 @@ const GridEngine = (() => {
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>
       </div>
+      ${rfcVersionHtml}
       ${isRcKpi ? rcTableHtml : ''}
       ${chartAreaHtml}
       ${acListHtml}
@@ -281,7 +310,7 @@ const GridEngine = (() => {
         <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}</span>
         <button class="tile-info-btn" data-kpi-id="${kpi.id}">Details</button>
       </div>
-      ${chartType !== 'numeric' ? '<div class="tile-resize-handle"></div>' : ''}
+      ${hasResizeHandle ? '<div class="tile-resize-handle"></div>' : ''}
     `;
 
     el.querySelector('.tile-btn-remove').addEventListener('click', (e) => {
@@ -301,6 +330,17 @@ const GridEngine = (() => {
       const evt = new CustomEvent('tile:info', { detail: { kpi } });
       document.dispatchEvent(evt);
     });
+
+    const versionSelect = el.querySelector('.tile-rfc-version-select');
+    if (versionSelect) {
+      versionSelect.addEventListener('change', (e) => {
+        e.stopPropagation();
+        const evt = new CustomEvent('tile:rfc-campaign-change', {
+          detail: { campaignId: e.target.value }
+        });
+        document.dispatchEvent(evt);
+      });
+    }
 
     if (!isRcKpi && kpi.data_source_type !== 'computed') {
       el.querySelector('.tile-chart-area').addEventListener('click', (e) => {
@@ -453,8 +493,15 @@ const GridEngine = (() => {
         const tileH = tile.offsetHeight;
         const cellW = tileW / (tile.style.gridColumn.split('span ')[1] || 1);
         const cellH = tileH / (tile.style.gridRow.split('span ')[1] || 1);
-        const newW = Math.max(1, Math.min(state.columns, Math.round((tileW + dx) / cellW)));
-        const newH = Math.max(1, Math.min(4, Math.round((tileH + dy) / cellH)));
+        let newW = Math.max(1, Math.min(state.columns, Math.round((tileW + dx) / cellW)));
+        let newH = Math.max(1, Math.min(4, Math.round((tileH + dy) / cellH)));
+
+        const tileData = state.tiles.find(t => t.id === tileId);
+        if (tileData && tileData.kpi_id === 'rfc-tests') {
+          const size = Math.max(newW, newH, 1);
+          newW = size;
+          newH = size;
+        }
 
         tile.style.gridColumn = `${tile.style.gridColumn.split('/')[0].trim()} / span ${newW}`;
         tile.style.gridRow = `${tile.style.gridRow.split('/')[0].trim()} / span ${newH}`;
@@ -485,5 +532,5 @@ const GridEngine = (() => {
     document.dispatchEvent(evt);
   }
 
-  return { init, renderGrid, compactGrid, findFreeSlot, getStatus, setCustomValues, onUpdate, getState: () => state };
+  return { init, renderGrid, compactGrid, findFreeSlot, getStatus, setCustomValues, setCampaigns, onUpdate, getState: () => state };
 })();

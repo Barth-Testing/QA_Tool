@@ -1149,6 +1149,35 @@ body {
   display: block;
 }
 
+/* ===== RFC Version Selector inside Tile ===== */
+.tile-rfc-version-row {
+  padding: 0.2rem 0 0.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.tile-rfc-version-select {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition);
+  appearance: auto;
+}
+.tile-rfc-version-select:focus {
+  border-color: var(--primary);
+}
+.tile-rfc-version-select:hover {
+  border-color: var(--text-muted);
+}
+
 /* ===== Numeric Tile (reine Zahlenanzeige) ===== */
 .tile-chart-area--numeric {
   justify-content: center;
