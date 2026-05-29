@@ -296,6 +296,7 @@ const GridEngine = (() => {
         <span class="tile-name">${kpi.name}</span>
         ${rfcVersionHtml}
         <div class="tile-actions">
+          <button class="tile-btn tile-btn-print" title="Als Bild speichern">🖼️</button>
           <button class="tile-btn tile-btn-info" title="Details">ℹ</button>
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>
@@ -314,6 +315,11 @@ const GridEngine = (() => {
       e.stopPropagation();
       const evt = new CustomEvent('tile:remove', { detail: { tileId: tile.id } });
       document.dispatchEvent(evt);
+    });
+
+    el.querySelector('.tile-btn-print').addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadTileAsImage(el, kpi.name);
     });
 
     el.querySelector('.tile-btn-info').addEventListener('click', (e) => {
@@ -527,6 +533,28 @@ const GridEngine = (() => {
   function toast(msg) {
     const evt = new CustomEvent('app:toast', { detail: { message: msg } });
     document.dispatchEvent(evt);
+  }
+
+  function downloadTileAsImage(el, name) {
+    const safe = name.replace(/[^a-zA-Z0-9]/g, '_');
+    if (typeof html2canvas === 'undefined') {
+      toast('html2canvas nicht geladen');
+      return;
+    }
+    html2canvas(el, {
+      backgroundColor: '#0f1117',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = `${safe}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast(`„${name}" als Bild gespeichert`);
+    }).catch(() => {
+      toast('Fehler beim Erstellen des Bildes');
+    });
   }
 
   return { init, renderGrid, compactGrid, findFreeSlot, getStatus, setCustomValues, setCampaigns, onUpdate, getState: () => state };

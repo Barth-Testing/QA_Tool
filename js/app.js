@@ -925,6 +925,18 @@
     $('#btn-close-chart').addEventListener('click', () => $('#chart-modal').classList.add('hidden'));
     $('#chart-modal .modal-backdrop').addEventListener('click', () => $('#chart-modal').classList.add('hidden'));
 
+    /* Chart modal download */
+    $('#btn-chart-download').addEventListener('click', () => {
+      const canvas = $('#chart-modal-canvas');
+      if (!canvas) return;
+      const link = document.createElement('a');
+      const title = $('#chart-modal-title').textContent.replace(/[^a-zA-Z0-9]/g, '_');
+      link.download = `${title}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast('Diagramm als Bild gespeichert');
+    });
+
     /* RC Add Release modal */
     $('#btn-close-rc-add').addEventListener('click', closeRcAddModal);
     $('#btn-rc-add-cancel').addEventListener('click', closeRcAddModal);

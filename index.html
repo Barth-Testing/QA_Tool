@@ -179,7 +179,10 @@
     <div class="modal-content chart-modal-content">
       <div class="modal-header">
         <h2 id="chart-modal-title">Diagramm — Frontend Response Times</h2>
-        <button id="btn-close-chart" class="btn-close">&times;</button>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <button id="btn-chart-download" class="btn btn-sm btn-secondary" title="Als Bild herunterladen">🖼️</button>
+          <button id="btn-close-chart" class="btn-close">&times;</button>
+        </div>
       </div>
       <div class="chart-modal-body">
         <canvas id="chart-modal-canvas"></canvas>
@@ -216,6 +219,7 @@
 
   <div id="toast-container" class="toast-container"></div>
 
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/grid.js"></script>
   <script src="js/app.js"></script>
