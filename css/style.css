@@ -641,6 +641,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 0.3rem;
   margin-top: 0.25rem;
 }
 .tile-name {
@@ -1149,33 +1150,30 @@ body {
   display: block;
 }
 
-/* ===== RFC Version Selector inside Tile ===== */
-.tile-rfc-version-row {
-  padding: 0.2rem 0 0.15rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+/* ===== RFC Version Selector inside Tile Header ===== */
 .tile-rfc-version-select {
-  width: 100%;
-  padding: 0.25rem 0.5rem;
-  border-radius: 5px;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.75rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.7rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
   outline: none;
-  transition: border-color var(--transition);
-  appearance: auto;
+  transition: border-color var(--transition), color var(--transition);
+  max-width: 110px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .tile-rfc-version-select:focus {
   border-color: var(--primary);
+  color: var(--text);
 }
 .tile-rfc-version-select:hover {
   border-color: var(--text-muted);
+  color: var(--text);
 }
 
 /* ===== Numeric Tile (reine Zahlenanzeige) ===== */

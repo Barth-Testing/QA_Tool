@@ -285,10 +285,7 @@ const GridEngine = (() => {
         const selected = c.id === state.selectedRfcCampaignId ? ' selected' : '';
         optionsHtml += `<option value="${c.id}"${selected}>${c.version}</option>`;
       }
-      rfcVersionHtml = `
-        <div class="tile-rfc-version-row">
-          <select class="tile-rfc-version-select">${optionsHtml}</select>
-        </div>`;
+      rfcVersionHtml = `<select class="tile-rfc-version-select">${optionsHtml}</select>`;
     }
 
     const hasResizeHandle = chartType !== 'numeric' || tile.kpi_id === 'rfc-tests';
@@ -297,12 +294,12 @@ const GridEngine = (() => {
       <div class="tile-status-bar"></div>
       <div class="tile-header">
         <span class="tile-name">${kpi.name}</span>
+        ${rfcVersionHtml}
         <div class="tile-actions">
           <button class="tile-btn tile-btn-info" title="Details">ℹ</button>
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>
       </div>
-      ${rfcVersionHtml}
       ${isRcKpi ? rcTableHtml : ''}
       ${chartAreaHtml}
       ${acListHtml}
