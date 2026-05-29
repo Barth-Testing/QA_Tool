@@ -1237,7 +1237,17 @@
       const tile = btn.closest('.campaign-tile');
       if (!tile || typeof html2canvas === 'undefined') return;
       const version = campaigns.find(c => c.id === btn.dataset.campaignId)?.version || 'Kampagne';
-      html2canvas(tile, { backgroundColor: '#0f1117', scale: 2, useCORS: true, logging: false })
+      html2canvas(tile, {
+        scale: 2, useCORS: true, logging: false, backgroundColor: null,
+        onclone: doc => {
+          const root = doc.documentElement;
+          const src = document.documentElement;
+          for (const p of ['--bg','--surface','--surface-hover','--border','--text','--text-muted','--primary','--primary-hover','--green','--green-bg','--yellow','--yellow-bg','--red','--red-bg','--neutral','--neutral-bg','--radius','--shadow','--transition']) {
+            const v = getComputedStyle(src).getPropertyValue(p).trim();
+            if (v) root.style.setProperty(p, v);
+          }
+        }
+      })
         .then(canvas => {
           const link = document.createElement('a');
           link.download = `Testkampagne_${version.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
@@ -1553,7 +1563,17 @@
       const tile = btn.closest('.rfc-tile');
       if (!tile || typeof html2canvas === 'undefined') return;
       const name = rfcEntries.find(e => e.id === btn.dataset.entryId)?.name || 'RFC';
-      html2canvas(tile, { backgroundColor: '#0f1117', scale: 2, useCORS: true, logging: false })
+      html2canvas(tile, {
+        scale: 2, useCORS: true, logging: false, backgroundColor: null,
+        onclone: doc => {
+          const root = doc.documentElement;
+          const src = document.documentElement;
+          for (const p of ['--bg','--surface','--surface-hover','--border','--text','--text-muted','--primary','--primary-hover','--green','--green-bg','--yellow','--yellow-bg','--red','--red-bg','--neutral','--neutral-bg','--radius','--shadow','--transition']) {
+            const v = getComputedStyle(src).getPropertyValue(p).trim();
+            if (v) root.style.setProperty(p, v);
+          }
+        }
+      })
         .then(canvas => {
           const link = document.createElement('a');
           link.download = `${name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;

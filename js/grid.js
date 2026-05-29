@@ -542,10 +542,11 @@ const GridEngine = (() => {
       return;
     }
     html2canvas(el, {
-      backgroundColor: '#0f1117',
       scale: 2,
       useCORS: true,
-      logging: false
+      logging: false,
+      backgroundColor: null,
+      onclone: doc => injectCssVars(doc)
     }).then(canvas => {
       const link = document.createElement('a');
       link.download = `${safe}.png`;
@@ -555,6 +556,16 @@ const GridEngine = (() => {
     }).catch(() => {
       toast('Fehler beim Erstellen des Bildes');
     });
+  }
+
+  function injectCssVars(doc) {
+    const root = doc.documentElement;
+    const src = document.documentElement;
+    const props = ['--bg','--surface','--surface-hover','--border','--text','--text-muted','--primary','--primary-hover','--green','--green-bg','--yellow','--yellow-bg','--red','--red-bg','--neutral','--neutral-bg','--radius','--shadow','--transition'];
+    for (const p of props) {
+      const v = getComputedStyle(src).getPropertyValue(p).trim();
+      if (v) root.style.setProperty(p, v);
+    }
   }
 
   return { init, renderGrid, compactGrid, findFreeSlot, getStatus, setCustomValues, setCampaigns, onUpdate, getState: () => state };
