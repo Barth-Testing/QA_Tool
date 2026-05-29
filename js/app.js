@@ -1020,6 +1020,7 @@
           <div class="campaign-tile-header">
             <span>Testkampagne ${c.version}</span>
             <div style="display:flex;gap:0.1rem;align-items:center">
+              <button class="campaign-btn-print" title="Als Bild speichern" data-campaign-id="${c.id}">🖼️</button>
               <button class="campaign-btn-archive" title="Archivieren" data-campaign-id="${c.id}">📦</button>
               <button class="campaign-btn-remove" title="Entfernen" data-campaign-id="${c.id}">✕</button>
             </div>
@@ -1228,6 +1229,25 @@
       archiveCampaign(btn.dataset.campaignId);
     });
 
+    /* print campaign tile */
+    $('#campaign-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.campaign-btn-print');
+      if (!btn) return;
+      e.stopPropagation();
+      const tile = btn.closest('.campaign-tile');
+      if (!tile || typeof html2canvas === 'undefined') return;
+      const version = campaigns.find(c => c.id === btn.dataset.campaignId)?.version || 'Kampagne';
+      html2canvas(tile, { backgroundColor: '#0f1117', scale: 2, useCORS: true, logging: false })
+        .then(canvas => {
+          const link = document.createElement('a');
+          link.download = `Testkampagne_${version.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          toast(`„Testkampagne ${version}" als Bild gespeichert`);
+        })
+        .catch(() => toast('Fehler beim Erstellen des Bildes'));
+    });
+
     $('#btn-add-campaign').addEventListener('click', () => {
       versionInput.value = '';
       modal.classList.remove('hidden');
@@ -1433,7 +1453,10 @@
         <div class="rfc-tile">
           <div class="rfc-tile-header">
             <span>${entry.name}</span>
-            <button class="rfc-btn-remove" title="Entfernen" data-entry-id="${entry.id}">✕</button>
+            <div style="display:flex;gap:0.2rem;align-items:center">
+              <button class="rfc-btn-print" title="Als Bild speichern" data-entry-id="${entry.id}">🖼️</button>
+              <button class="rfc-btn-remove" title="Entfernen" data-entry-id="${entry.id}">✕</button>
+            </div>
           </div>
           <div class="rfc-main-donut-wrap">
             <canvas class="rfc-main-donut" data-entry-id="${entry.id}"></canvas>
@@ -1520,6 +1543,25 @@
       if (!btn) return;
       e.stopPropagation();
       removeRfcEntry(btn.dataset.entryId);
+    });
+
+    /* print RFC tile */
+    $('#rfc-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.rfc-btn-print');
+      if (!btn) return;
+      e.stopPropagation();
+      const tile = btn.closest('.rfc-tile');
+      if (!tile || typeof html2canvas === 'undefined') return;
+      const name = rfcEntries.find(e => e.id === btn.dataset.entryId)?.name || 'RFC';
+      html2canvas(tile, { backgroundColor: '#0f1117', scale: 2, useCORS: true, logging: false })
+        .then(canvas => {
+          const link = document.createElement('a');
+          link.download = `${name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          toast(`„${name}" als Bild gespeichert`);
+        })
+        .catch(() => toast('Fehler beim Erstellen des Bildes'));
     });
 
     /* + button → open add modal */
