@@ -617,33 +617,50 @@
             <button class="btn btn-sm btn-secondary btn-rc-add-release" data-kpi-id="${kpi.id}">+ Neues Release</button>
           </div>
         </div>
+        <div class="values-rc-version-list">
+          ${availableVersions.map(v => `
+            <div class="values-rc-version-row">
+              <span class="values-rc-version-name">${v}</span>
+              <span class="values-rc-version-count">${currentVal.versionData[v].length} Werte</span>
+              <button class="btn btn-sm btn-secondary btn-rc-edit-release" data-kpi-id="${kpi.id}" data-version="${v}">Bearbeiten</button>
+            </div>
+          `).join('')}
+        </div>
       </div>`;
   }
 
-  /* ===== RC Add Release Modal ===== */
+  /* ===== RC Add / Edit Release Modal ===== */
   let rcAddKpiId = null;
+  let rcEditVersion = null;
 
-  function openRcAddModal(kpiId) {
+  function openRcAddModal(kpiId, editVersion) {
     rcAddKpiId = kpiId;
+    rcEditVersion = editVersion || null;
     const vals = getCustomValues();
     const rcVal = vals[kpiId];
     if (!rcVal || !rcVal.testSituations) return;
-    $('#rc-add-title').textContent = `${kpiMap[kpiId]?.name || 'KPI'} — Neues Release`;
+    const isEdit = !!editVersion;
+    $('#rc-add-title').textContent = `${kpiMap[kpiId]?.name || 'KPI'} — ${isEdit ? 'Release bearbeiten' : 'Neues Release'}`;
     const list = $('#rc-add-values-list');
+    const existingVals = isEdit ? rcVal.versionData[editVersion] : null;
     list.innerHTML = rcVal.testSituations.map((sit, i) => `
       <div class="rc-add-value-row">
         <span class="rc-add-value-label" title="${sit}">${sit}</span>
-        <input type="number" class="rc-add-value-input" data-index="${i}" placeholder="ms" value="0" min="0">
+        <input type="number" class="rc-add-value-input" data-index="${i}" placeholder="ms" value="${existingVals ? existingVals[i] : 0}" min="0">
       </div>
     `).join('');
-    $('#rc-add-version').value = '';
+    const verInput = $('#rc-add-version');
+    verInput.value = isEdit ? editVersion : '';
+    verInput.disabled = isEdit;
     $('#rc-add-modal').classList.remove('hidden');
-    setTimeout(() => $('#rc-add-version').focus(), 100);
+    if (!isEdit) setTimeout(() => verInput.focus(), 100);
   }
 
   function closeRcAddModal() {
     $('#rc-add-modal').classList.add('hidden');
+    $('#rc-add-version').disabled = false;
     rcAddKpiId = null;
+    rcEditVersion = null;
   }
 
   function saveRcAddRelease() {
@@ -654,7 +671,7 @@
     const vals = getCustomValues();
     const rcVal = vals[kpiId];
     if (!rcVal || !rcVal.testSituations) return;
-    if (rcVal.versionData[version]) { toast(`Release „${version}" existiert bereits`); return; }
+    if (rcVal.versionData[version] && !rcEditVersion) { toast(`Release „${version}" existiert bereits`); return; }
     const inputs = $('#rc-add-values-list').querySelectorAll('.rc-add-value-input');
     const newValues = [];
     for (const input of inputs) {
@@ -666,7 +683,7 @@
     setCustomValue(kpiId, rcVal);
     closeRcAddModal();
     render();
-    toast(`Release „${version}" mit ${newValues.length} Messwerten hinzugefügt`);
+    toast(`Release „${version}" ${rcEditVersion ? 'aktualisiert' : 'mit ' + newValues.length + ' Messwerten hinzugefügt'}`);
   }
 
   function setupRcFormEvents() {
@@ -691,6 +708,13 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         openRcAddModal(btn.dataset.kpiId);
+      });
+    });
+
+    valuesForm.querySelectorAll('.btn-rc-edit-release').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openRcAddModal(btn.dataset.kpiId, btn.dataset.version);
       });
     });
   }

@@ -1120,6 +1120,10 @@ body {
   font-family: inherit;
 }
 .rc-add-field input:focus { outline: none; border-color: var(--primary); }
+.rc-add-field input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .rc-add-values-list {
   flex: 1;
   overflow-y: auto;
@@ -1176,6 +1180,39 @@ body {
 .values-rc-add-item .btn {
   margin-bottom: 1px;
   white-space: nowrap;
+}
+
+/* ===== RC Version List ===== */
+.values-rc-version-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.values-rc-version-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+.values-rc-version-row:hover {
+  background: var(--surface-hover);
+}
+.values-rc-version-name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 5rem;
+}
+.values-rc-version-count {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  flex: 1;
+}
+.values-rc-version-row .btn {
+  flex-shrink: 0;
 }
 
 /* ===== Chart Area ===== */
