@@ -523,34 +523,10 @@ const ChartEngine = (() => {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
 
-    /* layout constants */
-    const marginX = Math.round(w * 0.04);
-    const marginY = Math.round(h * 0.04);
+    const M = Math.round(w * 0.04);
+    const smallFont = 11;
 
-    /* ---- title ---- */
-    const titleY = marginY;
-    ctx.fillStyle = textColor;
-    ctx.font = `bold 20px -apple-system, sans-serif`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`Testbericht — ${data.version}`, marginX, titleY);
-
-    /* ---- separator ---- */
-    const sepY = titleY + 32;
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(marginX, sepY);
-    ctx.lineTo(w - marginX, sepY);
-    ctx.stroke();
-
-    /* ---- main row: big donut + summary ---- */
-    const mainRowY = sepY + Math.round(h * 0.035);
-    const mainDonutSize = Math.min(w * 0.2, h * 0.28);
-    const mainDonutCx = marginX + mainDonutSize / 2;
-    const mainDonutCy = mainRowY + mainDonutSize / 2;
-
-    /* totals */
+    /* ===== totals ===== */
     const totPassed = data.values.reduce((s, v) => s + (v.passed || 0), 0);
     const totFailed = data.values.reduce((s, v) => s + (v.failed || 0), 0);
     const totBlocked = data.values.reduce((s, v) => s + (v.blocked || 0), 0);
@@ -558,81 +534,167 @@ const ChartEngine = (() => {
     const totPlanned = data.values.reduce((s, v) => s + (v.planned || 0), 0);
     const execPct = totPlanned > 0 ? Math.round((totExec / totPlanned) * 100) : 0;
 
-    /* draw main donut */
-    _drawMiniDonutAt(ctx, mainDonutCx, mainDonutCy, mainDonutSize, { values: data.values }, false);
+    /* ===== header ===== */
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 20px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`Testbericht — ${data.version}`, M, 14);
 
-    /* legend labels below main donut */
-    const legendY = mainDonutCy + mainDonutSize / 2 + 6;
-    const legendEntries = [
+    ctx.font = `14px -apple-system, sans-serif`;
+    ctx.fillStyle = mutedColor;
+    ctx.fillText(`Erstellt am ${new Date().toLocaleDateString('de-DE')}`, M, 40);
+
+    const sep1Y = 62;
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(M, sep1Y);
+    ctx.lineTo(w - M, sep1Y);
+    ctx.stroke();
+
+    /* ===== main donut + summary card ===== */
+    const cardY = sep1Y + Math.round(h * 0.03);
+    const donutSize = Math.min(w * 0.18, h * 0.26);
+    const donutCx = M + donutSize / 2;
+    const donutCy = cardY + donutSize / 2;
+
+    _drawMiniDonutAt(ctx, donutCx, donutCy, donutSize, { values: data.values }, false);
+
+    /* legend below donut */
+    const legY = donutCy + donutSize / 2 + 8;
+    const legEntries = [
       { label: 'PASSED', count: totPassed, color: '#22c55e' },
       { label: 'FAILED', count: totFailed, color: '#ef4444' },
       { label: 'BLOCKED', count: totBlocked, color: '#3b82f6' }
     ];
-    const dotR = 4;
-    ctx.font = `11px -apple-system, sans-serif`;
     ctx.textBaseline = 'top';
-    let lx = mainDonutCx - mainDonutSize * 0.4;
-    for (const e of legendEntries) {
-      /* color dot */
+    let lx = donutCx - donutSize * 0.38;
+    for (const e of legEntries) {
       ctx.fillStyle = e.color;
       ctx.beginPath();
-      ctx.arc(lx + dotR, legendY + dotR, dotR, 0, Math.PI * 2);
+      ctx.arc(lx + 4, legY + 4, 4, 0, Math.PI * 2);
       ctx.fill();
-      /* label */
       ctx.fillStyle = textColor;
+      ctx.font = `${smallFont}px -apple-system, sans-serif`;
       ctx.textAlign = 'left';
-      const label = `${e.label}: ${e.count}`;
-      ctx.fillText(label, lx + dotR * 2 + 4, legendY);
-      const textW = ctx.measureText(label).width;
-      lx += dotR * 2 + 4 + textW + 12;
+      const txt = `${e.label}: ${e.count}`;
+      ctx.fillText(txt, lx + 12, legY);
+      lx += 12 + ctx.measureText(txt).width + 14;
     }
 
-    /* summary block right of donut */
-    const summaryX = mainDonutCx + mainDonutSize / 2 + Math.round(w * 0.04);
-    const summaryY = mainRowY;
+    /* summary card */
+    const cardX = donutCx + donutSize / 2 + Math.round(w * 0.035);
+    const cardW = w - M - cardX;
+    const cardH = Math.max(donutSize + 20, 120);
 
-    ctx.font = `14px -apple-system, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 8);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 8);
+    ctx.stroke();
+
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
-    const summaryLines = [
-      { text: `Gesamt ausgeführte Tests: ${totExec}`, bold: true },
-      { text: `davon PASSED:  ${totPassed}  (${totPlanned > 0 ? Math.round((totPassed / totPlanned) * 100) : 0}%)`, bold: false },
-      { text: `davon FAILED:  ${totFailed}  (${totPlanned > 0 ? Math.round((totFailed / totPlanned) * 100) : 0}%)`, bold: false },
-      { text: `davon BLOCKED: ${totBlocked}  (${totPlanned > 0 ? Math.round((totBlocked / totPlanned) * 100) : 0}%)`, bold: false },
-      { text: `Ausführungsrate: ${execPct}%`, bold: true }
-    ];
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 16px -apple-system, sans-serif';
+    ctx.fillText('Zusammenfassung', cardX + 14, cardY + 12);
 
-    let sy = summaryY;
-    const lineH = 20;
-    for (const line of summaryLines) {
-      ctx.font = `${line.bold ? 'bold ' : ''}14px -apple-system, sans-serif`;
-      ctx.fillStyle = textColor;
-      ctx.fillText(line.text, summaryX, sy);
-      sy += lineH;
+    ctx.font = '13px -apple-system, sans-serif';
+    ctx.fillStyle = mutedColor;
+    ctx.fillText('Gesamt ausgeführte Tests', cardX + 14, cardY + 38);
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 28px -apple-system, sans-serif';
+    ctx.fillText(String(totExec), cardX + 14, cardY + 56);
+
+    ctx.font = 'bold 15px -apple-system, sans-serif';
+    ctx.fillStyle = textColor;
+    ctx.textAlign = 'right';
+    const ratePct = `${execPct}%`;
+    ctx.fillText(ratePct, cardX + cardW - 14, cardY + 56);
+
+    ctx.font = '12px -apple-system, sans-serif';
+    ctx.fillStyle = mutedColor;
+    ctx.textAlign = 'right';
+    ctx.fillText('Ausführungsrate', cardX + cardW - 14, cardY + 38);
+
+    /* mini KPI row in card */
+    const kpiY = cardY + 92;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const kpis = [
+      { label: 'PASSED', val: totPassed, pct: totPlanned > 0 ? Math.round((totPassed / totPlanned) * 100) : 0, color: '#22c55e' },
+      { label: 'FAILED', val: totFailed, pct: totPlanned > 0 ? Math.round((totFailed / totPlanned) * 100) : 0, color: '#ef4444' },
+      { label: 'BLOCKED', val: totBlocked, pct: totPlanned > 0 ? Math.round((totBlocked / totPlanned) * 100) : 0, color: '#3b82f6' }
+    ];
+    const kpiStep = (cardW - 28) / 3;
+    for (let ki = 0; ki < kpis.length; ki++) {
+      const kx = cardX + 14 + ki * kpiStep;
+      ctx.fillStyle = kpis[ki].color;
+      ctx.font = `bold 16px -apple-system, sans-serif`;
+      ctx.fillText(kpis[ki].val, kx, kpiY);
+      ctx.fillStyle = kpis[ki].color;
+      ctx.font = `11px -apple-system, sans-serif`;
+      ctx.fillText(`${kpis[ki].label} (${kpis[ki].pct}%)`, kx, kpiY + 20);
     }
 
-    /* ---- separator before mini donuts ---- */
-    const miniSepY = Math.max(mainRowY + mainDonutSize + 40, sy + 14);
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    /* ===== separator before table ===== */
+    const tableSepY = Math.max(cardY + cardH + 16, cardY + donutSize + 24);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(marginX, miniSepY);
-    ctx.lineTo(w - marginX, miniSepY);
+    ctx.moveTo(M, tableSepY);
+    ctx.lineTo(w - M, tableSepY);
     ctx.stroke();
 
-    /* ---- mini donuts row with per-area breakdown ---- */
-    const areaLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
-    const miniDonutSize = Math.min(w * 0.1, h * 0.12);
-    const miniGap = (w - 2 * marginX - 4 * miniDonutSize) / 5;
-    const miniRowY = miniSepY + Math.round(h * 0.025);
-    const miniCy = miniRowY + miniDonutSize / 2;
+    /* ===== table ===== */
+    const tblTopY = tableSepY + 12;
+    const tblLeft = M;
+    const tblRight = w - M;
+    const tblW = tblRight - tblLeft;
 
-    const breakdownFont = `10px -apple-system, sans-serif`;
-    const breakLineH = 14;
+    const colPcts = [0.18, 0.13, 0.15, 0.15, 0.15, 0.13, 0.11];
+    const colLabels = ['Bereich', 'Geplant', 'PASSED', 'FAILED', 'BLOCKED', 'Ausgeführt', 'Ausf.-Rate'];
+    const colAligns = ['left', 'right', 'right', 'right', 'right', 'right', 'right'];
+
+    let colX = tblLeft;
+    const colStarts = colPcts.map(p => { const x = colX; colX += Math.round(tblW * p); return x; });
+    const colEnds = colPcts.map((p, i) => colStarts[i] + Math.round(tblW * p));
+
+    const hFont = 12;
+    const dFont = 12;
+    const rowH = 24;
+
+    /* header */
+    ctx.textBaseline = 'middle';
+    ctx.font = `600 ${hFont}px -apple-system, sans-serif`;
+    ctx.fillStyle = mutedColor;
+    for (let ci = 0; ci < colLabels.length; ci++) {
+      ctx.textAlign = colAligns[ci];
+      const x = colAligns[ci] === 'right' ? colEnds[ci] - 4 : colStarts[ci] + 4;
+      ctx.fillText(colLabels[ci], x, tblTopY + rowH / 2);
+    }
+
+    /* header underline */
+    const hdrBot = tblTopY + rowH;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tblLeft, hdrBot);
+    ctx.lineTo(tblRight, hdrBot);
+    ctx.stroke();
+
+    /* data rows */
+    const areaLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
+    ctx.font = `${dFont}px -apple-system, sans-serif`;
 
     for (let mi = 0; mi < 4; mi++) {
-      const mx = marginX + miniGap + mi * (miniDonutSize + miniGap);
       const v = data.values[mi] || {};
       const passed = v.passed || 0;
       const failed = v.failed || 0;
@@ -641,34 +703,65 @@ const ChartEngine = (() => {
       const planned = v.planned || 0;
       const pct = planned > 0 ? Math.round((executed / planned) * 100) : 0;
 
-      /* mini donut */
-      _drawMiniDonutAt(ctx, mx + miniDonutSize / 2, miniCy, miniDonutSize, { values: [v] }, true);
+      const ry = hdrBot + 4 + mi * rowH;
+      if (mi % 2 === 1) {
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fillRect(tblLeft, ry, tblW, rowH);
+      }
 
-      /* breakdown below */
-      const bx = mx + miniDonutSize / 2;
-      const by = miniCy + miniDonutSize / 2 + 4;
+      const cells = [areaLabels[mi], planned, passed, failed, blocked, executed, pct + '%'];
+      ctx.fillStyle = textColor;
+      for (let ci = 0; ci < cells.length; ci++) {
+        ctx.textAlign = colAligns[ci];
+        const x = colAligns[ci] === 'right' ? colEnds[ci] - 4 : colStarts[ci] + 4;
+        ctx.fillText(String(cells[ci]), x, ry + rowH / 2);
+      }
+    }
 
+    /* footer underline */
+    const footTop = hdrBot + 4 + 4 * rowH;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tblLeft, footTop);
+    ctx.lineTo(tblRight, footTop);
+    ctx.stroke();
+
+    /* summary row */
+    const sumCells = ['Gesamt', totPlanned, totPassed, totFailed, totBlocked, totExec, execPct + '%'];
+    ctx.font = `600 ${dFont}px -apple-system, sans-serif`;
+    ctx.fillStyle = textColor;
+    for (let ci = 0; ci < sumCells.length; ci++) {
+      ctx.textAlign = colAligns[ci];
+      const x = colAligns[ci] === 'right' ? colEnds[ci] - 4 : colStarts[ci] + 4;
+      ctx.fillText(String(sumCells[ci]), x, footTop + 4 + rowH / 2);
+    }
+
+    /* ===== separator before mini donuts ===== */
+    const miniSepY = footTop + 4 + rowH + 16;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(M, miniSepY);
+    ctx.lineTo(w - M, miniSepY);
+    ctx.stroke();
+
+    /* ===== mini donuts visual row ===== */
+    const miniSize = Math.min(w * 0.09, h * 0.1);
+    const miniGap = (w - 2 * M - 4 * miniSize) / 5;
+    const miniY = miniSepY + 16;
+    const miniCy = miniY + miniSize / 2;
+
+    for (let mi = 0; mi < 4; mi++) {
+      const mx = M + miniGap + mi * (miniSize + miniGap);
+      const v = data.values[mi] || {};
+      _drawMiniDonutAt(ctx, mx + miniSize / 2, miniCy, miniSize, { values: [v] }, true);
+
+      ctx.fillStyle = mutedColor;
+      ctx.font = `bold 11px -apple-system, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-
-      ctx.fillStyle = textColor;
-      ctx.font = `bold 11px -apple-system, sans-serif`;
-      ctx.fillText(areaLabels[mi], bx, by);
-
-      ctx.font = breakdownFont;
-      const breakdown = [
-        { label: 'PASSED', val: passed, color: '#22c55e' },
-        { label: 'FAILED', val: failed, color: '#ef4444' },
-        { label: 'BLOCKED', val: blocked, color: '#3b82f6' }
-      ];
-      let by2 = by + 16;
-      for (const b of breakdown) {
-        ctx.fillStyle = b.color;
-        ctx.fillText(`${b.label}: ${b.val}`, bx, by2);
-        by2 += breakLineH;
-      }
-      ctx.fillStyle = mutedColor;
-      ctx.fillText(`∑ ${executed}/${planned} = ${pct}%`, bx, by2 + 2);
+      ctx.fillText(areaLabels[mi], mx + miniSize / 2, miniCy + miniSize / 2 + 4);
     }
   }
 
