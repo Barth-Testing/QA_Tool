@@ -539,7 +539,7 @@ const ChartEngine = (() => {
     ctx.font = 'bold 20px -apple-system, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText(`Testbericht — ${data.version}`, M, 14);
+    ctx.fillText(`Übersicht Testausführung ${data.version}`, M, 14);
 
     ctx.font = `14px -apple-system, sans-serif`;
     ctx.fillStyle = mutedColor;
