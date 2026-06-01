@@ -183,6 +183,12 @@ const ChartEngine = (() => {
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
+    /* read theme colors from CSS */
+    const cs = getComputedStyle(document.documentElement);
+    const textColor = cs.getPropertyValue('--text').trim() || '#e4e6ef';
+    const mutedColor = cs.getPropertyValue('--text-muted').trim() || '#888ca3';
+    const rowColor = cs.getPropertyValue('--row-stripe').trim() || 'rgba(255,255,255,0.025)';
+
     const situations = data.testSituations;
     const numRows = situations.length;
     const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
@@ -243,7 +249,7 @@ const ChartEngine = (() => {
       ctx.moveTo(pad.left, y);
       ctx.lineTo(w - pad.right, y);
       ctx.stroke();
-      ctx.fillStyle = '#888ca3';
+      ctx.fillStyle = mutedColor;
       ctx.font = `${axisFontSize}px -apple-system, sans-serif`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
@@ -268,7 +274,7 @@ const ChartEngine = (() => {
     }
 
     /* x-axis index numbers (1–26) just below bar bottom */
-    ctx.fillStyle = '#888ca3';
+    ctx.fillStyle = mutedColor;
     ctx.font = `600 ${axisFontSize}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -304,10 +310,10 @@ const ChartEngine = (() => {
     ctx.font = `600 ${tableHeaderFont}px -apple-system, sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#888ca3';
+    ctx.fillStyle = mutedColor;
     ctx.fillText('#', tLeft + idxColW / 2, headerY);
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#e4e6ef';
+    ctx.fillStyle = textColor;
     ctx.fillText('Testsituation', tLeft + idxColW + 4, headerY);
 
     for (let vi = 0; vi < versions.length; vi++) {
@@ -319,7 +325,7 @@ const ChartEngine = (() => {
 
     /* trend header */
     const trendHdrX = tLeft + idxColW + sitColW + versions.length * valColW;
-    ctx.fillStyle = '#888ca3';
+    ctx.fillStyle = mutedColor;
     ctx.textAlign = 'center';
     ctx.fillText('Trend', trendHdrX + trendColW / 2, headerY);
 
@@ -344,20 +350,20 @@ const ChartEngine = (() => {
 
       /* alternating bg */
       if (i % 2 === 1) {
-        ctx.fillStyle = 'rgba(255,255,255,0.025)';
+        ctx.fillStyle = rowColor;
         ctx.fillRect(tLeft, ry - rowH_table / 2, tWidth, rowH_table);
       }
 
       /* row # */
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#888ca3';
+      ctx.fillStyle = mutedColor;
       ctx.font = `600 ${tableFontSize}px -apple-system, sans-serif`;
       ctx.fillText(String(i + 1), tLeft + idxColW / 2, ry);
 
       /* situation name */
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#e4e6ef';
+      ctx.fillStyle = textColor;
       ctx.fillText(shortSit, tLeft + idxColW + 4, ry);
       ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
@@ -384,7 +390,7 @@ const ChartEngine = (() => {
         let trendChar, trendColor;
         if (absPct < 10) {
           trendChar = '—';
-          trendColor = '#888ca3';
+          trendColor = mutedColor;
         } else if (pct < 0) {
           trendChar = '▲';
           trendColor = '#22c55e';

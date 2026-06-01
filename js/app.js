@@ -30,8 +30,29 @@
   /* tab state */
   let activeTab = 'dashboard';
 
+  /* ===== Theme ===== */
+  const THEME_KEY = 'qa_dashboard_theme';
+  function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const theme = saved || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeBtn(theme);
+  }
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(THEME_KEY, next);
+    updateThemeBtn(next);
+  }
+  function updateThemeBtn(theme) {
+    const btn = $('#btn-theme');
+    if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+  }
+
   /* ===== Initialize ===== */
   async function init() {
+    initTheme();
     await loadData();
     migrateAcStorage();
     setupEventListeners();
@@ -856,6 +877,9 @@
         renderCatalog(btn.dataset.filter, catalogSearch.value);
       });
     });
+
+    /* Theme toggle */
+    $('#btn-theme').addEventListener('click', toggleTheme);
 
     /* Export */
     $('#btn-export').addEventListener('click', exportConfig);
