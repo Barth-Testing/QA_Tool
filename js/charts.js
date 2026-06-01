@@ -185,6 +185,7 @@ const ChartEngine = (() => {
 
     /* read theme colors from CSS */
     const cs = getComputedStyle(document.documentElement);
+    const bgColor = cs.getPropertyValue('--bg').trim() || '#0f1117';
     const textColor = cs.getPropertyValue('--text').trim() || '#e4e6ef';
     const mutedColor = cs.getPropertyValue('--text-muted').trim() || '#888ca3';
     const rowColor = cs.getPropertyValue('--row-stripe').trim() || 'rgba(255,255,255,0.025)';
@@ -196,7 +197,7 @@ const ChartEngine = (() => {
     const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
 
     /* ---- layout split: chart (top) + value table (bottom) ---- */
-    const chartShare = 0.44;
+    const chartShare = 0.42;
     const chartBottom = Math.round(h * chartShare);
 
     /* chart-area padding */
@@ -235,6 +236,8 @@ const ChartEngine = (() => {
     if (maxVal <= 0) maxVal = 1;
 
     ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, w, h);
 
     /* ---- VERTICAL BAR CHART ---- */
 
@@ -340,7 +343,7 @@ const ChartEngine = (() => {
 
     /* data rows */
     const availH = h - headerBottomY - 8;
-    const rowH_table = Math.min(Math.max(13, Math.floor(availH / numRows)), 18);
+    const rowH_table = Math.min(Math.floor(availH / numRows), 18);
     ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
     for (let i = 0; i < numRows; i++) {
