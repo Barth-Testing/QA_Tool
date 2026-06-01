@@ -417,18 +417,28 @@ const ChartEngine = (() => {
         ctx.fillText(trendChar, trendTx + trendColW / 2, ry);
         ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
-        /* diff value — left-aligned */
+        /* diff value — sign und Zahl getrenkt für saubere Ausrichtung */
         const diffTx = trendTx + trendColW;
-        const diffStr = (diff > 0 ? '+' : '') + diff.toFixed(0) + ' ms';
-        ctx.fillStyle = trendColor;
-        ctx.textAlign = 'left';
-        ctx.fillText(diffStr, diffTx, ry);
+        const signX = diffTx + Math.round(diffColW * 0.25);
+        const numX = signX + 3;
+        if (diff === 0) {
+          ctx.fillStyle = mutedColor;
+          ctx.textAlign = 'center';
+          ctx.fillText('±0', diffTx + diffColW / 2, ry);
+        } else {
+          const sign = diff > 0 ? '+' : '−';
+          ctx.fillStyle = trendColor;
+          ctx.textAlign = 'right';
+          ctx.fillText(sign, signX, ry);
+          ctx.textAlign = 'left';
+          ctx.fillText(Math.abs(diff).toFixed(0) + ' ms', numX, ry);
+        }
       } else {
         /* diff — n.a. */
         const diffTx = trendTx + trendColW;
         ctx.fillStyle = mutedColor;
-        ctx.textAlign = 'left';
-        ctx.fillText('—', diffTx, ry);
+        ctx.textAlign = 'center';
+        ctx.fillText('—', diffTx + diffColW / 2, ry);
       }
     }
   }
