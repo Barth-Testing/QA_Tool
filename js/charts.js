@@ -37,6 +37,9 @@ const ChartEngine = (() => {
     const lw = outerR - innerR;
 
     const pct = Math.min(Math.max(value / 100, 0), 1);
+    const _dcs = getComputedStyle(document.documentElement);
+    const _dText = _dcs.getPropertyValue('--text').trim() || '#e4e6ef';
+    const _dMuted = _dcs.getPropertyValue('--text-muted').trim() || '#888ca3';
 
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
@@ -52,14 +55,14 @@ const ChartEngine = (() => {
     ctx.stroke();
 
     const displayVal = Number.isInteger(value) ? value.toString() : value.toFixed(1);
-    ctx.fillStyle = '#e4e6ef';
+    ctx.fillStyle = _dText;
     ctx.font = `bold ${Math.round(outerR * 0.4)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(displayVal, cx, cy - 6);
 
     if (unit) {
-      ctx.fillStyle = '#888ca3';
+      ctx.fillStyle = _dMuted;
       ctx.font = `${Math.round(outerR * 0.18)}px -apple-system, sans-serif`;
       ctx.fillText(unit, cx, cy + outerR * 0.3);
     }
@@ -146,10 +149,19 @@ const ChartEngine = (() => {
 
     const pct = Math.min(Math.max(value / 100, 0), 1);
     if (status === undefined) status = value >= 80 ? 'green' : value >= 50 ? 'yellow' : 'red';
+    const _mcs = getComputedStyle(document.documentElement);
+    const _mMuted = _mcs.getPropertyValue('--text-muted').trim() || '#888ca3';
+    const _mBg = _mcs.getPropertyValue('--bg').trim() || '#0f1117';
+    const _mHex = _mBg.replace('#', '');
+    const _mR = parseInt(_mHex.substring(0, 2), 16);
+    const _mG = parseInt(_mHex.substring(2, 4), 16);
+    const _mB = parseInt(_mHex.substring(4, 6), 16);
+    const _mDark = (_mR * 299 + _mG * 587 + _mB * 114) / 1000 < 128;
+    const _mBase = _mDark ? 255 : 0;
 
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.strokeStyle = `rgba(${_mBase},${_mBase},${_mBase},0.07)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
@@ -160,11 +172,11 @@ const ChartEngine = (() => {
     ctx.lineCap = 'butt';
     ctx.stroke();
 
-    ctx.fillStyle = '#888ca3';
+    ctx.fillStyle = _mMuted;
     ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(Math.round(value), cx, cy);
+    ctx.fillText(Math.round(value) + '%', cx, cy);
   }
 
   function drawResponseComparison(canvas, data) {
@@ -463,11 +475,20 @@ const ChartEngine = (() => {
 
     const executed = passed + failed + blocked;
     const pct = planned > 0 ? Math.min(executed / planned, 1) : 0;
+    const _scs = getComputedStyle(document.documentElement);
+    const _sText = _scs.getPropertyValue('--text').trim() || '#e4e6ef';
+    const _sBg = _scs.getPropertyValue('--bg').trim() || '#0f1117';
+    const _sHex = _sBg.replace('#', '');
+    const _sR = parseInt(_sHex.substring(0, 2), 16);
+    const _sG = parseInt(_sHex.substring(2, 4), 16);
+    const _sB = parseInt(_sHex.substring(4, 6), 16);
+    const _sDark = (_sR * 299 + _sG * 587 + _sB * 114) / 1000 < 128;
+    const _sBase = _sDark ? 255 : 0;
 
     /* background arc */
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.strokeStyle = `rgba(${_sBase},${_sBase},${_sBase},0.07)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
@@ -493,11 +514,11 @@ const ChartEngine = (() => {
 
     /* center text: percentage */
     const displayPct = Math.round(pct * 100);
-    ctx.fillStyle = '#e4e6ef';
+    ctx.fillStyle = _sText;
     ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(displayPct, cx, cy);
+    ctx.fillText(displayPct + '%', cx, cy);
   }
 
   /* ===== Campaign Chart (full modal canvas) ===== */
@@ -845,11 +866,11 @@ const ChartEngine = (() => {
     /* percentage text */
     const total = segments.reduce((s, seg) => s + seg.count, 0);
     const allPct = total > 0 ? Math.round(segments.reduce((s, seg) => s + seg.pct, 0) * 100) : 0;
-    ctx.fillStyle = '#888ca3';
+    ctx.fillStyle = cs2.getPropertyValue('--text-muted').trim() || '#888ca3';
     ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(allPct, cx, cy);
+    ctx.fillText(allPct + '%', cx, cy);
   }
 
   return { getChartType, drawDonut, drawBar, drawMiniDonut, drawResponseComparison, drawSegmentedDonut, drawCampaignChart };

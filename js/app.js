@@ -1092,7 +1092,8 @@
         const hex = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' }[clr] || '#6b7280';
         return `<span class="campaign-color-dot" style="background:${hex}"></span>`;
       };
-      const statusHex = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' }[colors[0]] || '#6b7280';
+      const opCls = (c.operational || 'passed') === 'passed' ? 'passed' : 'failed';
+      const coCls = (c.completed || 'passed') === 'passed' ? 'passed' : 'failed';
       return `
         <div class="campaign-tile" data-campaign-id="${c.id}" draggable="true">
           <div class="campaign-tile-header">
@@ -1104,10 +1105,17 @@
             </div>
           </div>
           <div class="campaign-main-row">
+            <div class="campaign-indicator-badge">
+              <span class="campaign-indicator-badge__label">Wirkbetriebs-<br>tauglich</span>
+              <span class="campaign-indicator-badge__box campaign-indicator-badge__box--${opCls}" data-campaign-id="${c.id}" data-indicator="operational">${(c.operational || 'passed') === 'passed' ? 'PASSED' : 'FAILED'}</span>
+            </div>
             <div class="campaign-main-wrap" data-campaign-id="${c.id}" data-color-index="0" title="Klicken zum Farbe wechseln">
               <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
             </div>
-            <div class="campaign-status-badge campaign-status-badge--${colors[0]}" data-campaign-id="${c.id}" title="Status: ${colors[0]} — Klicken zum Wechseln">${colors[0] === 'green' ? '✔' : colors[0] === 'yellow' ? '⚠' : '✖'}</div>
+            <div class="campaign-indicator-badge">
+              <span class="campaign-indicator-badge__label">Abgeschlossen</span>
+              <span class="campaign-indicator-badge__box campaign-indicator-badge__box--${coCls}" data-campaign-id="${c.id}" data-indicator="completed">${(c.completed || 'passed') === 'passed' ? 'PASSED' : 'FAILED'}</span>
+            </div>
           </div>
           <div class="campaign-mini-row">
             ${c.values.map((v, i) => {
@@ -1164,7 +1172,9 @@
         { planned: 0, passed: 0, failed: 0, blocked: 0 },
         { planned: 0, passed: 0, failed: 0, blocked: 0 }
       ],
-      colors: ['green', 'green', 'green', 'green', 'green']
+      colors: ['green', 'green', 'green', 'green', 'green'],
+      operational: 'passed',
+      completed: 'passed'
     };
     campaigns.unshift(newCampaign);
     saveCampaigns();
@@ -1447,17 +1457,20 @@
       renderCampaigns();
     });
 
-    /* Status badge click — cycle main status */
+    /* Indicator badge click — toggle passed/failed */
     $('#campaign-list').addEventListener('click', (e) => {
-      const badge = e.target.closest('.campaign-status-badge');
-      if (!badge) return;
+      const box = e.target.closest('.campaign-indicator-badge__box');
+      if (!box) return;
       e.stopPropagation();
-      const campaignId = badge.dataset.campaignId;
+      const campaignId = box.dataset.campaignId;
+      const indicator = box.dataset.indicator;
       const c = campaigns.find(c => c.id === campaignId);
       if (!c) return;
-      const cycle = { green: 'yellow', yellow: 'red', red: 'green' };
-      c.colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
-      c.colors[0] = cycle[c.colors[0]] || 'green';
+      if (indicator === 'operational') {
+        c.operational = (c.operational || 'passed') === 'passed' ? 'failed' : 'passed';
+      } else {
+        c.completed = (c.completed || 'passed') === 'passed' ? 'failed' : 'passed';
+      }
       saveCampaigns();
       renderCampaigns();
     });
