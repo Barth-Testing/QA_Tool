@@ -84,19 +84,17 @@
           <input type="number" id="campaign-edit-planned" min="0" step="1" placeholder="0">
         </div>
         <div class="campaign-edit-subheader">Ausgeführte Testfälle (aufgeschlüsselt)</div>
-        <div class="campaign-edit-status-row">
-          <div class="campaign-edit-field campaign-edit-field--compact">
-            <label for="campaign-edit-passed" style="color:var(--green)">✔ Bestanden</label>
-            <input type="number" id="campaign-edit-passed" min="0" step="1" placeholder="0">
-          </div>
-          <div class="campaign-edit-field campaign-edit-field--compact">
-            <label for="campaign-edit-failed" style="color:var(--red)">✖ Fehlgeschlagen</label>
-            <input type="number" id="campaign-edit-failed" min="0" step="1" placeholder="0">
-          </div>
-          <div class="campaign-edit-field campaign-edit-field--compact">
-            <label for="campaign-edit-blocked" style="color:var(--blue)">⊘ Blockiert</label>
-            <input type="number" id="campaign-edit-blocked" min="0" step="1" placeholder="0">
-          </div>
+        <div class="campaign-edit-field">
+          <label for="campaign-edit-passed" style="color:var(--green)">PASSED</label>
+          <input type="number" id="campaign-edit-passed" min="0" step="1" placeholder="0">
+        </div>
+        <div class="campaign-edit-field">
+          <label for="campaign-edit-failed" style="color:var(--red)">FAILED</label>
+          <input type="number" id="campaign-edit-failed" min="0" step="1" placeholder="0">
+        </div>
+        <div class="campaign-edit-field">
+          <label for="campaign-edit-blocked" style="color:var(--blue)">BLOCKED</label>
+          <input type="number" id="campaign-edit-blocked" min="0" step="1" placeholder="0">
         </div>
         <div class="campaign-edit-preview" id="campaign-edit-preview">—</div>
         <div class="campaign-edit-actions">

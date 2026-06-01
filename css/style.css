@@ -628,22 +628,11 @@ body {
 .campaign-edit-field input:focus {
   border-color: var(--primary);
 }
-.campaign-edit-field--compact input {
-  padding: 0.4rem 0.6rem;
-  font-size: 0.9rem;
-}
 .campaign-edit-subheader {
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--text-muted);
   margin-top: 0.3rem;
-}
-.campaign-edit-status-row {
-  display: flex;
-  gap: 0.5rem;
-}
-.campaign-edit-status-row .campaign-edit-field {
-  flex: 1;
 }
 .campaign-edit-preview {
   text-align: center;
