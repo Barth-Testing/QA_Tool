@@ -591,25 +591,25 @@ const ChartEngine = (() => {
     _drawMiniDonutAt(ctx, donutCx, donutCy, donutSize, { values: data.values }, false);
 
     /* legend below donut */
-    const legY = donutCy + donutSize / 2 + 8;
+    const legY = donutCy + donutSize / 2 + 10;
     const legEntries = [
       { label: 'PASSED', count: totPassed, color: '#22c55e' },
       { label: 'FAILED', count: totFailed, color: '#ef4444' },
       { label: 'BLOCKED', count: totBlocked, color: '#3b82f6' }
     ];
     ctx.textBaseline = 'top';
-    let lx = donutCx - donutSize * 0.38;
-    for (const e of legEntries) {
+    ctx.font = `${smallFont}px -apple-system, sans-serif`;
+    const legLineH = 16;
+    for (let li = 0; li < legEntries.length; li++) {
+      const e = legEntries[li];
+      const ly = legY + li * legLineH;
       ctx.fillStyle = e.color;
       ctx.beginPath();
-      ctx.arc(lx + 4, legY + 4, 4, 0, Math.PI * 2);
+      ctx.arc(donutCx - donutSize * 0.38 + 4, ly + 4, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = textColor;
-      ctx.font = `${smallFont}px -apple-system, sans-serif`;
       ctx.textAlign = 'left';
-      const txt = `${e.label}: ${e.count}`;
-      ctx.fillText(txt, lx + 12, legY);
-      lx += 12 + ctx.measureText(txt).width + 14;
+      ctx.fillText(`${e.label}: ${e.count}`, donutCx - donutSize * 0.38 + 12, ly);
     }
 
     /* summary card */
