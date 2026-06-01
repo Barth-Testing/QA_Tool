@@ -218,9 +218,12 @@ const GridEngine = (() => {
       const computeTrend = (current, previous) => {
         if (current === null || previous === null) return '';
         const diff = current - previous;
-        if (diff < 0) return '<span class="trend-up" title="Verbesserung um ' + (-diff) + ' ms">▲</span>';
-        if (diff > 0) return '<span class="trend-down" title="Verschlechterung um ' + diff + ' ms">▼</span>';
-        return '<span class="trend-neutral" title="Unverändert">—</span>';
+        const pct = previous !== 0 ? (diff / previous) * 100 : 0;
+        const absPct = Math.abs(pct);
+        if (absPct < 10) return '<span class="trend-neutral" title="Innerhalb ±10 % — tolerierbare Abweichung">—</span>';
+        if (pct < 0) return '<span class="trend-up" title="Verbesserung um ' + (-diff).toFixed(1) + ' ms (' + (-pct).toFixed(1) + ' %)">▲</span>';
+        if (pct < 25) return '<span class="trend-warn" title="Verschlechterung um ' + diff.toFixed(1) + ' ms (' + pct.toFixed(1) + ' %)">▲</span>';
+        return '<span class="trend-down" title="Verschlechterung um ' + diff.toFixed(1) + ' ms (' + pct.toFixed(1) + ' %)">▼</span>';
       };
 
       rcTableHtml = `
