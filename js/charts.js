@@ -523,6 +523,14 @@ const ChartEngine = (() => {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
 
+    /* detect dark vs light theme */
+    const hex = bgColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const isDark = (r * 299 + g * 587 + b * 114) / 1000 < 128;
+    const base = isDark ? 255 : 0;
+
     const M = Math.round(w * 0.04);
     const smallFont = 11;
 
@@ -546,7 +554,7 @@ const ChartEngine = (() => {
     ctx.fillText(`Erstellt am ${new Date().toLocaleDateString('de-DE')}`, M, 40);
 
     const sep1Y = 62;
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.strokeStyle = `rgba(${base},${base},${base},0.12)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(M, sep1Y);
@@ -588,12 +596,12 @@ const ChartEngine = (() => {
     const cardW = w - M - cardX;
     const cardH = Math.max(donutSize + 20, 120);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillStyle = `rgba(${base},${base},${base},0.04)`;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, 8);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = `rgba(${base},${base},${base},0.08)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, 8);
@@ -646,7 +654,7 @@ const ChartEngine = (() => {
 
     /* ===== separator before table ===== */
     const tableSepY = Math.max(cardY + cardH + 16, cardY + donutSize + 24);
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.strokeStyle = `rgba(${base},${base},${base},0.12)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(M, tableSepY);
@@ -683,7 +691,7 @@ const ChartEngine = (() => {
 
     /* header underline */
     const hdrBot = tblTopY + rowH;
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.strokeStyle = `rgba(${base},${base},${base},0.15)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(tblLeft, hdrBot);
@@ -705,7 +713,7 @@ const ChartEngine = (() => {
 
       const ry = hdrBot + 4 + mi * rowH;
       if (mi % 2 === 1) {
-        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fillStyle = `rgba(${base},${base},${base},0.03)`;
         ctx.fillRect(tblLeft, ry, tblW, rowH);
       }
 
@@ -720,7 +728,7 @@ const ChartEngine = (() => {
 
     /* footer underline */
     const footTop = hdrBot + 4 + 4 * rowH;
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.strokeStyle = `rgba(${base},${base},${base},0.15)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(tblLeft, footTop);
@@ -739,7 +747,7 @@ const ChartEngine = (() => {
 
     /* ===== separator before mini donuts ===== */
     const miniSepY = footTop + 4 + rowH + 16;
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = `rgba(${base},${base},${base},0.08)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(M, miniSepY);
@@ -808,7 +816,15 @@ const ChartEngine = (() => {
     /* background arc */
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    const cs2 = getComputedStyle(document.documentElement);
+    const bg2 = cs2.getPropertyValue('--bg').trim() || '#0f1117';
+    const hex2 = bg2.replace('#', '');
+    const r2 = parseInt(hex2.substring(0, 2), 16);
+    const g2 = parseInt(hex2.substring(2, 4), 16);
+    const b2 = parseInt(hex2.substring(4, 6), 16);
+    const isDark2 = (r2 * 299 + g2 * 587 + b2 * 114) / 1000 < 128;
+    const base2 = isDark2 ? 255 : 0;
+    ctx.strokeStyle = `rgba(${base2},${base2},${base2},0.07)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
