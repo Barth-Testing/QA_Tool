@@ -867,7 +867,18 @@
   /* ===== Export ===== */
   function exportConfig() {
     const customValues = getCustomValues();
-    const data = JSON.stringify({ dashboards, kpis, customValues }, null, 2);
+    const data = JSON.stringify({
+      _exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      theme: document.documentElement.getAttribute('data-theme') || 'dark',
+      currentDashboardId,
+      dashboards,
+      kpis,
+      customValues,
+      campaigns,
+      rfcEntries,
+      rfcTestsCampaignId: getRfcTestsCampaignId()
+    }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -875,7 +886,52 @@
     a.download = 'qa-dashboard-export.json';
     a.click();
     URL.revokeObjectURL(url);
-    toast('Konfiguration inkl. Werte exportiert');
+    toast('Vollständiger Export inkl. Kampagnen & RFC erstellt');
+  }
+
+  function importConfig(file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data || data._exportVersion !== 1) {
+          toast('Ungültige Export-Datei (falsche Version)');
+          return;
+        }
+        if (data.theme) {
+          document.documentElement.setAttribute('data-theme', data.theme);
+          localStorage.setItem(THEME_KEY, data.theme);
+          updateThemeBtn(data.theme);
+        }
+        if (data.dashboards) dashboards = data.dashboards;
+        if (data.kpis) {
+          kpis = data.kpis;
+          kpiMap = {};
+          for (const k of kpis) kpiMap[k.id] = k;
+        }
+        if (data.currentDashboardId) currentDashboardId = data.currentDashboardId;
+        if (data.customValues) {
+          localStorage.setItem(VALUES_KEY, JSON.stringify(data.customValues));
+        }
+        if (data.campaigns) {
+          campaigns = data.campaigns;
+          saveCampaigns();
+        }
+        if (data.rfcEntries) {
+          rfcEntries = data.rfcEntries;
+          saveRfcEntries();
+        }
+        if (data.rfcTestsCampaignId) {
+          setRfcTestsCampaignId(data.rfcTestsCampaignId);
+        }
+        saveState();
+        render();
+        toast('Import erfolgreich – Dashboard vollständig wiederhergestellt');
+      } catch {
+        toast('Fehler beim Import: ungültige Datei');
+      }
+    };
+    reader.readAsText(file);
   }
 
   /* ===== Event Listeners ===== */
@@ -905,8 +961,14 @@
     /* Theme toggle */
     $('#btn-theme').addEventListener('click', toggleTheme);
 
-    /* Export */
+    /* Export / Import */
     $('#btn-export').addEventListener('click', exportConfig);
+    $('#btn-import').addEventListener('click', () => $('#btn-import-file').click());
+    $('#btn-import-file').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) importConfig(file);
+      e.target.value = '';
+    });
 
     /* Tab switching */
     document.querySelectorAll('.tab-btn').forEach(btn => {

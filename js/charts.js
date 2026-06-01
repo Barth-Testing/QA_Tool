@@ -674,7 +674,8 @@ const ChartEngine = (() => {
     }
 
     /* ===== separator before table ===== */
-    const tableSepY = Math.max(cardY + cardH + 16, cardY + donutSize + 24);
+    const legBottom = legY + legEntries.length * legLineH + 6;
+    const tableSepY = Math.max(cardY + cardH + 16, legBottom);
     ctx.strokeStyle = `rgba(${base},${base},${base},0.12)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
