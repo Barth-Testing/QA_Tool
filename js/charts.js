@@ -501,7 +501,7 @@ const ChartEngine = (() => {
   }
 
   /* ===== Campaign Chart (full modal canvas) ===== */
-  function drawCampaignChart(canvas, campaignsData) {
+  function drawCampaignChart(canvas, data) {
     const dpr = window.devicePixelRatio || 1;
     canvas.style.width = '100%';
     canvas.style.height = '100%';
@@ -523,183 +523,152 @@ const ChartEngine = (() => {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
 
-    /* ---- Layout: donuts row + table ---- */
-    const headerH = Math.round(h * 0.07);
-    const donutAreaH = Math.round(h * 0.38);
-    const tableStartY = headerH + donutAreaH + 10;
+    /* layout constants */
+    const marginX = Math.round(w * 0.04);
+    const marginY = Math.round(h * 0.04);
 
-    /* title */
+    /* ---- title ---- */
+    const titleY = marginY;
     ctx.fillStyle = textColor;
-    ctx.font = `bold ${Math.min(18, Math.round(headerH * 0.5))}px -apple-system, sans-serif`;
+    ctx.font = `bold 20px -apple-system, sans-serif`;
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Testkampagnen — Übersicht', 12, headerH / 2);
+    ctx.textBaseline = 'top';
+    ctx.fillText(`Testbericht — ${data.version}`, marginX, titleY);
 
-    /* separator */
+    /* ---- separator ---- */
+    const sepY = titleY + 32;
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, headerH);
-    ctx.lineTo(w, headerH);
+    ctx.moveTo(marginX, sepY);
+    ctx.lineTo(w - marginX, sepY);
     ctx.stroke();
 
-    /* ---- Donuts row ---- */
-    const donutCols = campaignsData.length;
-    if (donutCols === 0) return;
-    const colW = w / donutCols;
-    const donutSize = Math.min(colW * 0.45, donutAreaH * 0.7);
-    const miniSize = donutSize * 0.45;
+    /* ---- main row: big donut + summary ---- */
+    const mainRowY = sepY + Math.round(h * 0.035);
+    const mainDonutSize = Math.min(w * 0.2, h * 0.28);
+    const mainDonutCx = marginX + mainDonutSize / 2;
+    const mainDonutCy = mainRowY + mainDonutSize / 2;
 
-    for (let ci = 0; ci < campaignsData.length; ci++) {
-      const camp = campaignsData[ci];
-      const cx = colW * ci + colW / 2;
-      const donutY = headerH + (donutAreaH - donutSize) / 2;
+    /* totals */
+    const totPassed = data.values.reduce((s, v) => s + (v.passed || 0), 0);
+    const totFailed = data.values.reduce((s, v) => s + (v.failed || 0), 0);
+    const totBlocked = data.values.reduce((s, v) => s + (v.blocked || 0), 0);
+    const totExec = totPassed + totFailed + totBlocked;
+    const totPlanned = data.values.reduce((s, v) => s + (v.planned || 0), 0);
+    const execPct = totPlanned > 0 ? Math.round((totExec / totPlanned) * 100) : 0;
 
-      /* main donut */
-      const totalExec = camp.values.reduce((s, v) => s + (v.passed || 0) + (v.failed || 0) + (v.blocked || 0), 0);
-      const totalPlan = camp.values.reduce((s, v) => s + (v.planned || 0), 0);
-      const avgPct = totalPlan > 0 ? Math.round((totalExec / totalPlan) * 100) : 0;
+    /* draw main donut */
+    _drawMiniDonutAt(ctx, mainDonutCx, mainDonutCy, mainDonutSize, { values: data.values }, false);
 
-      /* draw main donut using helper */
-      _drawMiniDonutAt(ctx, cx, donutY, donutSize, camp);
-
-      /* version label under main donut */
+    /* legend labels below main donut */
+    const legendY = mainDonutCy + mainDonutSize / 2 + 6;
+    const legendEntries = [
+      { label: 'PASSED', count: totPassed, color: '#22c55e' },
+      { label: 'FAILED', count: totFailed, color: '#ef4444' },
+      { label: 'BLOCKED', count: totBlocked, color: '#3b82f6' }
+    ];
+    const dotR = 4;
+    ctx.font = `11px -apple-system, sans-serif`;
+    ctx.textBaseline = 'top';
+    let lx = mainDonutCx - mainDonutSize * 0.4;
+    for (const e of legendEntries) {
+      /* color dot */
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(lx + dotR, legendY + dotR, dotR, 0, Math.PI * 2);
+      ctx.fill();
+      /* label */
       ctx.fillStyle = textColor;
-      ctx.font = `bold ${Math.round(donutSize * 0.16)}px -apple-system, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(camp.version, cx, donutY + donutSize / 2 + 4);
-
-      /* mini donuts row under version label */
-      const miniY = donutY + donutSize / 2 + Math.round(donutSize * 0.22);
-      const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
-      for (let mi = 0; mi < 4; mi++) {
-        const mx = cx + (mi - 1.5) * (miniSize + 6);
-        const v = camp.values[mi] || {};
-        _drawMiniDonutAt(ctx, mx, miniY, miniSize, { values: [v] }, true);
-
-        ctx.fillStyle = mutedColor;
-        ctx.font = `${Math.round(miniSize * 0.2)}px -apple-system, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(miniLabels[mi], mx, miniY + miniSize / 2 + 2);
-      }
+      ctx.textAlign = 'left';
+      const label = `${e.label}: ${e.count}`;
+      ctx.fillText(label, lx + dotR * 2 + 4, legendY);
+      const textW = ctx.measureText(label).width;
+      lx += dotR * 2 + 4 + textW + 12;
     }
 
-    /* ---- separator before table ---- */
-    const sepY = tableStartY - 6;
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, sepY);
-    ctx.lineTo(w, sepY);
-    ctx.stroke();
+    /* summary block right of donut */
+    const summaryX = mainDonutCx + mainDonutSize / 2 + Math.round(w * 0.04);
+    const summaryY = mainRowY;
 
-    /* ---- TABLE ---- */
-    const tLeft = 8;
-    const tRight = w - 8;
-    const tWidth = tRight - tLeft;
-    const tableTop = tableStartY + 4;
+    ctx.font = `14px -apple-system, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
 
-    const colConfig = [
-      { label: 'Kampagne', pct: 0.14, align: 'left' },
-      { label: 'Bereich', pct: 0.12, align: 'left' },
-      { label: 'Geplant', pct: 0.10, align: 'right' },
-      { label: 'Bestanden', pct: 0.10, align: 'right' },
-      { label: 'Fehlgeschlagen', pct: 0.14, align: 'right' },
-      { label: 'Blockiert', pct: 0.10, align: 'right' },
-      { label: 'Ausgeführt', pct: 0.12, align: 'right' },
-      { label: 'Ausf.-Rate', pct: 0.10, align: 'right' }
+    const summaryLines = [
+      { text: `Gesamt ausgeführte Tests: ${totExec}`, bold: true },
+      { text: `davon PASSED:  ${totPassed}  (${totPlanned > 0 ? Math.round((totPassed / totPlanned) * 100) : 0}%)`, bold: false },
+      { text: `davon FAILED:  ${totFailed}  (${totPlanned > 0 ? Math.round((totFailed / totPlanned) * 100) : 0}%)`, bold: false },
+      { text: `davon BLOCKED: ${totBlocked}  (${totPlanned > 0 ? Math.round((totBlocked / totPlanned) * 100) : 0}%)`, bold: false },
+      { text: `Ausführungsrate: ${execPct}%`, bold: true }
     ];
 
-    let colX = tLeft;
-    const colStarts = colConfig.map(c => {
-      const x = colX;
-      colX += Math.round(tWidth * c.pct);
-      return x;
-    });
-
-    const headerFont = Math.min(11, Math.round((h - tableTop) * 0.045));
-    const dataFont = Math.max(8, Math.min(Math.round((h - tableTop) * 0.035), 11));
-
-    ctx.font = `600 ${headerFont}px -apple-system, sans-serif`;
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = mutedColor;
-    for (let ci = 0; ci < colConfig.length; ci++) {
-      ctx.textAlign = colConfig[ci].align;
-      const x = colConfig[ci].align === 'right' ? colStarts[ci] + Math.round(tWidth * colConfig[ci].pct) - 2 : colStarts[ci];
-      ctx.fillText(colConfig[ci].label, x, tableTop + headerFont * 0.6);
+    let sy = summaryY;
+    const lineH = 20;
+    for (const line of summaryLines) {
+      ctx.font = `${line.bold ? 'bold ' : ''}14px -apple-system, sans-serif`;
+      ctx.fillStyle = textColor;
+      ctx.fillText(line.text, summaryX, sy);
+      sy += lineH;
     }
 
-    /* header underline */
-    const hdrBottom = tableTop + headerFont * 1.2;
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    /* ---- separator before mini donuts ---- */
+    const miniSepY = Math.max(mainRowY + mainDonutSize + 40, sy + 14);
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(tLeft, hdrBottom);
-    ctx.lineTo(tRight, hdrBottom);
+    ctx.moveTo(marginX, miniSepY);
+    ctx.lineTo(w - marginX, miniSepY);
     ctx.stroke();
 
-    /* data rows */
-    const availH = h - hdrBottom - 4;
-    const rowH = Math.min(Math.floor(availH / (campaignsData.length * 4 + 1)), 16);
-    if (rowH < 8) return;
+    /* ---- mini donuts row with per-area breakdown ---- */
+    const areaLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
+    const miniDonutSize = Math.min(w * 0.1, h * 0.12);
+    const miniGap = (w - 2 * marginX - 4 * miniDonutSize) / 5;
+    const miniRowY = miniSepY + Math.round(h * 0.025);
+    const miniCy = miniRowY + miniDonutSize / 2;
 
-    let rowIdx = 0;
-    const miniLabels2 = ['Manual', 'Automation', 'RFC', 'Mobile'];
-    for (const camp of campaignsData) {
-      for (let mi = 0; mi < 4; mi++) {
-        const ry = hdrBottom + 4 + rowIdx * rowH;
-        if (rowIdx % 2 === 1) {
-          ctx.fillStyle = 'rgba(255,255,255,0.025)';
-          ctx.fillRect(tLeft, ry - rowH / 2, tWidth, rowH);
-        }
-        const v = camp.values[mi] || {};
-        const executed = (v.passed || 0) + (v.failed || 0) + (v.blocked || 0);
-        const pct = v.planned > 0 ? Math.round((executed / v.planned) * 100) : 0;
-        const cells = [
-          rowIdx < 4 ? camp.version : '',
-          miniLabels2[mi],
-          v.planned || 0,
-          v.passed || 0,
-          v.failed || 0,
-          v.blocked || 0,
-          executed,
-          pct + '%'
-        ];
-        ctx.font = `${dataFont}px -apple-system, sans-serif`;
-        ctx.fillStyle = textColor;
-        for (let ci = 0; ci < cells.length; ci++) {
-          ctx.textAlign = colConfig[ci].align;
-          const x = colConfig[ci].align === 'right' ? colStarts[ci] + Math.round(tWidth * colConfig[ci].pct) - 2 : colStarts[ci];
-          ctx.fillText(String(cells[ci]), x, ry);
-        }
-        rowIdx++;
-      }
-    }
+    const breakdownFont = `10px -apple-system, sans-serif`;
+    const breakLineH = 14;
 
-    /* summary row */
-    if (rowH >= 8) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(tLeft, hdrBottom + 4 + rowIdx * rowH);
-      ctx.lineTo(tRight, hdrBottom + 4 + rowIdx * rowH);
-      ctx.stroke();
-      ctx.font = `600 ${dataFont}px -apple-system, sans-serif`;
-      const sumPlanned = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.planned || 0), 0), 0);
-      const sumPassed = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.passed || 0), 0), 0);
-      const sumFailed = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.failed || 0), 0), 0);
-      const sumBlocked = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.blocked || 0), 0), 0);
-      const sumExec = sumPassed + sumFailed + sumBlocked;
-      const sumPct = sumPlanned > 0 ? Math.round((sumExec / sumPlanned) * 100) : 0;
-      const summaryCells = ['', 'Gesamt', sumPlanned, sumPassed, sumFailed, sumBlocked, sumExec, sumPct + '%'];
+    for (let mi = 0; mi < 4; mi++) {
+      const mx = marginX + miniGap + mi * (miniDonutSize + miniGap);
+      const v = data.values[mi] || {};
+      const passed = v.passed || 0;
+      const failed = v.failed || 0;
+      const blocked = v.blocked || 0;
+      const executed = passed + failed + blocked;
+      const planned = v.planned || 0;
+      const pct = planned > 0 ? Math.round((executed / planned) * 100) : 0;
+
+      /* mini donut */
+      _drawMiniDonutAt(ctx, mx + miniDonutSize / 2, miniCy, miniDonutSize, { values: [v] }, true);
+
+      /* breakdown below */
+      const bx = mx + miniDonutSize / 2;
+      const by = miniCy + miniDonutSize / 2 + 4;
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
       ctx.fillStyle = textColor;
-      for (let ci = 0; ci < summaryCells.length; ci++) {
-        ctx.textAlign = colConfig[ci].align;
-        const x = colConfig[ci].align === 'right' ? colStarts[ci] + Math.round(tWidth * colConfig[ci].pct) - 2 : colStarts[ci];
-        ctx.fillText(String(summaryCells[ci]), x, hdrBottom + 4 + rowIdx * rowH + rowH / 2);
+      ctx.font = `bold 11px -apple-system, sans-serif`;
+      ctx.fillText(areaLabels[mi], bx, by);
+
+      ctx.font = breakdownFont;
+      const breakdown = [
+        { label: 'PASSED', val: passed, color: '#22c55e' },
+        { label: 'FAILED', val: failed, color: '#ef4444' },
+        { label: 'BLOCKED', val: blocked, color: '#3b82f6' }
+      ];
+      let by2 = by + 16;
+      for (const b of breakdown) {
+        ctx.fillStyle = b.color;
+        ctx.fillText(`${b.label}: ${b.val}`, bx, by2);
+        by2 += breakLineH;
       }
+      ctx.fillStyle = mutedColor;
+      ctx.fillText(`∑ ${executed}/${planned} = ${pct}%`, bx, by2 + 2);
     }
   }
 

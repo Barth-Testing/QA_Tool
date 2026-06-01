@@ -1199,19 +1199,18 @@
   function openCampaignChart(campaignId) {
     const vals = getCustomValues();
     const active = campaigns.filter(c => !c.archived);
-    if (active.length === 0) { toast('Keine aktiven Testkampagnen'); return; }
-    const data = active.map(c => ({
-      version: c.version,
-      values: c.values.map(v => ({
+    const camp = active.find(c => c.id === campaignId);
+    if (!camp) { toast('Testkampagne nicht gefunden'); return; }
+    const data = {
+      version: camp.version,
+      values: camp.values.map(v => ({
         planned: v.planned || 0,
         passed: v.passed || 0,
         failed: v.failed || 0,
         blocked: v.blocked || 0
       }))
-    }));
-    const title = campaignId === 'all'
-      ? 'Alle Testkampagnen — Übersicht'
-      : `${active.find(c => c.id === campaignId)?.version || 'Testkampagne'} — Übersicht`;
+    };
+    const title = `Testbericht — ${camp.version}`;
     $('#campaign-chart-title').textContent = title;
     $('#campaign-chart-modal').classList.remove('hidden');
     requestAnimationFrame(() => {
