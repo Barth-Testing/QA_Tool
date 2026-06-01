@@ -985,6 +985,20 @@
       toast('Diagramm als Bild gespeichert');
     });
 
+    /* Campaign chart modal */
+    $('#btn-close-campaign-chart').addEventListener('click', () => $('#campaign-chart-modal').classList.add('hidden'));
+    $('#campaign-chart-modal .modal-backdrop').addEventListener('click', () => $('#campaign-chart-modal').classList.add('hidden'));
+
+    $('#btn-campaign-chart-download').addEventListener('click', () => {
+      const canvas = $('#campaign-chart-canvas');
+      if (!canvas) return;
+      const link = document.createElement('a');
+      link.download = 'Testkampagnen_Uebersicht.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast('Kampagnen-Übersicht als Bild gespeichert');
+    });
+
     /* RC Add Release modal */
     $('#btn-close-rc-add').addEventListener('click', closeRcAddModal);
     $('#btn-rc-add-cancel').addEventListener('click', closeRcAddModal);
@@ -999,6 +1013,7 @@
         $('#campaign-modal').classList.add('hidden');
         $('#campaign-archive-modal').classList.add('hidden');
         $('#chart-modal').classList.add('hidden');
+        $('#campaign-chart-modal').classList.add('hidden');
         $('#rc-add-modal').classList.add('hidden');
         document.querySelectorAll('.info-panel-overlay').forEach(el => el.remove());
       }
@@ -1021,7 +1036,7 @@
           changed = true;
         }
         while (c.values.length < 4) {
-          c.values.push({ planned: 0, executed: 0 });
+          c.values.push({ planned: 0, passed: 0, failed: 0, blocked: 0 });
           changed = true;
         }
         for (let i = 0; i < c.values.length; i++) {
@@ -1029,6 +1044,17 @@
             c.values[i] = { planned: 100, executed: Math.round(c.values[i]) };
             changed = true;
           }
+          /* Migrate {planned, executed} → {planned, passed, failed, blocked} */
+          if (c.values[i] && 'executed' in c.values[i] && !('passed' in c.values[i])) {
+            const e = c.values[i].executed || 0;
+            c.values[i] = { planned: c.values[i].planned || 0, passed: e, failed: 0, blocked: 0 };
+            changed = true;
+          }
+          /* Ensure all new fields exist */
+          const vi = c.values[i];
+          if (vi.passed === undefined) { vi.passed = 0; changed = true; }
+          if (vi.failed === undefined) { vi.failed = 0; changed = true; }
+          if (vi.blocked === undefined) { vi.blocked = 0; changed = true; }
         }
         if (!c.colors) {
           c.colors = ['green', 'green', 'green', 'green', 'green'];
@@ -1055,7 +1081,10 @@
     const archivedCount = campaigns.filter(c => c.archived).length;
     list.innerHTML = active.map(c => {
       const totalPlanned = c.values.reduce((s, v) => s + (v.planned || 0), 0);
-      const totalExecuted = c.values.reduce((s, v) => s + (v.executed || 0), 0);
+      const totalPassed = c.values.reduce((s, v) => s + (v.passed || 0), 0);
+      const totalFailed = c.values.reduce((s, v) => s + (v.failed || 0), 0);
+      const totalBlocked = c.values.reduce((s, v) => s + (v.blocked || 0), 0);
+      const totalExecuted = totalPassed + totalFailed + totalBlocked;
       const avg = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
       const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
       const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
@@ -1063,22 +1092,27 @@
         const hex = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' }[clr] || '#6b7280';
         return `<span class="campaign-color-dot" style="background:${hex}"></span>`;
       };
+      const statusHex = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' }[colors[0]] || '#6b7280';
       return `
         <div class="campaign-tile" data-campaign-id="${c.id}" draggable="true">
           <div class="campaign-tile-header">
             <span>Testkampagne ${c.version}</span>
             <div style="display:flex;gap:0.1rem;align-items:center">
-              <button class="campaign-btn-print" title="Als Bild speichern" data-campaign-id="${c.id}">🖼️</button>
+              <button class="campaign-btn-chart" title="Diagramm anzeigen" data-campaign-id="${c.id}">📊</button>
               <button class="campaign-btn-archive" title="Archivieren" data-campaign-id="${c.id}">📦</button>
               <button class="campaign-btn-remove" title="Entfernen" data-campaign-id="${c.id}">✕</button>
             </div>
           </div>
-          <div class="campaign-main-wrap" data-campaign-id="${c.id}" data-color-index="0" title="Klicken zum Farbe wechseln">
-            <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+          <div class="campaign-main-row">
+            <div class="campaign-main-wrap" data-campaign-id="${c.id}" data-color-index="0" title="Klicken zum Farbe wechseln">
+              <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+            </div>
+            <div class="campaign-status-badge campaign-status-badge--${colors[0]}" data-campaign-id="${c.id}" title="Status: ${colors[0]} — Klicken zum Wechseln">${colors[0] === 'green' ? '✔' : colors[0] === 'yellow' ? '⚠' : '✖'}</div>
           </div>
           <div class="campaign-mini-row">
             ${c.values.map((v, i) => {
-              const pct = v.planned > 0 ? Math.round((v.executed / v.planned) * 100) : 0;
+              const exec = (v.passed || 0) + (v.failed || 0) + (v.blocked || 0);
+              const pct = v.planned > 0 ? Math.round((exec / v.planned) * 100) : 0;
               return `
                 <div class="campaign-mini-donut-wrap" data-campaign-id="${c.id}" data-index="${i}">
                   <canvas class="campaign-mini-canvas" data-campaign-id="${c.id}" data-index="${i}"></canvas>
@@ -1105,16 +1139,17 @@
       const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
       const mainCanvas = document.querySelector(`.campaign-main-donut[data-campaign-id="${c.id}"]`);
       if (mainCanvas) {
-        const totalPlanned = c.values.reduce((s, v) => s + (v.planned || 0), 0);
-        const totalExecuted = c.values.reduce((s, v) => s + (v.executed || 0), 0);
-        const avg = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
-        ChartEngine.drawDonut(mainCanvas, avg, '%', colors[0]);
+        const vals = c.values;
+        const totalPassed = vals.reduce((s, v) => s + (v.passed || 0), 0);
+        const totalFailed = vals.reduce((s, v) => s + (v.failed || 0), 0);
+        const totalBlocked = vals.reduce((s, v) => s + (v.blocked || 0), 0);
+        const totalPlanned = vals.reduce((s, v) => s + (v.planned || 0), 0);
+        ChartEngine.drawSegmentedDonut(mainCanvas, totalPassed, totalFailed, totalBlocked, totalPlanned);
       }
       document.querySelectorAll(`.campaign-mini-canvas[data-campaign-id="${c.id}"]`).forEach(canvas => {
         const idx = parseInt(canvas.dataset.index);
         const v = c.values[idx] || {};
-        const pct = (v.planned || 0) > 0 ? Math.round(((v.executed || 0) / (v.planned || 1)) * 100) : 0;
-        ChartEngine.drawMiniDonut(canvas, pct, colors[idx + 1]);
+        ChartEngine.drawSegmentedDonut(canvas, v.passed || 0, v.failed || 0, v.blocked || 0, v.planned || 0);
       });
     }
   }
@@ -1124,10 +1159,10 @@
     const newCampaign = {
       id, version,
       values: [
-        { planned: 0, executed: 0 },
-        { planned: 0, executed: 0 },
-        { planned: 0, executed: 0 },
-        { planned: 0, executed: 0 }
+        { planned: 0, passed: 0, failed: 0, blocked: 0 },
+        { planned: 0, passed: 0, failed: 0, blocked: 0 },
+        { planned: 0, passed: 0, failed: 0, blocked: 0 },
+        { planned: 0, passed: 0, failed: 0, blocked: 0 }
       ],
       colors: ['green', 'green', 'green', 'green', 'green']
     };
@@ -1161,6 +1196,30 @@
     toast(`Testkampagne „${c.version}" wiederhergestellt`);
   }
 
+  function openCampaignChart(campaignId) {
+    const vals = getCustomValues();
+    const active = campaigns.filter(c => !c.archived);
+    if (active.length === 0) { toast('Keine aktiven Testkampagnen'); return; }
+    const data = active.map(c => ({
+      version: c.version,
+      values: c.values.map(v => ({
+        planned: v.planned || 0,
+        passed: v.passed || 0,
+        failed: v.failed || 0,
+        blocked: v.blocked || 0
+      }))
+    }));
+    const title = campaignId === 'all'
+      ? 'Alle Testkampagnen — Übersicht'
+      : `${active.find(c => c.id === campaignId)?.version || 'Testkampagne'} — Übersicht`;
+    $('#campaign-chart-title').textContent = title;
+    $('#campaign-chart-modal').classList.remove('hidden');
+    requestAnimationFrame(() => {
+      const canvas = $('#campaign-chart-canvas');
+      ChartEngine.drawCampaignChart(canvas, data);
+    });
+  }
+
   function openCampaignArchive() {
     const list = $('#archive-list');
     const archived = campaigns.filter(c => c.archived);
@@ -1169,7 +1228,10 @@
     } else {
       list.innerHTML = archived.map(c => {
         const totalPlanned = c.values.reduce((s, v) => s + (v.planned || 0), 0);
-        const totalExecuted = c.values.reduce((s, v) => s + (v.executed || 0), 0);
+        const totalPassed = c.values.reduce((s, v) => s + (v.passed || 0), 0);
+        const totalFailed = c.values.reduce((s, v) => s + (v.failed || 0), 0);
+        const totalBlocked = c.values.reduce((s, v) => s + (v.blocked || 0), 0);
+        const totalExecuted = totalPassed + totalFailed + totalBlocked;
         const avg = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
         const colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
         const colorIcon = (clr) => {
@@ -1183,12 +1245,15 @@
               <span>Testkampagne ${c.version}</span>
               <button class="btn-campaign-restore" data-campaign-id="${c.id}">Wiederherstellen</button>
             </div>
-            <div class="campaign-main-wrap" data-campaign-id="${c.id}">
-              <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+            <div class="campaign-main-row">
+              <div class="campaign-main-wrap" data-campaign-id="${c.id}">
+                <canvas class="campaign-main-donut" data-campaign-id="${c.id}"></canvas>
+              </div>
             </div>
             <div class="campaign-mini-row">
               ${c.values.map((v, i) => {
-                const pct = v.planned > 0 ? Math.round((v.executed / v.planned) * 100) : 0;
+                const exec = (v.passed || 0) + (v.failed || 0) + (v.blocked || 0);
+                const pct = v.planned > 0 ? Math.round((exec / v.planned) * 100) : 0;
                 return `
                   <div class="campaign-mini-donut-wrap">
                     <canvas class="campaign-mini-canvas" data-campaign-id="${c.id}" data-index="${i}"></canvas>
@@ -1216,7 +1281,9 @@
     const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
     $('#campaign-edit-title').textContent = `${miniLabels[index] || 'Test'} — ${c.version}`;
     $('#campaign-edit-planned').value = v.planned || 0;
-    $('#campaign-edit-executed').value = v.executed || 0;
+    $('#campaign-edit-passed').value = v.passed || 0;
+    $('#campaign-edit-failed').value = v.failed || 0;
+    $('#campaign-edit-blocked').value = v.blocked || 0;
     updateCampaignEditPreview();
     $('#campaign-edit-modal').classList.remove('hidden');
     setTimeout(() => $('#campaign-edit-planned').focus(), 50);
@@ -1230,10 +1297,13 @@
 
   function updateCampaignEditPreview() {
     const planned = parseInt($('#campaign-edit-planned').value) || 0;
-    const executed = parseInt($('#campaign-edit-executed').value) || 0;
+    const passed = parseInt($('#campaign-edit-passed').value) || 0;
+    const failed = parseInt($('#campaign-edit-failed').value) || 0;
+    const blocked = parseInt($('#campaign-edit-blocked').value) || 0;
+    const executed = passed + failed + blocked;
     const pct = planned > 0 ? Math.round((executed / planned) * 100) : 0;
     $('#campaign-edit-preview').textContent = planned > 0
-      ? `${executed} / ${planned} = ${pct}%`
+      ? `${passed} ✔ + ${failed} ✖ + ${blocked} ⊘ = ${executed} / ${planned} = ${pct}%`
       : 'Bitte geplante Testfälle eingeben';
   }
 
@@ -1244,12 +1314,14 @@
     const c = campaigns.find(c => c.id === cId);
     if (!c) return;
     const planned = parseInt($('#campaign-edit-planned').value) || 0;
-    const executed = parseInt($('#campaign-edit-executed').value) || 0;
-    if (planned < 0 || executed < 0) {
+    const passed = parseInt($('#campaign-edit-passed').value) || 0;
+    const failed = parseInt($('#campaign-edit-failed').value) || 0;
+    const blocked = parseInt($('#campaign-edit-blocked').value) || 0;
+    if (planned < 0 || passed < 0 || failed < 0 || blocked < 0) {
       toast('Werte dürfen nicht negativ sein');
       return;
     }
-    c.values[idx] = { planned, executed };
+    c.values[idx] = { planned, passed, failed, blocked };
     closeCampaignEdit();
     saveCampaigns();
     render();
@@ -1277,33 +1349,12 @@
       archiveCampaign(btn.dataset.campaignId);
     });
 
-    /* print campaign tile */
+    /* campaign chart modal */
     $('#campaign-list').addEventListener('click', (e) => {
-      const btn = e.target.closest('.campaign-btn-print');
+      const btn = e.target.closest('.campaign-btn-chart');
       if (!btn) return;
       e.stopPropagation();
-      const tile = btn.closest('.campaign-tile');
-      if (!tile || typeof html2canvas === 'undefined') return;
-      const version = campaigns.find(c => c.id === btn.dataset.campaignId)?.version || 'Kampagne';
-      html2canvas(tile, {
-        scale: 2, useCORS: true, logging: false, backgroundColor: null,
-        onclone: doc => {
-          const root = doc.documentElement;
-          const src = document.documentElement;
-          for (const p of ['--bg','--surface','--surface-hover','--border','--text','--text-muted','--primary','--primary-hover','--green','--green-bg','--yellow','--yellow-bg','--red','--red-bg','--neutral','--neutral-bg','--radius','--shadow','--transition']) {
-            const v = getComputedStyle(src).getPropertyValue(p).trim();
-            if (v) root.style.setProperty(p, v);
-          }
-        }
-      })
-        .then(canvas => {
-          const link = document.createElement('a');
-          link.download = `Testkampagne_${version.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-          toast(`„Testkampagne ${version}" als Bild gespeichert`);
-        })
-        .catch(() => toast('Fehler beim Erstellen des Bildes'));
+      openCampaignChart(btn.dataset.campaignId);
     });
 
     $('#btn-add-campaign').addEventListener('click', () => {
@@ -1337,12 +1388,20 @@
     $('#btn-campaign-edit-save').addEventListener('click', saveCampaignEdit);
 
     $('#campaign-edit-planned').addEventListener('input', updateCampaignEditPreview);
-    $('#campaign-edit-executed').addEventListener('input', updateCampaignEditPreview);
+    $('#campaign-edit-passed').addEventListener('input', updateCampaignEditPreview);
+    $('#campaign-edit-failed').addEventListener('input', updateCampaignEditPreview);
+    $('#campaign-edit-blocked').addEventListener('input', updateCampaignEditPreview);
 
     $('#campaign-edit-planned').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') $('#campaign-edit-executed').focus();
+      if (e.key === 'Enter') $('#campaign-edit-passed').focus();
     });
-    $('#campaign-edit-executed').addEventListener('keydown', (e) => {
+    $('#campaign-edit-passed').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#campaign-edit-failed').focus();
+    });
+    $('#campaign-edit-failed').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#campaign-edit-blocked').focus();
+    });
+    $('#campaign-edit-blocked').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') saveCampaignEdit();
     });
 
@@ -1380,6 +1439,21 @@
       const mainWrap = e.target.closest('.campaign-main-wrap');
       if (!mainWrap) return;
       const campaignId = mainWrap.dataset.campaignId;
+      const c = campaigns.find(c => c.id === campaignId);
+      if (!c) return;
+      const cycle = { green: 'yellow', yellow: 'red', red: 'green' };
+      c.colors = c.colors || ['green', 'green', 'green', 'green', 'green'];
+      c.colors[0] = cycle[c.colors[0]] || 'green';
+      saveCampaigns();
+      renderCampaigns();
+    });
+
+    /* Status badge click — cycle main status */
+    $('#campaign-list').addEventListener('click', (e) => {
+      const badge = e.target.closest('.campaign-status-badge');
+      if (!badge) return;
+      e.stopPropagation();
+      const campaignId = badge.dataset.campaignId;
       const c = campaigns.find(c => c.id === campaignId);
       if (!c) return;
       const cycle = { green: 'yellow', yellow: 'red', red: 'green' };

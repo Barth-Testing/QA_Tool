@@ -16,7 +16,7 @@ const ChartEngine = (() => {
   }
 
   function getStatusColor(status) {
-    return { green: '#22c55e', yellow: '#eab308', red: '#ef4444', neutral: '#6b7280' }[status] || '#6b7280';
+    return { green: '#22c55e', yellow: '#eab308', red: '#ef4444', blue: '#3b82f6', neutral: '#6b7280' }[status] || '#6b7280';
   }
 
   function drawDonut(canvas, value, unit, status) {
@@ -443,5 +443,336 @@ const ChartEngine = (() => {
     }
   }
 
-  return { getChartType, drawDonut, drawBar, drawMiniDonut, drawResponseComparison };
+  /* ===== Segmented Donut (Campaign) ===== */
+  function drawSegmentedDonut(canvas, passed, failed, blocked, planned) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const outerR = Math.min(w, h) / 2 - 4;
+    const innerR = outerR * 0.55;
+    const lw = outerR - innerR;
+
+    const executed = passed + failed + blocked;
+    const pct = planned > 0 ? Math.min(executed / planned, 1) : 0;
+
+    /* background arc */
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    if (pct > 0 && executed > 0) {
+      const segments = [
+        { count: failed, color: '#ef4444' },
+        { count: blocked, color: '#3b82f6' },
+        { count: passed, color: '#22c55e' }
+      ];
+      let angleStart = -Math.PI / 2;
+      for (const seg of segments) {
+        if (seg.count <= 0) continue;
+        const segAngle = (seg.count / executed) * pct * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, outerR - lw / 2, angleStart, angleStart + segAngle);
+        ctx.strokeStyle = seg.color;
+        ctx.lineWidth = lw;
+        ctx.lineCap = 'butt';
+        ctx.stroke();
+        angleStart += segAngle;
+      }
+    }
+
+    /* center text: percentage */
+    const displayPct = Math.round(pct * 100);
+    ctx.fillStyle = '#e4e6ef';
+    ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(displayPct, cx, cy);
+  }
+
+  /* ===== Campaign Chart (full modal canvas) ===== */
+  function drawCampaignChart(canvas, campaignsData) {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const cs = getComputedStyle(document.documentElement);
+    const bgColor = cs.getPropertyValue('--bg').trim() || '#0f1117';
+    const textColor = cs.getPropertyValue('--text').trim() || '#e4e6ef';
+    const mutedColor = cs.getPropertyValue('--text-muted').trim() || '#888ca3';
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, w, h);
+
+    /* ---- Layout: donuts row + table ---- */
+    const headerH = Math.round(h * 0.07);
+    const donutAreaH = Math.round(h * 0.38);
+    const tableStartY = headerH + donutAreaH + 10;
+
+    /* title */
+    ctx.fillStyle = textColor;
+    ctx.font = `bold ${Math.min(18, Math.round(headerH * 0.5))}px -apple-system, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Testkampagnen — Übersicht', 12, headerH / 2);
+
+    /* separator */
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, headerH);
+    ctx.lineTo(w, headerH);
+    ctx.stroke();
+
+    /* ---- Donuts row ---- */
+    const donutCols = campaignsData.length;
+    if (donutCols === 0) return;
+    const colW = w / donutCols;
+    const donutSize = Math.min(colW * 0.45, donutAreaH * 0.7);
+    const miniSize = donutSize * 0.45;
+
+    for (let ci = 0; ci < campaignsData.length; ci++) {
+      const camp = campaignsData[ci];
+      const cx = colW * ci + colW / 2;
+      const donutY = headerH + (donutAreaH - donutSize) / 2;
+
+      /* main donut */
+      const totalExec = camp.values.reduce((s, v) => s + (v.passed || 0) + (v.failed || 0) + (v.blocked || 0), 0);
+      const totalPlan = camp.values.reduce((s, v) => s + (v.planned || 0), 0);
+      const avgPct = totalPlan > 0 ? Math.round((totalExec / totalPlan) * 100) : 0;
+
+      /* draw main donut using helper */
+      _drawMiniDonutAt(ctx, cx, donutY, donutSize, camp);
+
+      /* version label under main donut */
+      ctx.fillStyle = textColor;
+      ctx.font = `bold ${Math.round(donutSize * 0.16)}px -apple-system, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(camp.version, cx, donutY + donutSize / 2 + 4);
+
+      /* mini donuts row under version label */
+      const miniY = donutY + donutSize / 2 + Math.round(donutSize * 0.22);
+      const miniLabels = ['Manual', 'Automation', 'RFC', 'Mobile'];
+      for (let mi = 0; mi < 4; mi++) {
+        const mx = cx + (mi - 1.5) * (miniSize + 6);
+        const v = camp.values[mi] || {};
+        _drawMiniDonutAt(ctx, mx, miniY, miniSize, { values: [v] }, true);
+
+        ctx.fillStyle = mutedColor;
+        ctx.font = `${Math.round(miniSize * 0.2)}px -apple-system, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(miniLabels[mi], mx, miniY + miniSize / 2 + 2);
+      }
+    }
+
+    /* ---- separator before table ---- */
+    const sepY = tableStartY - 6;
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, sepY);
+    ctx.lineTo(w, sepY);
+    ctx.stroke();
+
+    /* ---- TABLE ---- */
+    const tLeft = 8;
+    const tRight = w - 8;
+    const tWidth = tRight - tLeft;
+    const tableTop = tableStartY + 4;
+
+    const colConfig = [
+      { label: 'Kampagne', pct: 0.14, align: 'left' },
+      { label: 'Bereich', pct: 0.12, align: 'left' },
+      { label: 'Geplant', pct: 0.10, align: 'right' },
+      { label: 'Bestanden', pct: 0.10, align: 'right' },
+      { label: 'Fehlgeschlagen', pct: 0.14, align: 'right' },
+      { label: 'Blockiert', pct: 0.10, align: 'right' },
+      { label: 'Ausgeführt', pct: 0.12, align: 'right' },
+      { label: 'Ausf.-Rate', pct: 0.10, align: 'right' }
+    ];
+
+    let colX = tLeft;
+    const colStarts = colConfig.map(c => {
+      const x = colX;
+      colX += Math.round(tWidth * c.pct);
+      return x;
+    });
+
+    const headerFont = Math.min(11, Math.round((h - tableTop) * 0.045));
+    const dataFont = Math.max(8, Math.min(Math.round((h - tableTop) * 0.035), 11));
+
+    ctx.font = `600 ${headerFont}px -apple-system, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = mutedColor;
+    for (let ci = 0; ci < colConfig.length; ci++) {
+      ctx.textAlign = colConfig[ci].align;
+      const x = colConfig[ci].align === 'right' ? colStarts[ci] + Math.round(tWidth * colConfig[ci].pct) - 2 : colStarts[ci];
+      ctx.fillText(colConfig[ci].label, x, tableTop + headerFont * 0.6);
+    }
+
+    /* header underline */
+    const hdrBottom = tableTop + headerFont * 1.2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tLeft, hdrBottom);
+    ctx.lineTo(tRight, hdrBottom);
+    ctx.stroke();
+
+    /* data rows */
+    const availH = h - hdrBottom - 4;
+    const rowH = Math.min(Math.floor(availH / (campaignsData.length * 4 + 1)), 16);
+    if (rowH < 8) return;
+
+    let rowIdx = 0;
+    const miniLabels2 = ['Manual', 'Automation', 'RFC', 'Mobile'];
+    for (const camp of campaignsData) {
+      for (let mi = 0; mi < 4; mi++) {
+        const ry = hdrBottom + 4 + rowIdx * rowH;
+        if (rowIdx % 2 === 1) {
+          ctx.fillStyle = 'rgba(255,255,255,0.025)';
+          ctx.fillRect(tLeft, ry - rowH / 2, tWidth, rowH);
+        }
+        const v = camp.values[mi] || {};
+        const executed = (v.passed || 0) + (v.failed || 0) + (v.blocked || 0);
+        const pct = v.planned > 0 ? Math.round((executed / v.planned) * 100) : 0;
+        const cells = [
+          rowIdx < 4 ? camp.version : '',
+          miniLabels2[mi],
+          v.planned || 0,
+          v.passed || 0,
+          v.failed || 0,
+          v.blocked || 0,
+          executed,
+          pct + '%'
+        ];
+        ctx.font = `${dataFont}px -apple-system, sans-serif`;
+        ctx.fillStyle = textColor;
+        for (let ci = 0; ci < cells.length; ci++) {
+          ctx.textAlign = colConfig[ci].align;
+          const x = colConfig[ci].align === 'right' ? colStarts[ci] + Math.round(tWidth * colConfig[ci].pct) - 2 : colStarts[ci];
+          ctx.fillText(String(cells[ci]), x, ry);
+        }
+        rowIdx++;
+      }
+    }
+
+    /* summary row */
+    if (rowH >= 8) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tLeft, hdrBottom + 4 + rowIdx * rowH);
+      ctx.lineTo(tRight, hdrBottom + 4 + rowIdx * rowH);
+      ctx.stroke();
+      ctx.font = `600 ${dataFont}px -apple-system, sans-serif`;
+      const sumPlanned = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.planned || 0), 0), 0);
+      const sumPassed = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.passed || 0), 0), 0);
+      const sumFailed = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.failed || 0), 0), 0);
+      const sumBlocked = campaignsData.reduce((s, c) => s + c.values.reduce((s2, v) => s2 + (v.blocked || 0), 0), 0);
+      const sumExec = sumPassed + sumFailed + sumBlocked;
+      const sumPct = sumPlanned > 0 ? Math.round((sumExec / sumPlanned) * 100) : 0;
+      const summaryCells = ['', 'Gesamt', sumPlanned, sumPassed, sumFailed, sumBlocked, sumExec, sumPct + '%'];
+      ctx.fillStyle = textColor;
+      for (let ci = 0; ci < summaryCells.length; ci++) {
+        ctx.textAlign = colConfig[ci].align;
+        const x = colConfig[ci].align === 'right' ? colStarts[ci] + Math.round(tWidth * colConfig[ci].pct) - 2 : colStarts[ci];
+        ctx.fillText(String(summaryCells[ci]), x, hdrBottom + 4 + rowIdx * rowH + rowH / 2);
+      }
+    }
+  }
+
+  /* helper: draw one campaign donut cluster or single value donut at given position */
+  function _drawMiniDonutAt(ctx, cx, cy, size, camp, singleValue) {
+    const outerR = size / 2 - 2;
+    const innerR = outerR * 0.55;
+    const lw = outerR - innerR;
+
+    let segments;
+    if (singleValue) {
+      const v = camp.values[0] || {};
+      const passed = v.passed || 0;
+      const failed = v.failed || 0;
+      const blocked = v.blocked || 0;
+      const executed = passed + failed + blocked;
+      const planned = v.planned || 0;
+      const pct = planned > 0 ? Math.min(executed / planned, 1) : 0;
+      segments = [];
+      if (pct > 0 && executed > 0) {
+        segments = [
+          { count: failed, color: '#ef4444', pct: (failed / executed) * pct },
+          { count: blocked, color: '#3b82f6', pct: (blocked / executed) * pct },
+          { count: passed, color: '#22c55e', pct: (passed / executed) * pct }
+        ];
+      }
+    } else {
+      const totalExec = camp.values.reduce((s, v) => s + (v.passed || 0) + (v.failed || 0) + (v.blocked || 0), 0);
+      const totalPlan = camp.values.reduce((s, v) => s + (v.planned || 0), 0);
+      const pct = totalPlan > 0 ? Math.min(totalExec / totalPlan, 1) : 0;
+      const totalFailed = camp.values.reduce((s, v) => s + (v.failed || 0), 0);
+      const totalBlocked = camp.values.reduce((s, v) => s + (v.blocked || 0), 0);
+      const totalPassed = camp.values.reduce((s, v) => s + (v.passed || 0), 0);
+      segments = [];
+      if (pct > 0 && totalExec > 0) {
+        segments = [
+          { count: totalFailed, color: '#ef4444', pct: (totalFailed / totalExec) * pct },
+          { count: totalBlocked, color: '#3b82f6', pct: (totalBlocked / totalExec) * pct },
+          { count: totalPassed, color: '#22c55e', pct: (totalPassed / totalExec) * pct }
+        ];
+      }
+    }
+
+    /* background arc */
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    /* segmented foreground */
+    let angleStart = -Math.PI / 2;
+    for (const seg of segments) {
+      if (seg.count <= 0) continue;
+      const segAngle = seg.pct * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR - lw / 2, angleStart, angleStart + segAngle);
+      ctx.strokeStyle = seg.color;
+      ctx.lineWidth = lw;
+      ctx.lineCap = 'butt';
+      ctx.stroke();
+      angleStart += segAngle;
+    }
+
+    /* percentage text */
+    const total = segments.reduce((s, seg) => s + seg.count, 0);
+    const allPct = total > 0 ? Math.round(segments.reduce((s, seg) => s + seg.pct, 0) * 100) : 0;
+    ctx.fillStyle = '#888ca3';
+    ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(allPct, cx, cy);
+  }
+
+  return { getChartType, drawDonut, drawBar, drawMiniDonut, drawResponseComparison, drawSegmentedDonut, drawCampaignChart };
 })();
