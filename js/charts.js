@@ -433,18 +433,12 @@ const ChartEngine = (() => {
         const diffTx = trendTx + trendColW;
         const signX = diffTx + Math.round(diffColW * 0.25);
         const numX = signX + 3;
-        if (diff === 0) {
-          ctx.fillStyle = mutedColor;
-          ctx.textAlign = 'center';
-          ctx.fillText('±0', diffTx + diffColW / 2, ry);
-        } else {
-          const sign = diff > 0 ? '+' : '−';
-          ctx.fillStyle = trendColor;
-          ctx.textAlign = 'right';
-          ctx.fillText(sign, signX, ry);
-          ctx.textAlign = 'left';
-          ctx.fillText(Math.abs(diff).toFixed(0) + ' ms', numX, ry);
-        }
+        const sign = diff > 0 ? '+' : diff < 0 ? '−' : '±';
+        ctx.fillStyle = diff === 0 ? mutedColor : trendColor;
+        ctx.textAlign = 'right';
+        ctx.fillText(sign, signX, ry);
+        ctx.textAlign = 'left';
+        ctx.fillText(Math.abs(diff).toFixed(0) + ' ms', numX, ry);
       } else {
         /* diff — n.a. */
         const diffTx = trendTx + trendColW;
