@@ -196,7 +196,7 @@ const ChartEngine = (() => {
     const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
 
     /* ---- layout split: chart (top) + value table (bottom) ---- */
-    const chartShare = 0.55;
+    const chartShare = 0.44;
     const chartBottom = Math.round(h * chartShare);
 
     /* chart-area padding */
@@ -340,7 +340,7 @@ const ChartEngine = (() => {
 
     /* data rows */
     const availH = h - headerBottomY - 8;
-    const rowH_table = Math.min(Math.max(14, Math.round(availH / numRows)), 18);
+    const rowH_table = Math.min(Math.max(13, Math.floor(availH / numRows)), 18);
     ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
     for (let i = 0; i < numRows; i++) {
