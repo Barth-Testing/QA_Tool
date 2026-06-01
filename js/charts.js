@@ -293,10 +293,11 @@ const ChartEngine = (() => {
     const tWidth = tRight - tLeft;
     const tableStartY = chartBottom + 14;
 
-    /* column widths: # (row index) + situation name + 3 value columns */
-    const idxColW = Math.round(tWidth * 0.07);
-    const sitColW = Math.round(tWidth * 0.33);
-    const valColW = Math.round(tWidth * 0.19);
+    /* column widths: # + situation name + 3 value columns + trend */
+    const idxColW = Math.round(tWidth * 0.06);
+    const sitColW = Math.round(tWidth * 0.28);
+    const valColW = Math.round(tWidth * 0.17);
+    const trendColW = Math.round(tWidth * 0.12);
     const headerY = tableStartY;
 
     /* table header */
@@ -315,6 +316,12 @@ const ChartEngine = (() => {
       ctx.textAlign = 'center';
       ctx.fillText(versionLabels[vi], tx + valColW / 2, headerY);
     }
+
+    /* trend header */
+    const trendHdrX = tLeft + idxColW + sitColW + versions.length * valColW;
+    ctx.fillStyle = '#888ca3';
+    ctx.textAlign = 'center';
+    ctx.fillText('Trend', trendHdrX + trendColW / 2, headerY);
 
     /* header underline */
     const headerBottomY = headerY + tableHeaderFont * 0.6;
@@ -355,6 +362,8 @@ const ChartEngine = (() => {
       ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
       /* version values */
+      const curVals = data.versionData[versions[0]] || [];
+      const prvVals = data.versionData[versions[1]] || [];
       for (let vi = 0; vi < versions.length; vi++) {
         const vals = data.versionData[versions[vi]] || [];
         const val = vals[i];
@@ -362,6 +371,35 @@ const ChartEngine = (() => {
         ctx.fillStyle = colors[vi];
         ctx.textAlign = 'center';
         ctx.fillText(val !== null && val !== undefined ? val + ' ms' : 'n.a.', tx + valColW / 2, ry);
+      }
+
+      /* trend arrow */
+      const cur = curVals[i];
+      const prv = prvVals[i];
+      const trendTx = tLeft + idxColW + sitColW + versions.length * valColW;
+      if (cur !== null && cur !== undefined && prv !== null && prv !== undefined) {
+        const diff = cur - prv;
+        const pct = prv !== 0 ? (diff / prv) * 100 : 0;
+        const absPct = Math.abs(pct);
+        let trendChar, trendColor;
+        if (absPct < 10) {
+          trendChar = '—';
+          trendColor = '#888ca3';
+        } else if (pct < 0) {
+          trendChar = '▲';
+          trendColor = '#22c55e';
+        } else if (pct < 25) {
+          trendChar = '▲';
+          trendColor = '#eab308';
+        } else {
+          trendChar = '▼';
+          trendColor = '#ef4444';
+        }
+        ctx.fillStyle = trendColor;
+        ctx.textAlign = 'center';
+        ctx.font = `700 ${tableFontSize}px -apple-system, sans-serif`;
+        ctx.fillText(trendChar, trendTx + trendColW / 2, ry);
+        ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
       }
     }
   }
