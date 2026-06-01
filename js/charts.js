@@ -194,7 +194,7 @@ const ChartEngine = (() => {
     const numRows = situations.length;
     const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
     const colors = ['#22c55e', '#818cf8', '#ef4444'];
-    const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
+    const versionLabels = [data.currentVersion, data.previousVersion, 'Referenz'];
 
     /* ---- layout split: chart (top) + value table (bottom) ---- */
     const chartShare = 0.50;
@@ -302,11 +302,12 @@ const ChartEngine = (() => {
     const tWidth = tRight - tLeft;
     const tableStartY = chartBottom + 14;
 
-    /* column widths: # + situation name + 3 value columns + trend */
-    const idxColW = Math.round(tWidth * 0.06);
-    const sitColW = Math.round(tWidth * 0.28);
-    const valColW = Math.round(tWidth * 0.17);
-    const trendColW = Math.round(tWidth * 0.12);
+    /* column widths: # + situation name + 3 value columns + trend + diff */
+    const idxColW = Math.round(tWidth * 0.05);
+    const sitColW = Math.round(tWidth * 0.22);
+    const valColW = Math.round(tWidth * 0.14);
+    const trendColW = Math.round(tWidth * 0.10);
+    const diffColW = Math.round(tWidth * 0.14);
     const headerY = tableStartY;
 
     /* table header */
@@ -322,8 +323,8 @@ const ChartEngine = (() => {
     for (let vi = 0; vi < versions.length; vi++) {
       const tx = tLeft + idxColW + sitColW + vi * valColW;
       ctx.fillStyle = colors[vi];
-      ctx.textAlign = 'center';
-      ctx.fillText(versionLabels[vi], tx + valColW / 2, headerY);
+      ctx.textAlign = 'left';
+      ctx.fillText(versionLabels[vi], tx, headerY);
     }
 
     /* trend header */
@@ -331,6 +332,12 @@ const ChartEngine = (() => {
     ctx.fillStyle = mutedColor;
     ctx.textAlign = 'center';
     ctx.fillText('Trend', trendHdrX + trendColW / 2, headerY);
+
+    /* diff header */
+    const diffHdrX = trendHdrX + trendColW;
+    ctx.fillStyle = mutedColor;
+    ctx.textAlign = 'left';
+    ctx.fillText('Diff', diffHdrX, headerY);
 
     /* header underline */
     const headerBottomY = headerY + tableHeaderFont * 0.6;
@@ -370,7 +377,7 @@ const ChartEngine = (() => {
       ctx.fillText(shortSit, tLeft + idxColW + 4, ry);
       ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
-      /* version values */
+      /* version values — left-aligned */
       const curVals = data.versionData[versions[0]] || [];
       const prvVals = data.versionData[versions[1]] || [];
       for (let vi = 0; vi < versions.length; vi++) {
@@ -378,8 +385,8 @@ const ChartEngine = (() => {
         const val = vals[i];
         const tx = tLeft + idxColW + sitColW + vi * valColW;
         ctx.fillStyle = colors[vi];
-        ctx.textAlign = 'center';
-        ctx.fillText(val !== null && val !== undefined ? val + ' ms' : 'n.a.', tx + valColW / 2, ry);
+        ctx.textAlign = 'left';
+        ctx.fillText(val !== null && val !== undefined ? val + ' ms' : 'n.a.', tx, ry);
       }
 
       /* trend arrow */
@@ -409,6 +416,19 @@ const ChartEngine = (() => {
         ctx.font = `700 ${tableFontSize}px -apple-system, sans-serif`;
         ctx.fillText(trendChar, trendTx + trendColW / 2, ry);
         ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
+
+        /* diff value — left-aligned */
+        const diffTx = trendTx + trendColW;
+        const diffStr = (diff > 0 ? '+' : '') + diff.toFixed(0) + ' ms';
+        ctx.fillStyle = trendColor;
+        ctx.textAlign = 'left';
+        ctx.fillText(diffStr, diffTx, ry);
+      } else {
+        /* diff — n.a. */
+        const diffTx = trendTx + trendColW;
+        ctx.fillStyle = mutedColor;
+        ctx.textAlign = 'left';
+        ctx.fillText('—', diffTx, ry);
       }
     }
   }
