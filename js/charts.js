@@ -197,7 +197,7 @@ const ChartEngine = (() => {
     const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
 
     /* ---- layout split: chart (top) + value table (bottom) ---- */
-    const chartShare = 0.42;
+    const chartShare = 0.50;
     const chartBottom = Math.round(h * chartShare);
 
     /* chart-area padding */
@@ -220,8 +220,8 @@ const ChartEngine = (() => {
     /* font sizes */
     const labelFontSize = Math.min(Math.max(9, Math.round(groupW * 0.2)), 12);
     const axisFontSize = Math.min(Math.max(9, Math.round(groupW * 0.14)), 12);
-    const tableHeaderFont = Math.min(Math.max(11, Math.round((h - chartBottom) * 0.05)), 13);
-    const tableFontSize = Math.max(9, Math.min(Math.round((h - chartBottom) * 0.04), 12));
+    const tableHeaderFont = Math.min(Math.max(10, Math.round((h - chartBottom) * 0.045)), 12);
+    const tableFontSize = Math.max(8, Math.min(Math.round((h - chartBottom) * 0.035), 11));
 
     const barRound = Math.min(2, Math.round(barW * 0.25));
 
