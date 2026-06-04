@@ -1085,9 +1085,10 @@ body {
   flex-shrink: 0;
 }
 .te-compare-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(5rem, 1fr) 4rem 1.5rem 4rem 4rem 4.5rem;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
   font-size: 0.72rem;
@@ -1096,7 +1097,6 @@ body {
 }
 .te-compare-sit {
   font-weight: 600;
-  min-width: 5rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1106,7 +1106,6 @@ body {
   font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
   color: var(--text);
-  min-width: 3.2rem;
   text-align: right;
 }
 .te-compare-val-b {
@@ -1115,13 +1114,13 @@ body {
 .te-compare-arrow {
   color: var(--text-muted);
   font-size: 0.65rem;
+  text-align: center;
 }
 .te-compare-diff {
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 0.7rem;
-  min-width: 3.5rem;
   text-align: right;
 }
 .te-compare-diff.diff-neutral { color: var(--text-muted); }
@@ -1130,7 +1129,7 @@ body {
 .te-compare-diff.diff-good { color: var(--green); }
 .te-compare-diff.diff-bad { color: var(--red); }
 .te-compare-badge {
-  margin-left: auto;
+  text-align: right;
 }
 .te-badge {
   font-size: 0.6rem;
@@ -1380,6 +1379,26 @@ body {
   text-align: center;
 }
 .tile-rc-chart-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--primary-hover);
+}
+
+.tile-te-chart-btn {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+  width: 100%;
+  text-align: center;
+}
+.tile-te-chart-btn:hover {
   background: var(--surface-hover);
   border-color: var(--primary);
   color: var(--primary-hover);

@@ -997,7 +997,7 @@ const ChartEngine = (() => {
         for (let vi = 0; vi < numVersions; vi++) {
           const vals = data.versionData[versions[vi]] || [];
           const val = vals[si];
-          if (val === null || val === undefined) { started = false; continue; }
+          if (val === null || val === undefined) { continue; }
           const x = pad.left + (vi / (numVersions - 1)) * chartW;
           const y = pad.top + chartH - (val / maxVal) * chartH;
           if (!started) { ctx.moveTo(x, y); started = true; }
@@ -1082,7 +1082,7 @@ const ChartEngine = (() => {
         ctx.fillText(val.toFixed(1) + ' s', pad2.left - 6, y);
       }
 
-      /* draw lines */
+      /* draw lines — connect only known points, skip nulls */
       for (let si = 0; si < numSits; si++) {
         ctx.strokeStyle = lineColors[si];
         ctx.lineWidth = 2;
@@ -1091,7 +1091,7 @@ const ChartEngine = (() => {
         for (let vi = 0; vi < numVersions; vi++) {
           const vals = data.versionData[versions[vi]] || [];
           const val = vals[si];
-          if (val === null || val === undefined) { started = false; continue; }
+          if (val === null || val === undefined) { continue; }
           const x = pad2.left + (vi / (numVersions - 1)) * chartW;
           const y = pad2.top + chartH - (val / maxVal) * chartH;
           if (!started) { ctx.moveTo(x, y); started = true; }

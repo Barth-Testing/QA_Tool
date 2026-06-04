@@ -304,8 +304,6 @@ const GridEngine = (() => {
           </div>
           <div class="te-compare-summary" id="te-compare-${tile.id}"></div>
         </div>
-          <div class="te-compare-summary" id="te-compare-${tile.id}"></div>
-        </div>
         <div class="tile-rc-table-wrap">
           <table class="tile-rc-table te-table">
             <thead>
@@ -623,7 +621,7 @@ const GridEngine = (() => {
           <span class="te-compare-arrow">→</span>
           <span class="te-compare-val te-compare-val-b">${hasData ? b.toFixed(2) + ' s' : '—'}</span>
           <span class="te-compare-diff ${diffColor}">${hasData ? (pctDiff > 0 ? '+' : '') + pctDiff.toFixed(1) + '%' : '—'}</span>
-          ${statusBadge ? '<span class="te-compare-badge">' + statusBadge + '</span>' : ''}
+          <span class="te-compare-badge">${statusBadge || ''}</span>
         </div>`;
     }
 
