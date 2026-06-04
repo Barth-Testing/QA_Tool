@@ -931,7 +931,6 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.68rem;
-  table-layout: fixed;
 }
 .tile-rc-table th {
   padding: 0.25rem 0.4rem;
@@ -939,7 +938,8 @@ body {
   font-weight: 600;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: var(--surface);
   position: sticky;
   top: 0;
@@ -950,7 +950,7 @@ body {
   letter-spacing: 0.03em;
 }
 .tile-rc-table th:first-child { width: 34%; }
-.tile-rc-table th.col-trend { width: 38px; text-align: center; }
+.tile-rc-table th.col-trend { text-align: center; }
 .tile-rc-table td {
   padding: 0.15rem 0.4rem;
   white-space: nowrap;
