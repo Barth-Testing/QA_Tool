@@ -897,7 +897,6 @@ body {
 
 /* ===== Response Comparison Tile (FE Response) ===== */
 .tile--rc {
-  height: 780px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -922,7 +921,7 @@ body {
 
 .tile-rc-table-wrap {
   flex: 1 1 auto;
-  overflow: auto;
+  overflow: hidden;
   margin: 0.15rem 0;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -983,7 +982,6 @@ body {
 
 /* ===== Time Evolution Tile ===== */
 .tile--te {
-  height: 680px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
