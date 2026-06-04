@@ -11,6 +11,7 @@ const ChartEngine = (() => {
     ];
     if (donutIds.includes(kpi.id)) return 'donut';
     if (kpi.id === 'fe-response-dev' || kpi.id === 'fe-response-sta') return 'response-comparison';
+    if (kpi.id === 'recipient-search-time') return 'time-evolution';
     if (kpi.unit === 'Anzahl' || kpi.unit === 'Tests' || kpi.unit === 'PT') return 'numeric';
     return 'bar';
   }
@@ -200,40 +201,42 @@ const ChartEngine = (() => {
     const bgColor = cs.getPropertyValue('--bg').trim() || '#0f1117';
     const textColor = cs.getPropertyValue('--text').trim() || '#e4e6ef';
     const mutedColor = cs.getPropertyValue('--text-muted').trim() || '#888ca3';
-    const rowColor = cs.getPropertyValue('--row-stripe').trim() || 'rgba(255,255,255,0.025)';
+    const surfaceColor = cs.getPropertyValue('--surface').trim() || '#1a1d27';
+    const rowStr = cs.getPropertyValue('--row-stripe').trim() || 'rgba(255,255,255,0.025)';
 
     const situations = data.testSituations;
     const numRows = situations.length;
     const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
     const colors = ['#22c55e', '#818cf8', '#ef4444'];
-    const versionLabels = [data.currentVersion, data.previousVersion, 'Referenz'];
+    const versionLabels = [data.currentVersion, data.previousVersion, 'Referenz (R3.18.1)'];
 
-    /* ---- layout split: chart (top) + value table (bottom) ---- */
-    const chartShare = 0.50;
-    const chartBottom = Math.round(h * chartShare);
+    /* ---- layout: header area + chart (top) + value table (bottom) ---- */
+    const headerH = 44;
+    const chartShare = 0.44;
+    const chartBottom = headerH + Math.round((h - headerH) * chartShare);
+    const tableTop = chartBottom + 1;
 
     /* chart-area padding */
     const pad = {
-      top: Math.max(12, Math.round(h * 0.015)),
-      left: Math.max(55, Math.round(w * 0.06)),
+      top: headerH + 10,
+      left: Math.max(52, Math.round(w * 0.055)),
       right: Math.max(10, Math.round(w * 0.015))
     };
-    pad.bottom = Math.max(18, Math.round((chartBottom - pad.top) * 0.12));
+    pad.bottom = Math.max(16, Math.round((chartBottom - pad.top) * 0.10));
 
     const chartH = chartBottom - pad.top - pad.bottom;
     const chartW = w - pad.left - pad.right;
 
     /* per-group width for the 26 test situations */
     const groupW = chartW / numRows;
-    const barW = Math.max(4, Math.round(groupW * 0.18));
-    const barGap = Math.max(2, Math.round(barW * 0.3));
+    const barW = Math.max(4, Math.round(groupW * 0.17));
+    const barGap = Math.max(2, Math.round(barW * 0.25));
     const groupOffset = (groupW - (barW * 3 + barGap * 2)) / 2;
 
     /* font sizes */
-    const labelFontSize = Math.min(Math.max(9, Math.round(groupW * 0.2)), 12);
-    const axisFontSize = Math.min(Math.max(9, Math.round(groupW * 0.14)), 12);
-    const tableHeaderFont = Math.min(Math.max(10, Math.round((h - chartBottom) * 0.045)), 12);
-    const tableFontSize = Math.max(8, Math.min(Math.round((h - chartBottom) * 0.035), 11));
+    const axisFontSize = Math.min(Math.max(9, Math.round(groupW * 0.13)), 11);
+    const tableHeaderFont = Math.min(Math.max(10, Math.round((h - tableTop) * 0.045)), 12);
+    const tableFontSize = Math.max(8, Math.min(Math.round((h - tableTop) * 0.035), 11));
 
     const barRound = Math.min(2, Math.round(barW * 0.25));
 
@@ -250,6 +253,39 @@ const ChartEngine = (() => {
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
+
+    /* ---- HEADER ---- */
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 16px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('Frontend Response Times im Vergleich', Math.round(w * 0.03), 10);
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillStyle = mutedColor;
+    ctx.fillText(`${new Date().toLocaleDateString('de-DE')} · ${numRows} Testsituationen · 3 Versionen`, Math.round(w * 0.03), 30);
+
+    /* version legend */
+    const legX = Math.round(w * 0.50);
+    ctx.textBaseline = 'middle';
+    ctx.font = '600 10px -apple-system, sans-serif';
+    for (let vi = 0; vi < versions.length; vi++) {
+      const lx = legX + vi * Math.round(w * 0.14);
+      ctx.fillStyle = colors[vi];
+      ctx.beginPath();
+      ctx.arc(lx + 6, 22, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'left';
+      ctx.fillText(versionLabels[vi], lx + 14, 22);
+    }
+
+    /* header separator */
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(w * 0.03), headerH);
+    ctx.lineTo(w - Math.round(w * 0.03), headerH);
+    ctx.stroke();
 
     /* ---- VERTICAL BAR CHART ---- */
 
@@ -288,39 +324,43 @@ const ChartEngine = (() => {
       }
     }
 
-    /* x-axis index numbers (1–26) just below bar bottom */
+    /* x-axis index numbers (1–26) */
     ctx.fillStyle = mutedColor;
     ctx.font = `600 ${axisFontSize}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     const idxY = pad.top + chartH + 2;
     for (let i = 0; i < numRows; i++) {
-      const cx = pad.left + i * groupW + groupW / 2;
-      ctx.fillText(String(i + 1), cx, idxY);
+      if (i % 2 === 0 || i === numRows - 1) {
+        const cx = pad.left + i * groupW + groupW / 2;
+        ctx.fillText(String(i + 1), cx, idxY);
+      }
     }
 
-    /* ---- separator line between chart and table ---- */
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, chartBottom);
-    ctx.lineTo(w, chartBottom);
-    ctx.stroke();
+    /* ---- separator between chart and table ---- */
+    ctx.fillStyle = surfaceColor;
+    ctx.fillRect(0, chartBottom, w, 1);
 
     /* ---- VALUE TABLE ---- */
     const tPad = 6;
     const tLeft = tPad;
     const tRight = w - tPad;
     const tWidth = tRight - tLeft;
-    const tableStartY = chartBottom + 14;
+    const tableStartY = tableTop + 8;
 
     /* column widths: # + situation name + 3 value columns + trend + diff */
-    const idxColW = Math.round(tWidth * 0.05);
-    const sitColW = Math.round(tWidth * 0.22);
-    const valColW = Math.round(tWidth * 0.14);
-    const trendColW = Math.round(tWidth * 0.10);
+    const idxColW = Math.round(tWidth * 0.04);
+    const sitColW = Math.round(tWidth * 0.24);
+    const valColW = Math.round(tWidth * 0.15);
+    const trendColW = Math.round(tWidth * 0.08);
     const diffColW = Math.round(tWidth * 0.14);
     const headerY = tableStartY;
+
+    /* table header background */
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    ctx.roundRect(tLeft, headerY - 10, tWidth, tableHeaderFont + 12, 4);
+    ctx.fill();
 
     /* table header */
     ctx.font = `600 ${tableHeaderFont}px -apple-system, sans-serif`;
@@ -336,6 +376,7 @@ const ChartEngine = (() => {
       const tx = tLeft + idxColW + sitColW + vi * valColW;
       ctx.fillStyle = colors[vi];
       ctx.textAlign = 'left';
+      ctx.font = `600 ${tableHeaderFont - 1}px -apple-system, sans-serif`;
       ctx.fillText(versionLabels[vi], tx, headerY);
     }
 
@@ -343,6 +384,7 @@ const ChartEngine = (() => {
     const trendHdrX = tLeft + idxColW + sitColW + versions.length * valColW;
     ctx.fillStyle = mutedColor;
     ctx.textAlign = 'center';
+    ctx.font = `600 ${tableHeaderFont}px -apple-system, sans-serif`;
     ctx.fillText('Trend', trendHdrX + trendColW / 2, headerY);
 
     /* diff header */
@@ -352,28 +394,30 @@ const ChartEngine = (() => {
     ctx.fillText('Diff', diffHdrX, headerY);
 
     /* header underline */
-    const headerBottomY = headerY + tableHeaderFont * 0.6;
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    const headerBottomY = headerY + tableHeaderFont * 0.6 + 4;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(tLeft, headerBottomY + 2);
-    ctx.lineTo(tRight, headerBottomY + 2);
+    ctx.moveTo(tLeft, headerBottomY);
+    ctx.lineTo(tRight, headerBottomY);
     ctx.stroke();
 
     /* data rows */
-    const availH = h - headerBottomY - 8;
-    const rowH_table = Math.min(Math.floor(availH / numRows), 18);
+    const availH = h - headerBottomY - 6;
+    const rowH_table = Math.max(14, Math.min(Math.floor(availH / numRows), 18));
     ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
     for (let i = 0; i < numRows; i++) {
-      const ry = headerBottomY + 6 + i * rowH_table;
+      const ry = headerBottomY + 4 + i * rowH_table + rowH_table / 2;
       const sit = situations[i];
-      const shortSit = sit.length > 30 ? sit.substring(0, 28) + '…' : sit;
+      const shortSit = sit.length > 28 ? sit.substring(0, 26) + '…' : sit;
 
       /* alternating bg */
       if (i % 2 === 1) {
-        ctx.fillStyle = rowColor;
-        ctx.fillRect(tLeft, ry - rowH_table / 2, tWidth, rowH_table);
+        ctx.fillStyle = rowStr;
+        ctx.beginPath();
+        ctx.roundRect(tLeft, ry - rowH_table / 2, tWidth, rowH_table, 2);
+        ctx.fill();
       }
 
       /* row # */
@@ -389,7 +433,7 @@ const ChartEngine = (() => {
       ctx.fillText(shortSit, tLeft + idxColW + 4, ry);
       ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
-      /* version values — left-aligned */
+      /* version values */
       const curVals = data.versionData[versions[0]] || [];
       const prvVals = data.versionData[versions[1]] || [];
       for (let vi = 0; vi < versions.length; vi++) {
@@ -411,27 +455,27 @@ const ChartEngine = (() => {
         const absPct = Math.abs(pct);
         let trendChar, trendColor;
         if (absPct < 10) {
-          trendChar = '—';
+          trendChar = '→';
           trendColor = mutedColor;
         } else if (pct < 0) {
-          trendChar = '▲';
+          trendChar = '↑';
           trendColor = '#22c55e';
         } else if (pct < 25) {
-          trendChar = '▲';
+          trendChar = '↑';
           trendColor = '#eab308';
         } else {
-          trendChar = '▼';
+          trendChar = '↓';
           trendColor = '#ef4444';
         }
         ctx.fillStyle = trendColor;
         ctx.textAlign = 'center';
-        ctx.font = `700 ${tableFontSize}px -apple-system, sans-serif`;
+        ctx.font = `700 ${tableFontSize + 1}px -apple-system, sans-serif`;
         ctx.fillText(trendChar, trendTx + trendColW / 2, ry);
         ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
 
-        /* diff value — sign und Zahl getrenkt für saubere Ausrichtung */
+        /* diff value */
         const diffTx = trendTx + trendColW;
-        const signX = diffTx + Math.round(diffColW * 0.25);
+        const signX = diffTx + Math.round(diffColW * 0.22);
         const numX = signX + 3;
         const sign = diff > 0 ? '+' : diff < 0 ? '−' : '±';
         ctx.fillStyle = diff === 0 ? mutedColor : trendColor;
@@ -440,7 +484,6 @@ const ChartEngine = (() => {
         ctx.textAlign = 'left';
         ctx.fillText(Math.abs(diff).toFixed(0) + ' ms', numX, ry);
       } else {
-        /* diff — n.a. */
         const diffTx = trendTx + trendColW;
         ctx.fillStyle = mutedColor;
         ctx.textAlign = 'center';
@@ -868,5 +911,233 @@ const ChartEngine = (() => {
     ctx.fillText(allPct + '%', cx, cy);
   }
 
-  return { getChartType, drawDonut, drawBar, drawMiniDonut, drawResponseComparison, drawSegmentedDonut, drawCampaignChart };
+  /* ===== Time Evolution Line Chart ===== */
+  function drawTimeEvolution(canvas, data, compact) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const cs = getComputedStyle(document.documentElement);
+    const bgColor = cs.getPropertyValue('--bg').trim() || '#0f1117';
+    const textColor = cs.getPropertyValue('--text').trim() || '#e4e6ef';
+    const mutedColor = cs.getPropertyValue('--text-muted').trim() || '#888ca3';
+    const rowColor = cs.getPropertyValue('--row-stripe').trim() || 'rgba(255,255,255,0.025)';
+
+    const situations = data.testSituations;
+    const versions = data.xAxisOrder;
+    const numVersions = versions.length;
+    const numSits = situations.length;
+
+    /* line colors for 6 dimensions */
+    const lineColors = ['#6366f1', '#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6'];
+
+    if (compact) {
+      /* ===== COMPACT TILE VERSION ===== */
+      const pad = { top: 8, left: 30, right: 8, bottom: 14 };
+      const chartW = w - pad.left - pad.right;
+      const chartH = h - pad.top - pad.bottom;
+
+      /* find max value */
+      let maxVal = 0;
+      for (const ver of versions) {
+        const vals = data.versionData[ver] || [];
+        for (const v of vals) {
+          if (v !== null && v > maxVal) maxVal = v;
+        }
+      }
+      if (maxVal <= 0) maxVal = 1;
+
+      /* draw grid lines */
+      ctx.strokeStyle = `rgba(255,255,255,0.06)`;
+      ctx.lineWidth = 1;
+      for (let s = 0; s <= 3; s++) {
+        const y = pad.top + (chartH / 3) * (3 - s);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+      }
+
+      /* draw lines */
+      for (let si = 0; si < numSits; si++) {
+        ctx.strokeStyle = lineColors[si];
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        let started = false;
+        for (let vi = 0; vi < numVersions; vi++) {
+          const vals = data.versionData[versions[vi]] || [];
+          const val = vals[si];
+          if (val === null || val === undefined) { started = false; continue; }
+          const x = pad.left + (vi / (numVersions - 1)) * chartW;
+          const y = pad.top + chartH - (val / maxVal) * chartH;
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      /* x-axis version labels (show every 3rd) */
+      ctx.fillStyle = mutedColor;
+      ctx.font = '500 7px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let vi = 0; vi < numVersions; vi++) {
+        if (vi % 3 !== 0 && vi !== numVersions - 1) continue;
+        const x = pad.left + (vi / (numVersions - 1)) * chartW;
+        ctx.fillText(versions[vi], x, pad.top + chartH + 1);
+      }
+
+      /* y-axis label */
+      ctx.fillStyle = mutedColor;
+      ctx.font = '500 7px -apple-system, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(maxVal.toFixed(1) + 's', pad.left - 3, pad.top + 2);
+      ctx.fillText('0', pad.left - 3, pad.top + chartH);
+
+    } else {
+      /* ===== FULL MODAL VERSION ===== */
+      const headerH = 52;
+      const pad2 = { top: headerH + 12, left: Math.max(55, Math.round(w * 0.055)), right: Math.max(120, Math.round(w * 0.08)), bottom: Math.max(48, Math.round(h * 0.065)) };
+      const chartW = w - pad2.left - pad2.right;
+      const chartH = h - pad2.top - pad2.bottom;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, w, h);
+
+      /* title */
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 17px -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Empfängersuche nach Parametern — Evolution über Releases', Math.round(w * 0.03), 12);
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.fillStyle = mutedColor;
+      ctx.fillText(`${new Date().toLocaleDateString('de-DE')} · ${numVersions} Releases · ${numSits} Suchdimensionen`, Math.round(w * 0.03), 33);
+
+      /* separator */
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(w * 0.03), headerH);
+      ctx.lineTo(w - Math.round(w * 0.03), headerH);
+      ctx.stroke();
+
+      /* max value */
+      let maxVal = 0;
+      for (const ver of versions) {
+        const vals = data.versionData[ver] || [];
+        for (const v of vals) {
+          if (v !== null && v > maxVal) maxVal = v;
+        }
+      }
+      if (maxVal <= 0) maxVal = 1;
+
+      /* y-axis grid */
+      const ySteps = 4;
+      for (let s = 0; s <= ySteps; s++) {
+        const y = pad2.top + (chartH / ySteps) * (ySteps - s);
+        const val = (maxVal / ySteps) * s;
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pad2.left, y);
+        ctx.lineTo(w - pad2.right, y);
+        ctx.stroke();
+        ctx.fillStyle = mutedColor;
+        ctx.font = '10px -apple-system, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(val.toFixed(1) + ' s', pad2.left - 6, y);
+      }
+
+      /* draw lines */
+      for (let si = 0; si < numSits; si++) {
+        ctx.strokeStyle = lineColors[si];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let started = false;
+        for (let vi = 0; vi < numVersions; vi++) {
+          const vals = data.versionData[versions[vi]] || [];
+          const val = vals[si];
+          if (val === null || val === undefined) { started = false; continue; }
+          const x = pad2.left + (vi / (numVersions - 1)) * chartW;
+          const y = pad2.top + chartH - (val / maxVal) * chartH;
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        /* draw data point dots */
+        for (let vi = 0; vi < numVersions; vi++) {
+          const vals = data.versionData[versions[vi]] || [];
+          const val = vals[si];
+          if (val === null || val === undefined) continue;
+          const x = pad2.left + (vi / (numVersions - 1)) * chartW;
+          const y = pad2.top + chartH - (val / maxVal) * chartH;
+          ctx.fillStyle = bgColor;
+          ctx.beginPath();
+          ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = lineColors[si];
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      /* x-axis version labels (angled) */
+      ctx.fillStyle = mutedColor;
+      ctx.font = '9px -apple-system, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      for (let vi = 0; vi < numVersions; vi++) {
+        const x = pad2.left + (vi / (numVersions - 1)) * chartW;
+        const label = versions[vi];
+        ctx.save();
+        ctx.translate(x, pad2.top + chartH + 6);
+        ctx.rotate(-Math.PI / 4);
+        ctx.fillText(label, 0, 0);
+        ctx.restore();
+      }
+
+      /* x-axis label */
+      ctx.fillStyle = mutedColor;
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Release', w / 2, h - 12);
+
+      /* legend on the right side */
+      const legX = w - Math.round(w * 0.075) + 4;
+      const legStartY = pad2.top + 10;
+      ctx.textBaseline = 'middle';
+      ctx.font = '600 10px -apple-system, sans-serif';
+      ctx.fillStyle = mutedColor;
+      ctx.textAlign = 'left';
+      ctx.fillText('Legende', legX + 6, legStartY - 14);
+
+      ctx.font = '10px -apple-system, sans-serif';
+      for (let si = 0; si < numSits; si++) {
+        const ly = legStartY + si * 22;
+        ctx.fillStyle = lineColors[si];
+        ctx.beginPath();
+        ctx.arc(legX + 4, ly, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'left';
+        ctx.fillText(situations[si], legX + 14, ly);
+      }
+    }
+  }
+
+  return { getChartType, drawDonut, drawBar, drawMiniDonut, drawResponseComparison, drawSegmentedDonut, drawCampaignChart, drawTimeEvolution };
 })();

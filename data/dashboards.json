@@ -23,7 +23,8 @@
         { "id": "t11", "kpi_id": "a-bugs-post-release", "x": 2, "y": 3, "w": 2, "h": 1 },
         { "id": "t12", "kpi_id": "change-failure-rate", "x": 0, "y": 4, "w": 2, "h": 1 },
         { "id": "t22", "kpi_id": "fe-response-dev", "x": 0, "y": 5, "w": 4, "h": 4 },
-        { "id": "t23", "kpi_id": "fe-response-sta", "x": 0, "y": 9, "w": 4, "h": 4 }
+        { "id": "t23", "kpi_id": "fe-response-sta", "x": 0, "y": 9, "w": 4, "h": 4 },
+        { "id": "t28", "kpi_id": "recipient-search-time", "x": 0, "y": 13, "w": 4, "h": 3 }
       ]
     },
     {

@@ -105,12 +105,14 @@ const GridEngine = (() => {
       return;
     }
 
-    for (const tile of tiles) {
+    for (let i = 0; i < tiles.length; i++) {
+      const tile = tiles[i];
       const kpi = state.kpiMap[tile.kpi_id];
       if (!kpi) continue;
       const el = createTileElement(tile, kpi);
       el.style.gridColumn = `${tile.x + 1} / span ${tile.w}`;
       el.style.gridRow = `${tile.y + 1} / span ${tile.h}`;
+      el.style.animationDelay = `${i * 30}ms`;
       container.appendChild(el);
     }
 
@@ -121,6 +123,10 @@ const GridEngine = (() => {
 
   function isResponseComparisonValue(val) {
     return val && typeof val === 'object' && val.versionData && val.testSituations;
+  }
+
+  function isTimeEvolutionValue(val) {
+    return val && typeof val === 'object' && val.versionData && val.xAxisOrder && val.testSituations;
   }
 
   function drawAllCharts(container) {
@@ -138,14 +144,17 @@ const GridEngine = (() => {
         const rawValue = customVal !== undefined ? customVal : kpi.example_value;
         const acInfo = getAcValue(rawValue);
         const rcInfo = isResponseComparisonValue(rawValue);
-        const value = acInfo ? acInfo.pct : (rcInfo ? null : rawValue);
-        const status = rcInfo ? 'neutral' : getStatus(kpi, value);
+        const teInfo = isTimeEvolutionValue(rawValue);
+        const value = acInfo ? acInfo.pct : (rcInfo || teInfo ? null : rawValue);
+        const status = (rcInfo || teInfo) ? 'neutral' : getStatus(kpi, value);
         const chartType = ChartEngine.getChartType(kpi);
 
         if (chartType === 'donut') {
           ChartEngine.drawDonut(canvas, value, kpi.unit, status);
         } else if (chartType === 'response-comparison' && rcInfo) {
           ChartEngine.drawResponseComparison(canvas, rawValue);
+        } else if (chartType === 'time-evolution' && teInfo) {
+          ChartEngine.drawTimeEvolution(canvas, rawValue, true);
         } else if (chartType !== 'numeric') {
           ChartEngine.drawBar(canvas, value, kpi.unit, status, kpi.thresholds);
         }
@@ -179,14 +188,17 @@ const GridEngine = (() => {
     const rawValue = customVal !== undefined ? customVal : kpi.example_value;
     const acInfo = getAcValue(rawValue);
     const rcInfo = isResponseComparisonValue(rawValue);
-    const value = acInfo ? acInfo.pct : (rcInfo ? null : rawValue);
-    const status = rcInfo ? 'neutral' : getStatus(kpi, value);
+    const teInfo = isTimeEvolutionValue(rawValue);
+    const value = acInfo ? acInfo.pct : (rcInfo || teInfo ? null : rawValue);
+    const status = (rcInfo || teInfo) ? 'neutral' : getStatus(kpi, value);
     const el = document.createElement('div');
     const isAcKpi = !!acInfo;
     const isRcKpi = !!rcInfo;
+    const isTeKpi = !!teInfo;
     let extraClass = '';
     if (isAcKpi) extraClass += ' tile--ac';
     if (isRcKpi) extraClass += ' tile--rc';
+    if (isTeKpi) extraClass += ' tile--te';
     el.className = `tile status-${status}${extraClass}`;
     el.dataset.tileId = tile.id;
     el.draggable = true;
@@ -265,9 +277,51 @@ const GridEngine = (() => {
         </div>`;
     }
 
+    let teTableHtml = '';
+    if (isTeKpi) {
+      const versions = rawValue.xAxisOrder;
+      const sits = rawValue.testSituations;
+      const lineColors = ['#6366f1', '#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6'];
+
+      teTableHtml = `
+        <div class="tile-te-versions">
+          <span class="tile-rc-version-tag status-green">Aktuell: ${rawValue.latestVersion}</span>
+          <span class="tile-rc-version-tag status-blue">Vorher: ${rawValue.previousVersion}</span>
+        </div>
+        <div class="tile-rc-table-wrap">
+          <table class="tile-rc-table">
+            <thead>
+              <tr>
+                <th>Release</th>
+                ${sits.map((sit, si) => `<th style="color:${lineColors[si]}">${sit}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${versions.map((ver, vi) => {
+                const vals = rawValue.versionData[ver] || [];
+                return `
+                  <tr>
+                    <td class="tile-rc-sit">${ver}</td>
+                    ${sits.map((_, si) => {
+                      const v = vals[si];
+                      if (v === null || v === undefined) return '<td style="color:var(--text-muted)">—</td>';
+                      return `<td>${v.toFixed(2)} s</td>`;
+                    }).join('')}
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="tile-rc-actions">
+          <button class="tile-te-chart-btn" title="Diagramm anzeigen">📊 Diagramm anzeigen</button>
+        </div>`;
+    }
+
     let chartAreaHtml = '';
     if (isRcKpi) {
       chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"></div>`;
+    } else if (isTeKpi) {
+      chartAreaHtml = `<div class="tile-chart-area"><canvas class="tile-chart" data-chart-type="time-evolution"></canvas></div>`;
     } else if (chartType === 'numeric') {
       chartAreaHtml = `
         <div class="tile-chart-area tile-chart-area--numeric">
@@ -305,10 +359,11 @@ const GridEngine = (() => {
         </div>
       </div>
       ${isRcKpi ? rcTableHtml : ''}
+      ${isTeKpi ? teTableHtml : ''}
       ${chartAreaHtml}
       ${acListHtml}
       <div class="tile-footer">
-        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}</span>
+        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}${isTeKpi ? ` · ${rawValue.xAxisOrder.length} Releases · ${rawValue.testSituations.length} Dim.` : ''}</span>
         <button class="tile-info-btn" data-kpi-id="${kpi.id}">Details</button>
       </div>
       ${hasResizeHandle ? '<div class="tile-resize-handle"></div>' : ''}
@@ -371,6 +426,21 @@ const GridEngine = (() => {
       }
     }
 
+    if (isTeKpi) {
+      const chartBtn = el.querySelector('.tile-te-chart-btn');
+      if (chartBtn) {
+        chartBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const teVal = state.customValues[tile.kpi_id] !== undefined
+            ? state.customValues[tile.kpi_id] : kpi.example_value;
+          const evt = new CustomEvent('tile:chart-modal', {
+            detail: { kpiId: tile.kpi_id, kpi, data: teVal }
+          });
+          document.dispatchEvent(evt);
+        });
+      }
+    }
+
     if (isAcKpi) {
       el.querySelectorAll('.tile-ac-item').forEach(item => {
         item.addEventListener('click', (e) => {
@@ -394,7 +464,7 @@ const GridEngine = (() => {
     const current = state.customValues[tile.kpi_id] !== undefined
       ? state.customValues[tile.kpi_id] : kpi.example_value;
     if (current && typeof current === 'object') {
-      toast('AC-Werte im Werte-Tab bearbeiten');
+      toast('Komplexe Werte (AC/RC/TE) im Werte-Tab bearbeiten');
       return;
     }
     const input = document.createElement('input');
@@ -544,6 +614,7 @@ const GridEngine = (() => {
       toast('html2canvas nicht geladen');
       return;
     }
+    const date = new Date().toISOString().slice(0, 10);
     html2canvas(el, {
       scale: 2,
       useCORS: true,
@@ -552,10 +623,10 @@ const GridEngine = (() => {
       onclone: doc => injectCssVars(doc)
     }).then(canvas => {
       const link = document.createElement('a');
-      link.download = `${safe}.png`;
+      link.download = `${safe}_${date}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      toast(`„${name}" als Bild gespeichert`);
+      toast(`„${name}" als PNG gespeichert`);
     }).catch(() => {
       toast('Fehler beim Erstellen des Bildes');
     });

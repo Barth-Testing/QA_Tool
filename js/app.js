@@ -499,7 +499,11 @@
 
   /* ===== Values Tab ===== */
   function isResponseComparisonValue(val) {
-    return val && typeof val === 'object' && val.versionData && val.testSituations;
+    return val && typeof val === 'object' && val.versionData && val.testSituations && !val.xAxisOrder;
+  }
+
+  function isTimeEvolutionValue(val) {
+    return val && typeof val === 'object' && val.versionData && val.xAxisOrder && val.testSituations;
   }
 
   function renderValuesTab() {
@@ -531,11 +535,14 @@
       const currentVal = vals[tile.kpi_id] !== undefined ? vals[tile.kpi_id] : kpi.example_value;
       const isAcKpi = currentVal && typeof currentVal === 'object' && currentVal.acs;
       const isRcKpi = isResponseComparisonValue(currentVal);
+      const isTeKpi = isTimeEvolutionValue(currentVal);
 
       if (isAcKpi) {
         html += renderAcValuesField(kpi, currentVal, vals);
       } else if (isRcKpi) {
         html += renderRcValuesField(kpi, currentVal);
+      } else if (isTeKpi) {
+        html += renderTeValuesField(kpi, currentVal);
       } else if (isComputedKpi(kpi.id)) {
         const status = GridEngine.getStatus(kpi, currentVal);
         html += `
@@ -625,6 +632,50 @@
               <button class="btn btn-sm btn-secondary btn-rc-edit-release" data-kpi-id="${kpi.id}" data-version="${v}">Bearbeiten</button>
             </div>
           `).join('')}
+        </div>
+      </div>`;
+  }
+
+  function renderTeValuesField(kpi, currentVal) {
+    const versions = currentVal.xAxisOrder;
+    const sits = currentVal.testSituations;
+    const lineColors = ['#6366f1', '#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6'];
+    const verCount = versions.length;
+    const sitCount = sits.length;
+
+    return `
+      <div class="values-rc-field" data-kpi-id="${kpi.id}">
+        <div class="values-rc-header">
+          <div class="values-field-label">
+            <div class="values-field-name">${kpi.name}</div>
+            <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
+          </div>
+          <span class="values-rc-info">${verCount} Releases · ${sitCount} Suchdimensionen · Aktuell ${currentVal.latestVersion}</span>
+        </div>
+        <div class="tile-rc-table-wrap" style="max-height:300px;overflow:auto">
+          <table class="tile-rc-table" style="font-size:0.75rem">
+            <thead>
+              <tr>
+                <th style="width:80px">Release</th>
+                ${sits.map((sit, si) => `<th style="color:${lineColors[si]}">${sit}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${versions.map(ver => {
+                const vals = currentVal.versionData[ver] || [];
+                return `
+                  <tr>
+                    <td style="font-weight:600;color:var(--text)">${ver}</td>
+                    ${sits.map((_, si) => {
+                      const v = vals[si];
+                      if (v === null || v === undefined) return '<td style="color:var(--text-muted)">—</td>';
+                      const isLatest = ver === currentVal.latestVersion;
+                      return `<td${isLatest ? ' style="color:var(--green);font-weight:600"' : ''}>${v.toFixed(2)} s</td>`;
+                    }).join('')}
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
         </div>
       </div>`;
   }
@@ -853,10 +904,11 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'values.json';
+    const date = new Date().toISOString().slice(0, 10);
+    a.download = `kpi-values_${date}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast('values.json heruntergeladen');
+    toast('KPI-Werte als JSON heruntergeladen');
   }
 
   function formatExportValue(v) {
@@ -883,7 +935,8 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'qa-dashboard-export.json';
+    const date = new Date().toISOString().slice(0, 10);
+    a.download = `qa-dashboard-export_${date}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast('Vollständiger Export inkl. Kampagnen & RFC erstellt');
@@ -1007,11 +1060,12 @@
       }
       const existing = getCustomValues()[kpiId];
       const isAc = existing && typeof existing === 'object' && existing.acs;
-      const isRc = existing && typeof existing === 'object' && existing.versionData;
-      if (!isAc && !isRc) setCustomValue(kpiId, value);
+      const isRc = existing && typeof existing === 'object' && existing.versionData && !existing.xAxisOrder;
+      const isTe = existing && typeof existing === 'object' && existing.xAxisOrder;
+      if (!isAc && !isRc && !isTe) setCustomValue(kpiId, value);
       const kpi = kpiMap[kpiId];
       render();
-      if (kpi && !isAc && !isRc) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
+      if (kpi && !isAc && !isRc && !isTe) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
     });
 
     /* RFC campaign version change (from tile version selector) */
@@ -1025,11 +1079,18 @@
     document.addEventListener('tile:chart-modal', (e) => {
       const { kpiId, kpi, data } = e.detail;
       if (!data) return;
-      $('#chart-modal-title').textContent = `${kpi.name} — Frontend Response Times im Vergleich`;
+      const isTe = data.xAxisOrder && data.versionData;
+      $('#chart-modal-title').textContent = isTe
+        ? `${kpi.name} — Evolution über Releases`
+        : `${kpi.name} — Frontend Response Times im Vergleich`;
       $('#chart-modal').classList.remove('hidden');
       requestAnimationFrame(() => {
         const canvas = $('#chart-modal-canvas');
-        ChartEngine.drawResponseComparison(canvas, data);
+        if (isTe) {
+          ChartEngine.drawTimeEvolution(canvas, data, false);
+        } else {
+          ChartEngine.drawResponseComparison(canvas, data);
+        }
       });
     });
     $('#btn-close-chart').addEventListener('click', () => $('#chart-modal').classList.add('hidden'));
@@ -1041,10 +1102,11 @@
       if (!canvas) return;
       const link = document.createElement('a');
       const title = $('#chart-modal-title').textContent.replace(/[^a-zA-Z0-9]/g, '_');
-      link.download = `${title}.png`;
+      const date = new Date().toISOString().slice(0, 10);
+      link.download = `${title}_${date}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      toast('Diagramm als Bild gespeichert');
+      toast('Diagramm als PNG gespeichert');
     });
 
     /* Campaign chart modal */
@@ -1055,10 +1117,11 @@
       const canvas = $('#campaign-chart-canvas');
       if (!canvas) return;
       const link = document.createElement('a');
-      link.download = 'Testkampagnen_Uebersicht.png';
+      const date = new Date().toISOString().slice(0, 10);
+      link.download = `Testkampagnen_Uebersicht_${date}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      toast('Kampagnen-Übersicht als Bild gespeichert');
+      toast('Kampagnen-Übersicht als PNG gespeichert');
     });
 
     /* RC Add Release modal */

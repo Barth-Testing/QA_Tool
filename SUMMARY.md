@@ -4,7 +4,7 @@
 Vanilla HTML/CSS/JS, Canvas 2D API, kein Framework, keine Build-Tools.
 Hosting: GitHub Pages (`Barth-Testing/QA_Tool`).
 
-## Aktueller Stand (2026-05-27)
+## Aktueller Stand (2026-06-04)
 
 ### Dateien
 ```
@@ -14,7 +14,7 @@ qa-dashboard/
 ├── css/
 │   └── style.css      # Dark-Theme
 ├── js/
-│   ├── charts.js      # ChartEngine: Donut, Bar, MiniDonut, ResponseComparison, Numeric
+│   ├── charts.js      # ChartEngine: Donut, Bar, MiniDonut, ResponseComparison, TimeEvolution, Numeric
 │   ├── grid.js         # GridEngine: Tile-Rendering, Drag&Drop, Resize, kompaktieren
 │   └── app.js          # App-Logik: Daten laden, Dashboard-CRUD, Campaigns, RFCs, Events
 └── data/
@@ -29,23 +29,32 @@ qa-dashboard/
 - `bar` (numerisch): Antwortzeiten, Fehlerzahlen, MTTR — Canvas-Balken mit Threshold-Markern
 - `numeric` (reine Zahlen): Automatisierte/Manuelle/Mobile/RFC Tests, Test Execution Time (PT) — große Zahl (3.6rem), kein Chart, keine Resize
 - `response-comparison` (`fe-response-dev`, `fe-response-sta`): 26 Testsituationen × 3 Versionen
+- `time-evolution` (`recipient-search-time`): Multi-Line-Chart über Releases, 6 Suchdimensionen
+
+## Neu in dieser Session
+
+### Empfängersuche nach Parametern (`recipient-search-time`)
+- Neuer KPI-Typ `time-evolution`: Multi-Line-Chart über 12 Releases (R4.1.3–R4.5.1)
+- 6 Suchdimensionen: Kanzleinamen, Nachnamen, Vornamen, PLZ, Ort, Kombinierte Suchen
+- Werte in Sekunden, `null` für nicht ausgeführte Releases
+- Tile: kompakter Linien-Chart + Datentabelle + Chart-Modal
+- Chart-Modal: voller Linien-Chart mit Legende, Datenpunkten, berechneter Skala
+
+### RC Chart poliert (`drawResponseComparison`)
+- Titelzeile mit Chart-Name + Datum + Versions-Legende
+- Verbesserte Tabelle: Header-Hintergrund, abgerundete Ecken, bessere Spaltenaufteilung
+- Überarbeitete Trend-Indikatoren (→, ↑, ↓ statt Sonderzeichen)
+- Größere Schrift für bessere Lesbarkeit in Testreports
 
 ## Neue KPIs (diese Session)
-- **Automatisierte Tests** (`automated-tests`): Anzahl, unit "Tests", numeric, 1×1
-- **Manuelle Tests** (`manual-tests`): Anzahl, unit "Tests", numeric, 1×1
-- **Mobile Tests** (`mobile-tests`): Anzahl, unit "Tests", numeric, 1×1
-- **RFC Tests** (`rfc-tests`): Anzahl, unit "Tests", numeric, 1×1
-- **Testautomatisierungsrate**: Computed — berechnet sich automatisch aus `auto / (auto + manual) × 100`
-- **Test Execution Time**: Unit auf "PT" (Personentage) geändert, numeric display, editierbar
+- **Empfängersuche nach Parametern** (`recipient-search-time`): Suchzeiten in s, time-evolution, 6 Dim. × 12 Releases
 
 ## Linke Sidebar (Testkampagnen)
 - Multi-Entry mit Donut-Farben (grün/gelb/rot), durchklickbar
 - Farbe zyklisch via Klick auf Donut oder Mini-Label
-- **Neues Datenmodell**: Jeder Mini-Donut speichert `{planned, executed}` statt single %-Wert
-- **Klick auf Mini-Donut**: Öffnet Modal mit 2 Eingabefeldern (Geplante/Ausgeführte Testfälle)
-- **Mini-Donut-Anzeige**: `executed / planned × 100`
-- **Großer Donut**: Aggregiert über alle 4 — `sum(executed) / sum(planned) × 100`
-- **Migration**: Alte Campaigns (single %-Werte) automatisch migriert zu `{planned: 100, executed: alt}`
+- Jeder Mini-Donut speichert `{planned, passed, failed, blocked}`
+- **Klick auf Mini-Donut**: Öffnet Modal mit 4 Eingabefeldern (Planned, Passed, Failed, Blocked)
+- **Großer Donut**: Aggregiert über alle 4 — segmentiert mit passed/failed/blocked
 - **Löschen**: ✕-Button im Header (hover-sichtbar)
 
 ## Rechte Sidebar (Testabdeckung RFC)
@@ -53,29 +62,16 @@ qa-dashboard/
 - **Löschen**: ✕-Button im Header (hover-sichtbar)
 
 ## Dashboard-Grid
-- **6 Spalten fest** (nicht mehr konfigurierbar — Spalten-Slider entfernt)
-- Columns aus JSON überschreiben localStorage beim Laden
+- **6 Spalten fest**
 - Drag & Drop + Resize (außer bei numeric-Tiles)
 - Grid-Kompaktierung bei jedem render()
-- Tile-Höhe 780px (fixed) für RC-Tiles
-
-## Computed KPIs
-- `test-automation-rate` = `automated-tests / (automated-tests + manual-tests) × 100`
-- Berechnet in `getCustomValues()` nach dem Merge, überschreibt localStorage
-- Nicht editierbar (weder inline noch im Werte-Tab)
-- Wird bei jeder Änderung von `automated-tests`/`manual-tests` automatisch neu berechnet
-
-## Campaign Edit Modal
-- 2 Input-Felder: Geplante Testfälle + Ausgeführte Testfälle
-- Live-Preview: `executed / planned = xx%`
-- Enter-Taste zum Speichern, Escape zum Schließen
+- Tile-Höhe 780px für RC-Tiles, 680px für TE-Tiles
 
 ## Daten-Persistenz
 - `fileValues` (aus JSON) + `localStorage` (user edits) → `getCustomValues()` merged
 - Dashboard-Zustand in `localStorage` (`qa_dashboard_state`)
 - Campaigns in `localStorage` (`qa_dashboard_campaigns`)
 - RFC-Entries in `localStorage` (`qa_dashboard_rfc_entries`)
-- Computed KPIs werden nicht persistiert (nur Quell-KPIs)
 
 ## Bekannte Einschränkungen
 - Chart-Balken bei großen Ausreißern (180s+) extrem kurz für normale Werte
