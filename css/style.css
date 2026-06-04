@@ -3,12 +3,12 @@
 
 /* ===== Themes ===== */
 [data-theme="dark"] {
-  --bg: #0a0c12;
-  --surface: #151820;
-  --surface-hover: #1e2230;
-  --border: #262b3a;
-  --text: #e8eaf0;
-  --text-muted: #7a7f99;
+  --bg: #080a12;
+  --surface: #141720;
+  --surface-hover: #1c1f2e;
+  --border: #2a2f40;
+  --text: #eef0f6;
+  --text-muted: #8a8fa8;
   --primary: #6366f1;
   --primary-hover: #818cf8;
   --primary-text: #fff;
@@ -23,19 +23,19 @@
   --neutral: #6b7280;
   --neutral-bg: rgba(107,114,128,0.10);
   --radius: 10px;
-  --shadow: 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
-  --shadow-lg: 0 12px 48px rgba(0,0,0,0.5);
+  --shadow: 0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-lg: 0 12px 48px rgba(0,0,0,0.6);
   --transition: 200ms ease;
   --row-stripe: rgba(255,255,255,0.025);
-  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a7f99'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238a8fa8'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
 }
 [data-theme="light"] {
-  --bg: #f0f2f8;
+  --bg: #e6e9f2;
   --surface: #ffffff;
-  --surface-hover: #e8ebf2;
-  --border: #d8dce8;
-  --text: #1a1d2e;
-  --text-muted: #6b7094;
+  --surface-hover: #e2e5ef;
+  --border: #c9cedc;
+  --text: #0f1221;
+  --text-muted: #50567a;
   --primary: #6366f1;
   --primary-hover: #818cf8;
   --primary-text: #fff;
@@ -50,11 +50,11 @@
   --neutral: #6b7280;
   --neutral-bg: rgba(107,114,128,0.08);
   --radius: 10px;
-  --shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 48px rgba(0,0,0,0.12);
+  --shadow: 0 3px 12px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 12px 48px rgba(0,0,0,0.15);
   --transition: 200ms ease;
   --row-stripe: rgba(0,0,0,0.03);
-  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7094'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2350567a'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
 }
 
 /* default theme (no JS / before JS runs) */
