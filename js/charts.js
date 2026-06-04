@@ -41,10 +41,16 @@ const ChartEngine = (() => {
     const _dcs = getComputedStyle(document.documentElement);
     const _dText = _dcs.getPropertyValue('--text').trim() || '#e4e6ef';
     const _dMuted = _dcs.getPropertyValue('--text-muted').trim() || '#888ca3';
+    const _dBgHex = (_dcs.getPropertyValue('--bg').trim() || '#0f1117').replace('#', '');
+    const _dR = parseInt(_dBgHex.substring(0, 2), 16);
+    const _dG = parseInt(_dBgHex.substring(2, 4), 16);
+    const _dB = parseInt(_dBgHex.substring(4, 6), 16);
+    const _dDark = (_dR * 299 + _dG * 587 + _dB * 114) / 1000 < 128;
+    const _dBase = _dDark ? 255 : 0;
 
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.strokeStyle = `rgba(${_dBase},${_dBase},${_dBase},0.07)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
@@ -57,14 +63,14 @@ const ChartEngine = (() => {
 
     const displayVal = Number.isInteger(value) ? value.toString() : value.toFixed(1);
     ctx.fillStyle = _dText;
-    ctx.font = `bold ${Math.round(outerR * 0.4)}px -apple-system, sans-serif`;
+    ctx.font = `bold ${Math.round(outerR * 0.4)}px 'DM Sans', -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(displayVal, cx, cy - 6);
 
     if (unit) {
       ctx.fillStyle = _dMuted;
-      ctx.font = `${Math.round(outerR * 0.18)}px -apple-system, sans-serif`;
+      ctx.font = `${Math.round(outerR * 0.18)}px 'DM Sans', -apple-system, sans-serif`;
       ctx.fillText(unit, cx, cy + outerR * 0.3);
     }
   }
@@ -95,7 +101,15 @@ const ChartEngine = (() => {
 
     const pct = Math.min(value / maxVal, 1);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    const _bcs = getComputedStyle(document.documentElement);
+    const _bBgHex = (_bcs.getPropertyValue('--bg').trim() || '#0f1117').replace('#', '');
+    const _bR = parseInt(_bBgHex.substring(0, 2), 16);
+    const _bG = parseInt(_bBgHex.substring(2, 4), 16);
+    const _bB = parseInt(_bBgHex.substring(4, 6), 16);
+    const _bDark = (_bR * 299 + _bG * 587 + _bB * 114) / 1000 < 128;
+    const _bBase = _bDark ? 255 : 0;
+
+    ctx.fillStyle = `rgba(${_bBase},${_bBase},${_bBase},0.06)`;
     ctx.beginPath();
     ctx.roundRect(barX, barY, barW, barH, 4);
     ctx.fill();
@@ -123,9 +137,11 @@ const ChartEngine = (() => {
       }
     }
 
+    const bc = getComputedStyle(document.documentElement);
+    const bText = bc.getPropertyValue('--text').trim() || '#e4e6ef';
     const displayVal = Number.isInteger(value) ? value.toString() : value.toFixed(1);
-    ctx.fillStyle = '#e4e6ef';
-    ctx.font = `bold 13px -apple-system, sans-serif`;
+    ctx.fillStyle = bText;
+    ctx.font = `bold 13px 'DM Sans', -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(displayVal + (unit ? ' ' + unit : ''), w / 2, h * 0.2);
@@ -151,7 +167,7 @@ const ChartEngine = (() => {
     const pct = Math.min(Math.max(value / 100, 0), 1);
     if (status === undefined) status = value >= 80 ? 'green' : value >= 50 ? 'yellow' : 'red';
     const _mcs = getComputedStyle(document.documentElement);
-    const _mMuted = _mcs.getPropertyValue('--text-muted').trim() || '#888ca3';
+    const _mText = _mcs.getPropertyValue('--text').trim() || '#e4e6ef';
     const _mBg = _mcs.getPropertyValue('--bg').trim() || '#0f1117';
     const _mHex = _mBg.replace('#', '');
     const _mR = parseInt(_mHex.substring(0, 2), 16);
@@ -173,8 +189,8 @@ const ChartEngine = (() => {
     ctx.lineCap = 'butt';
     ctx.stroke();
 
-    ctx.fillStyle = _mMuted;
-    ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
+    ctx.fillStyle = _mText;
+    ctx.font = `bold ${Math.round(outerR * 0.35)}px 'DM Sans', -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(Math.round(value) + '%', cx, cy);
@@ -552,7 +568,7 @@ const ChartEngine = (() => {
     /* center text: percentage */
     const displayPct = Math.round(pct * 100);
     ctx.fillStyle = _sText;
-    ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
+    ctx.font = `bold ${Math.round(outerR * 0.35)}px 'DM Sans', -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(displayPct + '%', cx, cy);
