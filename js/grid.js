@@ -282,14 +282,32 @@ const GridEngine = (() => {
       const versions = rawValue.xAxisOrder;
       const sits = rawValue.testSituations;
       const lineColors = ['#6366f1', '#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6'];
+      const latest = rawValue.latestVersion;
+      const defaultComp = getDefaultTEComparison(versions);
+      const compA = defaultComp.versionA;
+      const compB = defaultComp.versionB;
+
+      const versionOptsA = versions.map(v =>
+        `<option value="${v}"${v === compA ? ' selected' : ''}>${v}${v === latest ? ' (aktuell)' : ''}</option>`
+      ).join('');
+      const versionOptsB = versions.map(v =>
+        `<option value="${v}"${v === compB ? ' selected' : ''}>${v}${v === latest ? ' (aktuell)' : ''}</option>`
+      ).join('');
 
       teTableHtml = `
-        <div class="tile-te-versions">
-          <span class="tile-rc-version-tag status-green">Aktuell: ${rawValue.latestVersion}</span>
-          <span class="tile-rc-version-tag status-blue">Vorher: ${rawValue.previousVersion}</span>
+        <div class="te-compare-bar">
+          <div class="te-compare-selectors">
+            <label class="te-compare-label">Vergleich:</label>
+            <select class="te-version-select" data-te-side="a">${versionOptsA}</select>
+            <span class="te-compare-vs">vs</span>
+            <select class="te-version-select" data-te-side="b">${versionOptsB}</select>
+          </div>
+          <div class="te-compare-summary" id="te-compare-${tile.id}"></div>
+        </div>
+          <div class="te-compare-summary" id="te-compare-${tile.id}"></div>
         </div>
         <div class="tile-rc-table-wrap">
-          <table class="tile-rc-table">
+          <table class="tile-rc-table te-table">
             <thead>
               <tr>
                 <th>Release</th>
@@ -300,8 +318,8 @@ const GridEngine = (() => {
               ${versions.map((ver, vi) => {
                 const vals = rawValue.versionData[ver] || [];
                 return `
-                  <tr>
-                    <td class="tile-rc-sit">${ver}</td>
+                  <tr class="${ver === latest ? 'te-row-latest' : ''}">
+                    <td class="tile-rc-sit">${ver}${ver === latest ? ' <span class="te-latest-badge">aktuell</span>' : ''}</td>
                     ${sits.map((_, si) => {
                       const v = vals[si];
                       if (v === null || v === undefined) return '<td style="color:var(--text-muted)">—</td>';
@@ -312,6 +330,7 @@ const GridEngine = (() => {
             </tbody>
           </table>
         </div>
+        <div class="te-compare-results" id="te-results-${tile.id}"></div>
         <div class="tile-rc-actions">
           <button class="tile-te-chart-btn" title="Diagramm anzeigen">📊 Diagramm anzeigen</button>
         </div>`;
@@ -450,6 +469,17 @@ const GridEngine = (() => {
           document.dispatchEvent(evt);
         });
       }
+
+      const selA = el.querySelector('.te-version-select[data-te-side="a"]');
+      const selB = el.querySelector('.te-version-select[data-te-side="b"]');
+      if (selA && selB) {
+        const updateComparison = () => {
+          renderTEComparison(el, tile, kpi, selA.value, selB.value);
+        };
+        selA.addEventListener('change', updateComparison);
+        selB.addEventListener('change', updateComparison);
+        requestAnimationFrame(updateComparison);
+      }
     }
 
     if (isAcKpi) {
@@ -515,7 +545,100 @@ const GridEngine = (() => {
     return value.toFixed(1);
   }
 
-  /* ===== Drag & Drop ===== */
+  /* ===== Time Evolution Helpers ===== */
+  function parseTEVersion(ver) {
+    const m = ver.match(/R?(\d+)\.(\d+)\.(\d+)/);
+    if (!m) return null;
+    return { major: parseInt(m[1]), minor: parseInt(m[2]), patch: parseInt(m[3]), raw: ver };
+  }
+
+  function getDefaultTEComparison(versions) {
+    const parsed = versions.map(v => parseTEVersion(v)).filter(Boolean);
+    if (parsed.length < 2) return { versionA: null, versionB: null };
+    parsed.sort((a, b) => b.major - a.major || b.minor - a.minor || b.patch - a.patch);
+    const latest = parsed[0];
+    const prevMinor = parsed.filter(v => v.minor < latest.minor && v.major === latest.major);
+    const latestPrevMinor = prevMinor.length > 0 ? prevMinor.sort((a, b) => b.patch - a.patch)[0] : parsed[1];
+    return {
+      versionB: latest.raw,
+      versionA: latestPrevMinor.raw
+    };
+  }
+
+  function computeDiffColor(pctDiff, currentBetter) {
+    const abs = Math.abs(pctDiff);
+    if (abs < 10) return 'diff-neutral';
+    if (abs <= 25) return currentBetter ? 'diff-warning-improved' : 'diff-warning-regressed';
+    return currentBetter ? 'diff-good' : 'diff-bad';
+  }
+
+  function getPctDiff(a, b) {
+    if (a == null || b == null || a === 0) return 0;
+    return ((b - a) / a) * 100;
+  }
+
+  function renderTEComparison(el, tile, kpi, verA, verB) {
+    const rawValue = state.customValues[tile.kpi_id] !== undefined
+      ? state.customValues[tile.kpi_id] : kpi.example_value;
+    if (!rawValue || !rawValue.versionData) return;
+    const sits = rawValue.testSituations;
+    const lineColors = ['#6366f1', '#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6'];
+    const valsA = rawValue.versionData[verA] || [];
+    const valsB = rawValue.versionData[verB] || [];
+
+    const summaryEl = el.querySelector('#te-compare-' + tile.id);
+    const resultsEl = el.querySelector('#te-results-' + tile.id);
+    if (!summaryEl || !resultsEl) return;
+
+    let totalPassed = 0;
+    let totalFailed = 0;
+    let html = '';
+
+    for (let si = 0; si < sits.length; si++) {
+      const a = valsA[si];
+      const b = valsB[si];
+      const hasData = a != null && b != null;
+      const pctDiff = hasData ? getPctDiff(a, b) : 0;
+      const absPct = Math.abs(pctDiff);
+      const currentBetter = b < a;
+      const diffColor = hasData ? computeDiffColor(pctDiff, currentBetter) : 'diff-neutral';
+      const isPassed = hasData && currentBetter;
+      const isFailed = hasData && !currentBetter;
+      if (hasData) {
+        if (isPassed) totalPassed++;
+        else totalFailed++;
+      }
+
+      let statusBadge = '';
+      if (hasData && absPct <= 25) {
+        statusBadge = isPassed
+          ? '<span class="te-badge te-badge-passed">PASSED</span>'
+          : '<span class="te-badge te-badge-failed">FAILED</span>';
+      }
+
+      html += `
+        <div class="te-compare-row">
+          <span class="te-compare-sit" style="color:${lineColors[si]}">${sits[si]}</span>
+          <span class="te-compare-val">${hasData ? a.toFixed(2) + ' s' : '—'}</span>
+          <span class="te-compare-arrow">→</span>
+          <span class="te-compare-val te-compare-val-b">${hasData ? b.toFixed(2) + ' s' : '—'}</span>
+          <span class="te-compare-diff ${diffColor}">${hasData ? (pctDiff > 0 ? '+' : '') + pctDiff.toFixed(1) + '%' : '—'}</span>
+          ${statusBadge ? '<span class="te-compare-badge">' + statusBadge + '</span>' : ''}
+        </div>`;
+    }
+
+    resultsEl.innerHTML = html;
+
+    const verdict = totalPassed + totalFailed > 0 && totalPassed >= totalFailed;
+    summaryEl.innerHTML = `
+      <span class="te-summary-label">Ergebnis:</span>
+      <span class="te-summary-count" style="color:var(--green)">${totalPassed} bestanden</span>
+      <span class="te-summary-sep">·</span>
+      <span class="te-summary-count" style="color:var(--red)">${totalFailed} durchgefallen</span>
+      <span class="te-summary-sep">·</span>
+      <span class="te-summary-verdict ${verdict ? 'te-verdict-passed' : 'te-verdict-failed'}">${verdict ? 'PASSED' : 'FAILED'}</span>`;
+  }
+
   function setupDragDrop(container) {
     let dragTileId = null;
 
