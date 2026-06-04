@@ -248,6 +248,23 @@
     </div>
   </div>
 
+  <div id="resize-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content resize-modal-content">
+      <div class="modal-header">
+        <h2 id="resize-modal-title">Größe ändern</h2>
+        <button id="btn-close-resize" class="btn-close">&times;</button>
+      </div>
+      <div class="resize-modal-body">
+        <p>Wähle eine neue Größe für diese Kachel:</p>
+        <div id="resize-grid" class="resize-grid"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.5rem">
+          <button id="btn-resize-cancel" class="btn btn-secondary">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>

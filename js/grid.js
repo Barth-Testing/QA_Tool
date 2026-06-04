@@ -354,6 +354,7 @@ const GridEngine = (() => {
         ${rfcVersionHtml}
         <div class="tile-actions">
           <button class="tile-btn tile-btn-print" title="Als Bild speichern" aria-label="Als Bild speichern"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+          ${hasResizeHandle ? '<button class="tile-btn tile-btn-resize" title="Größe ändern" aria-label="Größe ändern"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="3" y1="9" x2="9" y2="3"/></svg></button>' : ''}
           <button class="tile-btn tile-btn-info" title="Details">ℹ</button>
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>
@@ -366,7 +367,6 @@ const GridEngine = (() => {
         <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}${isTeKpi ? ` · ${rawValue.xAxisOrder.length} Releases · ${rawValue.testSituations.length} Dim.` : ''}</span>
         <button class="tile-info-btn" data-kpi-id="${kpi.id}">Details</button>
       </div>
-      ${hasResizeHandle ? '<div class="tile-resize-handle"></div>' : ''}
     `;
 
     el.querySelector('.tile-btn-remove').addEventListener('click', (e) => {
@@ -385,6 +385,17 @@ const GridEngine = (() => {
       const evt = new CustomEvent('tile:info', { detail: { kpi } });
       document.dispatchEvent(evt);
     });
+
+    const resizeBtn = el.querySelector('.tile-btn-resize');
+    if (resizeBtn) {
+      resizeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const evt = new CustomEvent('tile:resize-dialog', {
+          detail: { tileId: tile.id, kpiId: tile.kpi_id, w: tile.w, h: tile.h }
+        });
+        document.dispatchEvent(evt);
+      });
+    }
 
     el.querySelector('.tile-info-btn').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -552,56 +563,7 @@ const GridEngine = (() => {
   }
 
   /* ===== Resize ===== */
-  function setupResize(container) {
-    container.addEventListener('mousedown', (e) => {
-      const handle = e.target.closest('.tile-resize-handle');
-      if (!handle) return;
-      e.preventDefault();
-      const tile = handle.closest('.tile');
-      const tileId = tile.dataset.tileId;
-      const startX = e.clientX;
-      const startY = e.clientY;
-
-      const onMove = (ev) => {
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        const tileW = tile.offsetWidth;
-        const tileH = tile.offsetHeight;
-        const cellW = tileW / (tile.style.gridColumn.split('span ')[1] || 1);
-        const cellH = tileH / (tile.style.gridRow.split('span ')[1] || 1);
-        let newW = Math.max(1, Math.min(state.columns, Math.round((tileW + dx) / cellW)));
-        let newH = Math.max(1, Math.min(4, Math.round((tileH + dy) / cellH)));
-
-        const tileData = state.tiles.find(t => t.id === tileId);
-        if (tileData && tileData.kpi_id === 'rfc-tests') {
-          const size = Math.max(newW, newH, 1);
-          newW = size;
-          newH = size;
-        }
-
-        tile.style.gridColumn = `${tile.style.gridColumn.split('/')[0].trim()} / span ${newW}`;
-        tile.style.gridRow = `${tile.style.gridRow.split('/')[0].trim()} / span ${newH}`;
-        handle.dataset.newW = newW;
-        handle.dataset.newH = newH;
-      };
-
-      const onUp = () => {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-        const nw = parseInt(handle.dataset.newW) || 1;
-        const nh = parseInt(handle.dataset.newH) || 1;
-        const evt = new CustomEvent('tile:resize', {
-          detail: { tileId, w: nw, h: nh }
-        });
-        document.dispatchEvent(evt);
-        delete handle.dataset.newW;
-        delete handle.dataset.newH;
-      };
-
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-    });
-  }
+  function setupResize(container) {}
 
   function toast(msg) {
     const evt = new CustomEvent('app:toast', { detail: { message: msg } });

@@ -692,6 +692,64 @@
       </div>`;
   }
 
+  /* ===== Resize Modal ===== */
+  let resizeTileId = null;
+  let resizeKpiId = null;
+
+  const RESIZE_PRESETS = [
+    { w: 1, h: 1 }, { w: 1, h: 2 }, { w: 1, h: 3 }, { w: 1, h: 4 },
+    { w: 2, h: 1 }, { w: 2, h: 2 }, { w: 2, h: 3 }, { w: 2, h: 4 },
+    { w: 3, h: 1 }, { w: 3, h: 2 }, { w: 3, h: 3 }, { w: 3, h: 4 },
+    { w: 4, h: 1 }, { w: 4, h: 2 }, { w: 4, h: 3 }, { w: 4, h: 4 }
+  ];
+
+  function getResizeLabel(w, h) {
+    if (w >= 3) return 'Groß';
+    if (w >= 2 && h >= 2) return 'Mittel';
+    if (w >= 2) return 'Breit';
+    if (h >= 2) return 'Hoch';
+    return 'Klein';
+  }
+
+  function openResizeModal(tileId, kpiId, currentW, currentH) {
+    resizeTileId = tileId;
+    resizeKpiId = kpiId;
+    const db = getCurrentDashboard();
+    const cols = db ? db.columns : 4;
+    const isRfc = kpiId === 'rfc-tests';
+    const grid = $('#resize-grid');
+    grid.innerHTML = RESIZE_PRESETS
+      .filter(p => p.w <= cols && (isRfc ? p.w === p.h : true))
+      .map(p => {
+        const active = p.w === currentW && p.h === currentH;
+        return `<button class="resize-btn${active ? ' resize-btn--active' : ''}" data-w="${p.w}" data-h="${p.h}">
+          <span>${p.w}×${p.h}</span>
+          <span class="resize-btn-label">${getResizeLabel(p.w, p.h)}</span>
+        </button>`;
+      }).join('');
+    grid.querySelectorAll('.resize-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        commitResize(parseInt(btn.dataset.w), parseInt(btn.dataset.h));
+      });
+    });
+    $('#resize-modal').classList.remove('hidden');
+  }
+
+  function commitResize(w, h) {
+    if (!resizeTileId) return;
+    const evt = new CustomEvent('tile:resize', {
+      detail: { tileId: resizeTileId, w, h }
+    });
+    document.dispatchEvent(evt);
+    closeResizeModal();
+  }
+
+  function closeResizeModal() {
+    $('#resize-modal').classList.add('hidden');
+    resizeTileId = null;
+    resizeKpiId = null;
+  }
+
   /* ===== RC Add / Edit Release Modal ===== */
   let rcAddKpiId = null;
   let rcEditVersion = null;
@@ -1068,6 +1126,10 @@
     document.addEventListener('tile:remove', (e) => removeTile(e.detail.tileId));
     document.addEventListener('tile:swap', (e) => swapTiles(e.detail.sourceId, e.detail.targetId));
     document.addEventListener('tile:resize', (e) => resizeTile(e.detail.tileId, e.detail.w, e.detail.h));
+    document.addEventListener('tile:resize-dialog', (e) => {
+      const { tileId, kpiId, w, h } = e.detail;
+      openResizeModal(tileId, kpiId, w, h);
+    });
     document.addEventListener('tile:info', (e) => showInfoPanel(e.detail.kpi));
     document.addEventListener('tile:ac-detail', (e) => {
       const { kpiName, acId, acText } = e.detail;
@@ -1163,11 +1225,17 @@
     $('#rc-add-modal .modal-backdrop').addEventListener('click', closeRcAddModal);
     $('#btn-rc-add-save').addEventListener('click', saveRcAddRelease);
 
+    /* Resize modal */
+    $('#btn-close-resize').addEventListener('click', closeResizeModal);
+    $('#btn-resize-cancel').addEventListener('click', closeResizeModal);
+    $('#resize-modal .modal-backdrop').addEventListener('click', closeResizeModal);
+
     /* Keyboard */
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeCatalog();
         closeCampaignEdit();
+        closeResizeModal();
         $('#campaign-modal').classList.add('hidden');
         $('#campaign-archive-modal').classList.add('hidden');
         $('#chart-modal').classList.add('hidden');
