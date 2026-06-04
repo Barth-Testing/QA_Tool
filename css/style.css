@@ -995,14 +995,6 @@ body {
   height: 100%;
   min-height: unset;
 }
-.tile-te-versions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin: 0.2rem 0 0.15rem;
-  flex-shrink: 0;
-}
-
 /* ===== TE Comparison Bar ===== */
 .te-compare-bar {
   display: flex;
@@ -1145,28 +1137,6 @@ body {
 .te-badge-failed {
   background: var(--red-bg);
   color: var(--red);
-}
-
-/* ===== TE Latest Row Highlight ===== */
-.te-row-latest {
-  background: rgba(99,102,241,0.06) !important;
-}
-.te-row-latest td:first-child {
-  font-weight: 700 !important;
-  color: var(--primary) !important;
-}
-.te-latest-badge {
-  display: inline-block;
-  font-size: 0.55rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 0.05rem 0.3rem;
-  border-radius: 3px;
-  background: var(--primary);
-  color: var(--primary-text);
-  margin-left: 0.25rem;
-  vertical-align: middle;
 }
 
 /* ===== AC Tile List ===== */
@@ -1379,26 +1349,6 @@ body {
   text-align: center;
 }
 .tile-rc-chart-btn:hover {
-  background: var(--surface-hover);
-  border-color: var(--primary);
-  color: var(--primary-hover);
-}
-
-.tile-te-chart-btn {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.35rem 0.8rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition);
-  font-family: inherit;
-  width: 100%;
-  text-align: center;
-}
-.tile-te-chart-btn:hover {
   background: var(--surface-hover);
   border-color: var(--primary);
   color: var(--primary-hover);
