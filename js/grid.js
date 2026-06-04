@@ -302,8 +302,32 @@ const GridEngine = (() => {
             <span class="te-compare-vs">vs</span>
             <select class="te-version-select" data-te-side="b">${versionOptsB}</select>
           </div>
+          <div class="te-compare-summary" id="te-compare-${tile.id}"></div>
         </div>
-        <div class="te-compare-results" id="te-results-${tile.id}"></div>`;
+        <div class="tile-rc-table-wrap">
+          <table class="tile-rc-table te-table">
+            <thead>
+              <tr>
+                <th>Release</th>
+                ${sits.map((sit, si) => `<th style="color:${lineColors[si]}">${sit}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${versions.map((ver, vi) => {
+                const vals = rawValue.versionData[ver] || [];
+                return `
+                  <tr class="${ver === latest ? 'te-row-latest' : ''}">
+                    <td class="tile-rc-sit">${ver}${ver === latest ? ' <span class="te-latest-badge">aktuell</span>' : ''}</td>
+                    ${sits.map((_, si) => {
+                      const v = vals[si];
+                      if (v === null || v === undefined) return '<td style="color:var(--text-muted)">—</td>';
+                      return `<td>${v.toFixed(2)} s</td>`;
+                    }).join('')}
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
     }
 
     let chartAreaHtml = '';
@@ -557,8 +581,7 @@ const GridEngine = (() => {
     const valsB = rawValue.versionData[verB] || [];
 
     const summaryEl = el.querySelector('#te-compare-' + tile.id);
-    const resultsEl = el.querySelector('#te-results-' + tile.id);
-    if (!summaryEl || !resultsEl) return;
+    if (!summaryEl) return;
 
     let totalPassed = 0;
     let totalFailed = 0;

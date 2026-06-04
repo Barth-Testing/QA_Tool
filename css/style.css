@@ -1139,6 +1139,28 @@ body {
   color: var(--red);
 }
 
+/* ===== TE Latest Row Highlight ===== */
+.te-row-latest {
+  background: rgba(99,102,241,0.06) !important;
+}
+.te-row-latest td:first-child {
+  font-weight: 700 !important;
+  color: var(--primary) !important;
+}
+.te-latest-badge {
+  display: inline-block;
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  background: var(--primary);
+  color: var(--primary-text);
+  margin-left: 0.25rem;
+  vertical-align: middle;
+}
+
 /* ===== AC Tile List ===== */
 .tile--ac {
   min-height: 0;
