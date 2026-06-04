@@ -1,6 +1,8 @@
 /* ===== Reset & Base ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* z-index scale: 10=edit-input, 50=dragging, 100=navbar/sticky, 200=info-panel, 300=modal, 400=toast */
+
 /* ===== Themes ===== */
 [data-theme="dark"] {
   --bg: #080a12;
@@ -77,6 +79,15 @@ body {
   color: var(--primary-text);
 }
 
+:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px !important;
+}
+
+:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -151,12 +162,14 @@ body {
   color: var(--primary-text);
 }
 .btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-secondary {
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
 }
 .btn-secondary:hover { background: var(--surface-hover); border-color: var(--text-muted); }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
 
 /* Button icon refinements */
@@ -1643,7 +1656,7 @@ body {
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 300;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1795,7 +1808,7 @@ body {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  z-index: 300;
+  z-index: 400;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -1821,7 +1834,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.5);
-  z-index: 150;
+  z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;

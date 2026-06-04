@@ -47,7 +47,12 @@
   }
   function updateThemeBtn(theme) {
     const btn = $('#btn-theme');
-    if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+    if (!btn) return;
+    const isDark = theme === 'dark';
+    btn.innerHTML = isDark
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+    btn.setAttribute('aria-label', isDark ? 'Helles Theme' : 'Dunkles Theme');
   }
 
   /* ===== Initialize ===== */
@@ -209,11 +214,16 @@
   function removeTile(tileId) {
     const db = getCurrentDashboard();
     if (!db) return;
+    const tile = db.tiles.find(t => t.id === tileId);
+    if (!tile) return;
+    const kpi = kpiMap[tile.kpi_id];
+    const name = kpi ? kpi.name : tile.kpi_id;
+    if (!confirm(`„${name}" vom Dashboard entfernen?`)) return;
     db.tiles = db.tiles.filter(t => t.id !== tileId);
     db.tiles = Grid.compactGrid(db.tiles);
     saveState();
     render();
-    toast('KPI entfernt');
+    toast(`„${name}" entfernt`);
   }
 
   function swapTiles(sourceId, targetId) {
@@ -312,7 +322,7 @@
       <div class="info-panel">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1rem">
           <h3>${kpi.name}</h3>
-          <button class="btn-close" id="info-close">&times;</button>
+          <button class="btn-close" id="info-close" aria-label="Schließen">&times;</button>
         </div>
         <p>${kpi.description}</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:1rem">
@@ -335,9 +345,9 @@
     const t = kpi.thresholds;
     const opLabel = (op) => op === 'lt' ? '<' : op === 'gt' ? '>' : op === 'lte' ? '≤' : op === 'gte' ? '≥' : op === 'eq' ? '=' : op;
     let parts = [];
-    if (t.green) parts.push(`<span style="color:var(--green)">🟢 ${opLabel(t.green.operator)} ${t.green.value}</span>`);
-    if (t.yellow) parts.push(`<span style="color:var(--yellow)">🟡 ${opLabel(t.yellow.operator)} ${t.yellow.value}</span>`);
-    if (t.red) parts.push(`<span style="color:var(--red)">🔴 ${opLabel(t.red.operator)} ${t.red.value}</span>`);
+    if (t.green) parts.push(`<span style="color:var(--green);font-weight:600">● ${opLabel(t.green.operator)} ${t.green.value}</span>`);
+    if (t.yellow) parts.push(`<span style="color:var(--yellow);font-weight:600">● ${opLabel(t.yellow.operator)} ${t.yellow.value}</span>`);
+    if (t.red) parts.push(`<span style="color:var(--red);font-weight:600">● ${opLabel(t.red.operator)} ${t.red.value}</span>`);
     return `<div class="info-label">Grenzwerte</div><div style="display:flex;gap:0.75rem;margin-top:0.3rem">${parts.join('')}</div>`;
   }
 
@@ -349,7 +359,7 @@
       <div class="info-panel">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1rem">
           <h3>${kpiName} — ${acId}</h3>
-          <button class="btn-close" id="info-close">&times;</button>
+          <button class="btn-close" id="info-close" aria-label="Schließen">&times;</button>
         </div>
         <p style="font-size:0.95rem;line-height:1.6;color:var(--text)">${acText}</p>
       </div>`;
@@ -364,12 +374,13 @@
     const el = document.createElement('div');
     el.className = 'toast';
     el.textContent = message;
+    el.setAttribute('role', 'status');
     toastContainer.appendChild(el);
     setTimeout(() => {
       el.style.opacity = '0';
-      el.style.transition = 'opacity 300ms';
-      setTimeout(() => el.remove(), 300);
-    }, 2500);
+      el.style.transition = 'opacity 400ms';
+      setTimeout(() => el.remove(), 400);
+    }, 4000);
   }
 
   /* ===== Migrate stale AC localStorage entries ===== */
@@ -918,28 +929,35 @@
 
   /* ===== Export ===== */
   function exportConfig() {
-    const customValues = getCustomValues();
-    const data = JSON.stringify({
-      _exportVersion: 1,
-      exportedAt: new Date().toISOString(),
-      theme: document.documentElement.getAttribute('data-theme') || 'dark',
-      currentDashboardId,
-      dashboards,
-      kpis,
-      customValues,
-      campaigns,
-      rfcEntries,
-      rfcTestsCampaignId: getRfcTestsCampaignId()
-    }, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const date = new Date().toISOString().slice(0, 10);
-    a.download = `qa-dashboard-export_${date}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('Vollständiger Export inkl. Kampagnen & RFC erstellt');
+    const btn = $('#btn-export');
+    btn.disabled = true;
+    btn.textContent = 'Exportiere...';
+    setTimeout(() => {
+      const customValues = getCustomValues();
+      const data = JSON.stringify({
+        _exportVersion: 1,
+        exportedAt: new Date().toISOString(),
+        theme: document.documentElement.getAttribute('data-theme') || 'dark',
+        currentDashboardId,
+        dashboards,
+        kpis,
+        customValues,
+        campaigns,
+        rfcEntries,
+        rfcTestsCampaignId: getRfcTestsCampaignId()
+      }, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const date = new Date().toISOString().slice(0, 10);
+      a.download = `qa-dashboard-export_${date}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Vollständiger Export inkl. Kampagnen & RFC erstellt');
+      btn.disabled = false;
+      btn.textContent = 'Export';
+    }, 100);
   }
 
   function importConfig(file) {
@@ -989,6 +1007,9 @@
 
   /* ===== Event Listeners ===== */
   function setupEventListeners() {
+    /* Aria-labels for close buttons */
+    document.querySelectorAll('.btn-close').forEach(el => el.setAttribute('aria-label', 'Schließen'));
+
     /* Dashboard switch */
     selectEl.addEventListener('change', () => switchDashboard(selectEl.value));
 
@@ -1016,10 +1037,21 @@
 
     /* Export / Import */
     $('#btn-export').addEventListener('click', exportConfig);
-    $('#btn-import').addEventListener('click', () => $('#btn-import-file').click());
+    $('#btn-import').addEventListener('click', () => {
+      const btn = $('#btn-import');
+      if (btn.disabled) return;
+      $('#btn-import-file').click();
+    });
     $('#btn-import-file').addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) importConfig(file);
+      if (file) {
+        const btn = $('#btn-import');
+        btn.disabled = true;
+        btn.textContent = 'Importiere...';
+        importConfig(file);
+        btn.disabled = false;
+        btn.textContent = 'Import';
+      }
       e.target.value = '';
     });
 
@@ -1723,7 +1755,7 @@
           <div class="rfc-tile-header">
             <span>${entry.name}</span>
             <div style="display:flex;gap:0.2rem;align-items:center">
-              <button class="rfc-btn-print" title="Als Bild speichern" data-entry-id="${entry.id}">🖼️</button>
+              <button class="rfc-btn-print" title="Als Bild speichern" aria-label="Als Bild speichern" data-entry-id="${entry.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
               <button class="rfc-btn-remove" title="Entfernen" data-entry-id="${entry.id}">✕</button>
             </div>
           </div>

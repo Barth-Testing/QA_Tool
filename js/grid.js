@@ -203,7 +203,7 @@ const GridEngine = (() => {
     el.dataset.tileId = tile.id;
     el.draggable = true;
 
-    const statusLabels = { green: '🟢 Gut', yellow: '🟡 Warnung', red: '🔴 Kritisch', neutral: '⚪ Keine Daten' };
+    const statusLabels = { green: 'Gut', yellow: 'Warnung', red: 'Kritisch', neutral: 'Keine Daten' };
     const chartType = ChartEngine.getChartType(kpi);
 
     let acListHtml = '';
@@ -353,7 +353,7 @@ const GridEngine = (() => {
         <span class="tile-name">${kpi.name}</span>
         ${rfcVersionHtml}
         <div class="tile-actions">
-          <button class="tile-btn tile-btn-print" title="Als Bild speichern">🖼️</button>
+          <button class="tile-btn tile-btn-print" title="Als Bild speichern" aria-label="Als Bild speichern"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
           <button class="tile-btn tile-btn-info" title="Details">ℹ</button>
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>

@@ -25,7 +25,7 @@
     </div>
     <div class="navbar-actions">
       <button id="btn-catalog" class="btn btn-primary dashboard-only">+ KPI hinzufügen</button>
-      <button id="btn-theme" class="btn btn-secondary" title="Theme wechseln">🌙</button>
+      <button id="btn-theme" class="btn btn-secondary" title="Theme wechseln" aria-label="Helles Theme"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <button id="btn-export" class="btn btn-secondary">Export</button>
       <button id="btn-import" class="btn btn-secondary">Import</button>
       <input type="file" id="btn-import-file" accept=".json" style="display:none">
@@ -195,7 +195,7 @@
       <div class="modal-header">
         <h2 id="chart-modal-title">Diagramm — Frontend Response Times</h2>
         <div style="display:flex;gap:0.5rem;align-items:center">
-          <button id="btn-chart-download" class="btn btn-sm btn-secondary" title="Als Bild herunterladen">🖼️</button>
+          <button id="btn-chart-download" class="btn btn-sm btn-secondary" title="Als Bild herunterladen" aria-label="Als Bild herunterladen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
           <button id="btn-close-chart" class="btn-close">&times;</button>
         </div>
       </div>
@@ -238,7 +238,7 @@
       <div class="modal-header">
         <h2 id="campaign-chart-title">Testkampagnen — Übersicht</h2>
         <div style="display:flex;gap:0.5rem;align-items:center">
-          <button id="btn-campaign-chart-download" class="btn btn-sm btn-secondary" title="Als Bild herunterladen">🖼️</button>
+          <button id="btn-campaign-chart-download" class="btn btn-sm btn-secondary" title="Als Bild herunterladen" aria-label="Als Bild herunterladen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
           <button id="btn-close-campaign-chart" class="btn-close">&times;</button>
         </div>
       </div>
@@ -248,7 +248,7 @@
     </div>
   </div>
 
-  <div id="toast-container" class="toast-container"></div>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="js/charts.js"></script>
