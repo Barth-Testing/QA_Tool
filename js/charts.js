@@ -21,6 +21,10 @@ const ChartEngine = (() => {
   }
 
   function drawDonut(canvas, value, unit, status) {
+    if (value === null || value === undefined || isNaN(value)) {
+      value = 0;
+      status = 'neutral';
+    }
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
@@ -50,27 +54,29 @@ const ChartEngine = (() => {
 
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${_dBase},${_dBase},${_dBase},0.07)`;
+    ctx.strokeStyle = `rgba(${_dBase},${_dBase},${_dBase},0.15)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR - lw / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
-    ctx.strokeStyle = getStatusColor(status);
-    ctx.lineWidth = lw;
-    ctx.lineCap = 'butt';
-    ctx.stroke();
+    if (pct > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR - lw / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+      ctx.strokeStyle = getStatusColor(status);
+      ctx.lineWidth = lw;
+      ctx.lineCap = 'butt';
+      ctx.stroke();
+    }
 
-    const displayVal = Number.isInteger(value) ? value.toString() : value.toFixed(1);
+    const displayVal = value === 0 ? '0' : (Number.isInteger(value) ? value.toString() : value.toFixed(1));
     ctx.fillStyle = _dText;
-    ctx.font = `bold ${Math.round(outerR * 0.4)}px 'DM Sans', -apple-system, sans-serif`;
+    ctx.font = `bold ${Math.round(outerR * 0.4)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(displayVal, cx, cy - 6);
 
     if (unit) {
       ctx.fillStyle = _dMuted;
-      ctx.font = `${Math.round(outerR * 0.18)}px 'DM Sans', -apple-system, sans-serif`;
+      ctx.font = `${Math.round(outerR * 0.18)}px -apple-system, sans-serif`;
       ctx.fillText(unit, cx, cy + outerR * 0.3);
     }
   }
@@ -141,7 +147,7 @@ const ChartEngine = (() => {
     const bText = bc.getPropertyValue('--text').trim() || '#e4e6ef';
     const displayVal = Number.isInteger(value) ? value.toString() : value.toFixed(1);
     ctx.fillStyle = bText;
-    ctx.font = `bold 13px 'DM Sans', -apple-system, sans-serif`;
+    ctx.font = 'bold 13px -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(displayVal + (unit ? ' ' + unit : ''), w / 2, h * 0.2);
@@ -178,19 +184,21 @@ const ChartEngine = (() => {
 
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${_mBase},${_mBase},${_mBase},0.07)`;
+    ctx.strokeStyle = `rgba(${_mBase},${_mBase},${_mBase},0.15)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR - lw / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
-    ctx.strokeStyle = getStatusColor(status);
-    ctx.lineWidth = lw;
-    ctx.lineCap = 'butt';
-    ctx.stroke();
+    if (pct > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR - lw / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+      ctx.strokeStyle = getStatusColor(status);
+      ctx.lineWidth = lw;
+      ctx.lineCap = 'butt';
+      ctx.stroke();
+    }
 
     ctx.fillStyle = _mText;
-    ctx.font = `bold ${Math.round(outerR * 0.35)}px 'DM Sans', -apple-system, sans-serif`;
+    ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(Math.round(value) + '%', cx, cy);
@@ -541,7 +549,7 @@ const ChartEngine = (() => {
     /* background arc */
     ctx.beginPath();
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${_sBase},${_sBase},${_sBase},0.07)`;
+    ctx.strokeStyle = `rgba(${_sBase},${_sBase},${_sBase},0.15)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
@@ -568,7 +576,7 @@ const ChartEngine = (() => {
     /* center text: percentage */
     const displayPct = Math.round(pct * 100);
     ctx.fillStyle = _sText;
-    ctx.font = `bold ${Math.round(outerR * 0.35)}px 'DM Sans', -apple-system, sans-serif`;
+    ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(displayPct + '%', cx, cy);
@@ -899,7 +907,7 @@ const ChartEngine = (() => {
     const b2 = parseInt(hex2.substring(4, 6), 16);
     const isDark2 = (r2 * 299 + g2 * 587 + b2 * 114) / 1000 < 128;
     const base2 = isDark2 ? 255 : 0;
-    ctx.strokeStyle = `rgba(${base2},${base2},${base2},0.07)`;
+    ctx.strokeStyle = `rgba(${base2},${base2},${base2},0.15)`;
     ctx.lineWidth = lw;
     ctx.stroke();
 
@@ -920,7 +928,7 @@ const ChartEngine = (() => {
     /* percentage text */
     const total = segments.reduce((s, seg) => s + seg.count, 0);
     const allPct = total > 0 ? Math.round(segments.reduce((s, seg) => s + seg.pct, 0) * 100) : 0;
-    ctx.fillStyle = cs2.getPropertyValue('--text-muted').trim() || '#888ca3';
+    ctx.fillStyle = cs2.getPropertyValue('--text').trim() || '#e4e6ef';
     ctx.font = `bold ${Math.round(outerR * 0.35)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

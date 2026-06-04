@@ -44,6 +44,7 @@
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem(THEME_KEY, next);
     updateThemeBtn(next);
+    render();
   }
   function updateThemeBtn(theme) {
     const btn = $('#btn-theme');
