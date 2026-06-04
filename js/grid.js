@@ -238,43 +238,7 @@ const GridEngine = (() => {
         return '<span class="trend-down" title="Verschlechterung um ' + diff.toFixed(1) + ' ms (' + pct.toFixed(1) + ' %)">▼</span>';
       };
 
-      rcTableHtml = `
-        <div class="tile-rc-versions">
-          ${versions.map((v, i) => `<span class="tile-rc-version-tag ${versionColors[i]}">${versionLabels[i]}: ${v}</span>`).join('')}
-        </div>
-        <div class="tile-rc-table-wrap">
-          <table class="tile-rc-table">
-            <thead>
-              <tr>
-                <th>Testsituation</th>
-                <th class="col-current">${rawValue.currentVersion}</th>
-                <th class="col-prev">${rawValue.previousVersion}</th>
-                <th class="col-ref">${rawValue.referenceVersion}</th>
-                <th class="col-trend">Trend</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sits.map((sit, si) => {
-                const vals = versions.map(v => {
-                  const vd = rawValue.versionData[v];
-                  return vd && vd[si] !== null && vd[si] !== undefined ? vd[si] : null;
-                });
-                const fmt = (v) => v !== null ? v + ' ms' : 'n.a.';
-                return `
-                  <tr>
-                    <td class="tile-rc-sit">${sit}</td>
-                    <td class="col-current">${fmt(vals[0])}</td>
-                    <td class="col-prev">${fmt(vals[1])}</td>
-                    <td class="col-ref">${fmt(vals[2])}</td>
-                    <td class="col-trend">${computeTrend(vals[0], vals[1])}</td>
-                  </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-        <div class="tile-rc-actions">
-          <button class="tile-rc-chart-btn" title="Diagramm anzeigen">📊 Diagramm anzeigen</button>
-        </div>`;
+      rcTableHtml = '';
     }
 
     let teTableHtml = '';
@@ -332,7 +296,7 @@ const GridEngine = (() => {
 
     let chartAreaHtml = '';
     if (isRcKpi) {
-      chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"></div>`;
+      chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"><canvas class="tile-chart" data-chart-type="response-comparison"></canvas></div>`;
     } else if (isTeKpi) {
       chartAreaHtml = `<div class="tile-chart-area"><canvas class="tile-chart" data-chart-type="time-evolution"></canvas></div>`;
     } else if (chartType === 'numeric') {
@@ -433,21 +397,6 @@ const GridEngine = (() => {
         e.stopPropagation();
         startValueEdit(el, tile, kpi);
       });
-    }
-
-    if (isRcKpi) {
-      const chartBtn = el.querySelector('.tile-rc-chart-btn');
-      if (chartBtn) {
-        chartBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const rcVal = state.customValues[tile.kpi_id] !== undefined
-            ? state.customValues[tile.kpi_id] : kpi.example_value;
-          const evt = new CustomEvent('tile:chart-modal', {
-            detail: { kpiId: tile.kpi_id, kpi, data: rcVal }
-          });
-          document.dispatchEvent(evt);
-        });
-      }
     }
 
     if (isTeKpi) {

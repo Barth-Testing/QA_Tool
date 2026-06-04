@@ -977,7 +977,13 @@ body {
 .tile-rc-table .col-trend { text-align: center; font-size: 0.85rem; }
 
 .tile--rc .tile-chart-area {
-  display: none;
+  flex: 1;
+  min-height: 0;
+  padding: 0.25rem 0;
+}
+.tile--rc .tile-chart-area .tile-chart {
+  height: 100%;
+  min-height: unset;
 }
 
 /* ===== Time Evolution Tile ===== */
