@@ -224,21 +224,58 @@ const GridEngine = (() => {
     if (isRcKpi) {
       const versions = [rawValue.currentVersion, rawValue.previousVersion, rawValue.referenceVersion];
       const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
-      const versionColors = ['status-green', 'status-blue', 'status-red'];
       const sits = rawValue.testSituations;
 
-      const computeTrend = (current, previous) => {
-        if (current === null || previous === null) return '';
-        const diff = current - previous;
-        const pct = previous !== 0 ? (diff / previous) * 100 : 0;
+      const trendClass = (cur, prv) => {
+        if (cur == null || prv == null) return 'trend-neutral';
+        const diff = cur - prv;
+        const pct = prv !== 0 ? (diff / prv) * 100 : 0;
         const absPct = Math.abs(pct);
-        if (absPct < 10) return '<span class="trend-neutral" title="Innerhalb ±10 % — tolerierbare Abweichung">—</span>';
-        if (pct < 0) return '<span class="trend-up" title="Verbesserung um ' + (-diff).toFixed(1) + ' ms (' + (-pct).toFixed(1) + ' %)">▲</span>';
-        if (pct < 25) return '<span class="trend-warn" title="Verschlechterung um ' + diff.toFixed(1) + ' ms (' + pct.toFixed(1) + ' %)">▲</span>';
-        return '<span class="trend-down" title="Verschlechterung um ' + diff.toFixed(1) + ' ms (' + pct.toFixed(1) + ' %)">▼</span>';
+        if (absPct < 10) return 'trend-neutral';
+        if (pct < 0) return 'trend-up';
+        if (pct < 25) return 'trend-warn';
+        return 'trend-down';
       };
 
-      rcTableHtml = '';
+      const diffSymbol = (diff) => diff > 0 ? '+' : diff < 0 ? '−' : '±';
+
+      const diffClass = (cls) => {
+        if (cls === 'trend-up') return 'diff-good';
+        if (cls === 'trend-warn') return 'diff-warn';
+        if (cls === 'trend-down') return 'diff-bad';
+        return 'diff-neutral';
+      };
+
+      rcTableHtml = `<div class="tile-rc-table-wrap"><table class="tile-rc-table"><thead><tr>
+        <th class="col-idx">#</th>
+        <th>Testsituation</th>
+        ${versions.map((v, vi) => `<th class="col-${['current','prev','ref'][vi]}">${versionLabels[vi]}</th>`).join('')}
+        <th class="col-trend">Trend</th>
+        <th class="col-diff">Diff</th>
+      </tr></thead><tbody>
+      ${sits.map((sit, i) => {
+        const cur = (rawValue.versionData[versions[0]] || [])[i];
+        const prv = (rawValue.versionData[versions[1]] || [])[i];
+        const cls = trendClass(cur, prv);
+        const hasData = cur != null && prv != null;
+        const diff = hasData ? cur - prv : 0;
+        const trendSym = cls === 'trend-neutral' ? '—' : (cls === 'trend-up' ? '▲' : '▼');
+        const trendTitle = hasData ? `title="${diff > 0 ? '+' : ''}${diff.toFixed(0)} ms (${prv ? ((diff/prv)*100).toFixed(1) : '0'}%)"` : '';
+        const trendHtml = `<span class="${cls}" ${trendTitle}>${trendSym}</span>`;
+        const diffHtml = hasData ? `<span class="${diffClass(cls)}">${diffSymbol(diff)}${Math.abs(diff).toFixed(0)} ms</span>` : '<span class="diff-neutral">—</span>';
+
+        return `<tr${i % 2 === 1 ? ' class="row-stripe"' : ''}>
+          <td class="col-idx-val">${i + 1}</td>
+          <td class="tile-rc-sit" title="${sit.replace(/"/g, '&quot;')}"><span class="tile-rc-sit-text">${sit}</span></td>
+          ${versions.map((v, vi) => {
+            const val = (rawValue.versionData[v] || [])[i];
+            return `<td class="val-${['cur','prv','ref'][vi]}">${val != null ? val + ' ms' : '<span class="na">n.a.</span>'}</td>`;
+          }).join('')}
+          <td class="col-trend">${trendHtml}</td>
+          <td class="col-diff">${diffHtml}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
     }
 
     let teTableHtml = '';
@@ -336,9 +373,9 @@ const GridEngine = (() => {
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
         </div>
       </div>
+      ${chartAreaHtml}
       ${isRcKpi ? rcTableHtml : ''}
       ${isTeKpi ? teTableHtml : ''}
-      ${chartAreaHtml}
       ${acListHtml}
       <div class="tile-footer">
         <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}${isTeKpi ? ` · ${rawValue.xAxisOrder.length} Releases · ${rawValue.testSituations.length} Dim.` : ''}</span>

@@ -225,30 +225,25 @@ const ChartEngine = (() => {
     const bgColor = cs.getPropertyValue('--bg').trim() || '#0f1117';
     const textColor = cs.getPropertyValue('--text').trim() || '#e4e6ef';
     const mutedColor = cs.getPropertyValue('--text-muted').trim() || '#888ca3';
-    const surfaceColor = cs.getPropertyValue('--surface').trim() || '#1a1d27';
-    const rowStr = cs.getPropertyValue('--row-stripe').trim() || 'rgba(255,255,255,0.025)';
 
     const situations = data.testSituations;
     const numRows = situations.length;
     const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
     const colors = ['#22c55e', '#818cf8', '#ef4444'];
-    const versionLabels = [data.currentVersion, data.previousVersion, 'Referenz (R3.18.1)'];
+    const versionLabels = [data.currentVersion, data.previousVersion, data.referenceVersion];
 
-    /* ---- layout: header area + chart (top) + value table (bottom) ---- */
+    /* ---- layout ---- */
     const headerH = 44;
-    const chartShare = 0.44;
-    const chartBottom = headerH + Math.round((h - headerH) * chartShare);
-    const tableTop = chartBottom + 1;
 
     /* chart-area padding */
     const pad = {
       top: headerH + 10,
       left: Math.max(52, Math.round(w * 0.055)),
-      right: Math.max(10, Math.round(w * 0.015))
+      right: Math.max(10, Math.round(w * 0.015)),
+      bottom: Math.max(16, Math.round((h - headerH) * 0.08))
     };
-    pad.bottom = Math.max(16, Math.round((chartBottom - pad.top) * 0.10));
 
-    const chartH = chartBottom - pad.top - pad.bottom;
+    const chartH = h - pad.top - pad.bottom;
     const chartW = w - pad.left - pad.right;
 
     /* per-group width for the 26 test situations */
@@ -259,9 +254,6 @@ const ChartEngine = (() => {
 
     /* font sizes */
     const axisFontSize = Math.min(Math.max(9, Math.round(groupW * 0.13)), 11);
-    const tableHeaderFont = Math.min(Math.max(10, Math.round((h - tableTop) * 0.045)), 12);
-    const tableFontSize = Math.max(8, Math.min(Math.round((h - tableTop) * 0.035), 11));
-
     const barRound = Math.min(2, Math.round(barW * 0.25));
 
     /* max value */
@@ -358,160 +350,6 @@ const ChartEngine = (() => {
       if (i % 2 === 0 || i === numRows - 1) {
         const cx = pad.left + i * groupW + groupW / 2;
         ctx.fillText(String(i + 1), cx, idxY);
-      }
-    }
-
-    /* ---- separator between chart and table ---- */
-    ctx.fillStyle = surfaceColor;
-    ctx.fillRect(0, chartBottom, w, 1);
-
-    /* ---- VALUE TABLE ---- */
-    const tPad = 6;
-    const tLeft = tPad;
-    const tRight = w - tPad;
-    const tWidth = tRight - tLeft;
-    const tableStartY = tableTop + 8;
-
-    /* column widths: # + situation name + 3 value columns + trend + diff */
-    const idxColW = Math.round(tWidth * 0.04);
-    const sitColW = Math.round(tWidth * 0.24);
-    const valColW = Math.round(tWidth * 0.15);
-    const trendColW = Math.round(tWidth * 0.08);
-    const diffColW = Math.round(tWidth * 0.14);
-    const headerY = tableStartY;
-
-    /* table header background */
-    ctx.fillStyle = 'rgba(255,255,255,0.03)';
-    ctx.beginPath();
-    ctx.roundRect(tLeft, headerY - 10, tWidth, tableHeaderFont + 12, 4);
-    ctx.fill();
-
-    /* table header */
-    ctx.font = `600 ${tableHeaderFont}px -apple-system, sans-serif`;
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = mutedColor;
-    ctx.fillText('#', tLeft + idxColW / 2, headerY);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = textColor;
-    ctx.fillText('Testsituation', tLeft + idxColW + 4, headerY);
-
-    for (let vi = 0; vi < versions.length; vi++) {
-      const tx = tLeft + idxColW + sitColW + vi * valColW;
-      ctx.fillStyle = colors[vi];
-      ctx.textAlign = 'left';
-      ctx.font = `600 ${tableHeaderFont - 1}px -apple-system, sans-serif`;
-      ctx.fillText(versionLabels[vi], tx, headerY);
-    }
-
-    /* trend header */
-    const trendHdrX = tLeft + idxColW + sitColW + versions.length * valColW;
-    ctx.fillStyle = mutedColor;
-    ctx.textAlign = 'center';
-    ctx.font = `600 ${tableHeaderFont}px -apple-system, sans-serif`;
-    ctx.fillText('Trend', trendHdrX + trendColW / 2, headerY);
-
-    /* diff header */
-    const diffHdrX = trendHdrX + trendColW;
-    ctx.fillStyle = mutedColor;
-    ctx.textAlign = 'left';
-    ctx.fillText('Diff', diffHdrX, headerY);
-
-    /* header underline */
-    const headerBottomY = headerY + tableHeaderFont * 0.6 + 4;
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(tLeft, headerBottomY);
-    ctx.lineTo(tRight, headerBottomY);
-    ctx.stroke();
-
-    /* data rows */
-    const availH = h - headerBottomY - 6;
-    const rowH_table = Math.max(14, Math.min(Math.floor(availH / numRows), 18));
-    ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
-
-    for (let i = 0; i < numRows; i++) {
-      const ry = headerBottomY + 4 + i * rowH_table + rowH_table / 2;
-      const sit = situations[i];
-      const shortSit = sit.length > 28 ? sit.substring(0, 26) + '…' : sit;
-
-      /* alternating bg */
-      if (i % 2 === 1) {
-        ctx.fillStyle = rowStr;
-        ctx.beginPath();
-        ctx.roundRect(tLeft, ry - rowH_table / 2, tWidth, rowH_table, 2);
-        ctx.fill();
-      }
-
-      /* row # */
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = mutedColor;
-      ctx.font = `600 ${tableFontSize}px -apple-system, sans-serif`;
-      ctx.fillText(String(i + 1), tLeft + idxColW / 2, ry);
-
-      /* situation name */
-      ctx.textAlign = 'left';
-      ctx.fillStyle = textColor;
-      ctx.fillText(shortSit, tLeft + idxColW + 4, ry);
-      ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
-
-      /* version values */
-      const curVals = data.versionData[versions[0]] || [];
-      const prvVals = data.versionData[versions[1]] || [];
-      for (let vi = 0; vi < versions.length; vi++) {
-        const vals = data.versionData[versions[vi]] || [];
-        const val = vals[i];
-        const tx = tLeft + idxColW + sitColW + vi * valColW;
-        ctx.fillStyle = colors[vi];
-        ctx.textAlign = 'left';
-        ctx.fillText(val !== null && val !== undefined ? val + ' ms' : 'n.a.', tx, ry);
-      }
-
-      /* trend arrow */
-      const cur = curVals[i];
-      const prv = prvVals[i];
-      const trendTx = tLeft + idxColW + sitColW + versions.length * valColW;
-      if (cur !== null && cur !== undefined && prv !== null && prv !== undefined) {
-        const diff = cur - prv;
-        const pct = prv !== 0 ? (diff / prv) * 100 : 0;
-        const absPct = Math.abs(pct);
-        let trendChar, trendColor;
-        if (absPct < 10) {
-          trendChar = '→';
-          trendColor = mutedColor;
-        } else if (pct < 0) {
-          trendChar = '↑';
-          trendColor = '#22c55e';
-        } else if (pct < 25) {
-          trendChar = '↑';
-          trendColor = '#eab308';
-        } else {
-          trendChar = '↓';
-          trendColor = '#ef4444';
-        }
-        ctx.fillStyle = trendColor;
-        ctx.textAlign = 'center';
-        ctx.font = `700 ${tableFontSize + 1}px -apple-system, sans-serif`;
-        ctx.fillText(trendChar, trendTx + trendColW / 2, ry);
-        ctx.font = `${tableFontSize}px -apple-system, sans-serif`;
-
-        /* diff value */
-        const diffTx = trendTx + trendColW;
-        const signX = diffTx + Math.round(diffColW * 0.22);
-        const numX = signX + 3;
-        const sign = diff > 0 ? '+' : diff < 0 ? '−' : '±';
-        ctx.fillStyle = diff === 0 ? mutedColor : trendColor;
-        ctx.textAlign = 'right';
-        ctx.fillText(sign, signX, ry);
-        ctx.textAlign = 'left';
-        ctx.fillText(Math.abs(diff).toFixed(0) + ' ms', numX, ry);
-      } else {
-        const diffTx = trendTx + trendColW;
-        ctx.fillStyle = mutedColor;
-        ctx.textAlign = 'center';
-        ctx.fillText('—', diffTx + diffColW / 2, ry);
       }
     }
   }

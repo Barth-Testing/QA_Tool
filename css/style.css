@@ -919,21 +919,13 @@ body {
 .tile-rc-version-tag.status-blue { background: rgba(99,102,241,0.15); color: #818cf8; }
 .tile-rc-version-tag.status-red { background: var(--red-bg); color: var(--red); }
 
-.tile-rc-table-wrap {
-  flex: 1 1 auto;
-  overflow: hidden;
-  margin: 0.15rem 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  min-height: 0;
-}
 .tile-rc-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
 }
 .tile-rc-table th {
-  padding: 0.25rem 0.4rem;
+  padding: 0.2rem 0.25rem;
   text-align: left;
   font-weight: 600;
   color: var(--text-muted);
@@ -945,45 +937,81 @@ body {
   top: 0;
   z-index: 1;
   font-family: 'DM Sans', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.tile-rc-table th:first-child { width: 34%; }
-.tile-rc-table th.col-trend { text-align: center; }
+.tile-rc-table th.col-idx { width: 1.5rem; text-align: center; }
+.tile-rc-table th:nth-child(2) { min-width: 4rem; }
+.tile-rc-table th.col-current,
+.tile-rc-table th.col-prev,
+.tile-rc-table th.col-ref { width: 4.5rem; }
+.tile-rc-table th.col-trend { text-align: center; width: 2.5rem; }
+.tile-rc-table th.col-diff { width: 4rem; }
 .tile-rc-table td {
-  padding: 0.15rem 0.4rem;
+  padding: 0.12rem 0.25rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-variant-numeric: tabular-nums;
 }
-.tile-rc-table td:first-child {
+.tile-rc-table td.col-idx-val {
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
+  text-align: center;
+  color: var(--text-muted);
 }
-.tile-rc-table tbody tr:nth-child(odd) { background: var(--row-stripe); }
+.tile-rc-table td.val-cur { color: var(--green); font-weight: 600; }
+.tile-rc-table td.val-prv { color: #818cf8; font-weight: 600; }
+.tile-rc-table td.val-ref { color: var(--red); font-weight: 600; }
+.tile-rc-table td.col-trend { text-align: center; font-size: 0.7rem; }
+.tile-rc-table td.col-diff { text-align: right; font-size: 0.6rem; font-weight: 700; }
+.tile-rc-table tbody tr.row-stripe { background: var(--row-stripe); }
 .tile-rc-table tbody tr:hover { background: var(--surface-hover); }
 .tile-rc-sit {
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: 'DM Sans', sans-serif;
+  max-width: 0;
+  min-width: 0;
+  width: 100%;
 }
-.tile-rc-table .col-current { color: var(--green); font-weight: 600; }
-.tile-rc-table .col-prev { color: #818cf8; font-weight: 600; }
-.tile-rc-table .col-ref { color: var(--red); font-weight: 600; }
-.tile-rc-table .col-trend { text-align: center; font-size: 0.85rem; }
+.tile-rc-sit-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.na {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+.diff-neutral { color: var(--text-muted); }
+.diff-bad { color: var(--red); }
+.diff-good { color: var(--green); }
+.diff-warn { color: var(--yellow); }
 
 .tile--rc .tile-chart-area {
-  flex: 1;
+  flex: 0 0 200px;
   min-height: 0;
   padding: 0.25rem 0;
 }
 .tile--rc .tile-chart-area .tile-chart {
   height: 100%;
   min-height: unset;
+}
+.tile-rc-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  margin: 0.15rem 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 /* ===== Time Evolution Tile ===== */
