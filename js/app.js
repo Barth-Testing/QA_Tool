@@ -82,7 +82,7 @@
         if (!kpi) continue;
         if (tile.w < 1) tile.w = 1;
         if (tile.h < 1) tile.h = 1;
-        if (tile.kpi_id === 'rfc-tests') {
+        if (tile.kpi_id === 'rfc-tests' || tile.kpi_id === 'a-bugs-post-release') {
           const size = Math.max(tile.w, tile.h, 1);
           tile.w = size;
           tile.h = size;
@@ -194,10 +194,10 @@
       return;
     }
     const kpi = kpiMap[kpiId];
-    const isRfcTests = kpiId === 'rfc-tests';
-    const hasChart = !isRfcTests && kpi && ChartEngine.getChartType(kpi);
-    const w = isRfcTests ? 1 : (hasChart ? 2 : 1);
-    const h = isRfcTests ? 1 : (hasChart ? 2 : 1);
+    const isVersionedTile = kpiId === 'rfc-tests' || kpiId === 'a-bugs-post-release';
+    const hasChart = !isVersionedTile && kpi && ChartEngine.getChartType(kpi);
+    const w = isVersionedTile ? 1 : (hasChart ? 2 : 1);
+    const h = isVersionedTile ? 1 : (hasChart ? 2 : 1);
     const slot = Grid.findFreeSlot(db.tiles, w, h);
     db.tiles.push({
       id: getNextTileId(),
@@ -245,7 +245,7 @@
     if (!db) return;
     const tile = db.tiles.find(t => t.id === tileId);
     if (!tile) return;
-    if (tile.kpi_id === 'rfc-tests') {
+    if (tile.kpi_id === 'rfc-tests' || tile.kpi_id === 'a-bugs-post-release') {
       const size = Math.max(w, h, 1);
       tile.w = size;
       tile.h = size;
@@ -422,8 +422,10 @@
     return COMPUTED_KPI_IDS.has(kpiId);
   }
 
-  /* ===== RFC Tests Campaign Selection ===== */
+  /* ===== RFC Tests & A-Bugs Campaign Selection ===== */
   const RFC_TESTS_CAMPAIGN_KEY = 'qa_dashboard_rfc_tests_campaign';
+  const ABUGS_CAMPAIGN_KEY = 'qa_dashboard_abugs_campaign';
+  const ABUGS_VALUES_KEY = 'qa_dashboard_abugs_values';
 
   function getRfcTestsCampaignId() {
     try {
@@ -438,6 +440,37 @@
       } else {
         localStorage.removeItem(RFC_TESTS_CAMPAIGN_KEY);
       }
+    } catch {}
+  }
+
+  function getABugsCampaignId() {
+    try {
+      return localStorage.getItem(ABUGS_CAMPAIGN_KEY);
+    } catch { return null; }
+  }
+
+  function setABugsCampaignId(id) {
+    try {
+      if (id) {
+        localStorage.setItem(ABUGS_CAMPAIGN_KEY, id);
+      } else {
+        localStorage.removeItem(ABUGS_CAMPAIGN_KEY);
+      }
+    } catch {}
+  }
+
+  function getABugsValues() {
+    try {
+      const raw = localStorage.getItem(ABUGS_VALUES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  }
+
+  function saveABugsValue(campaignId, value) {
+    const vals = getABugsValues();
+    vals[campaignId] = value;
+    try {
+      localStorage.setItem(ABUGS_VALUES_KEY, JSON.stringify(vals));
     } catch {}
   }
 
@@ -467,6 +500,18 @@
       if (rfcSrc && rfcSrc.values[2]) {
         merged['rfc-tests'] = rfcSrc.values[2].planned || 0;
         if (!rfcC && rfcFallback) setRfcTestsCampaignId(rfcFallback.id);
+      }
+      /* A-Bugs value from per-campaign storage */
+      const bugsCampId = getABugsCampaignId();
+      const bugsCamp = bugsCampId ? campaigns.find(c => c.id === bugsCampId) : null;
+      const bugsFallback = !bugsCamp && campaigns.length > 0 ? campaigns[0] : null;
+      const bugsSrc = bugsCamp || bugsFallback;
+      if (bugsSrc) {
+        const bugsValues = getABugsValues();
+        if (bugsValues[bugsSrc.id] !== undefined) {
+          merged['a-bugs-post-release'] = bugsValues[bugsSrc.id];
+        }
+        if (!bugsCamp && bugsFallback) setABugsCampaignId(bugsFallback.id);
       }
       return merged;
     } catch { return { ...fileValues }; }
@@ -716,10 +761,10 @@
     resizeKpiId = kpiId;
     const db = getCurrentDashboard();
     const cols = db ? db.columns : 4;
-    const isRfc = kpiId === 'rfc-tests';
+    const isVersionedTile = kpiId === 'rfc-tests' || kpiId === 'a-bugs-post-release';
     const grid = $('#resize-grid');
     grid.innerHTML = RESIZE_PRESETS
-      .filter(p => p.w <= cols && (isRfc ? p.w === p.h : true))
+      .filter(p => p.w <= cols && (isVersionedTile ? p.w === p.h : true))
       .map(p => {
         const active = p.w === currentW && p.h === currentH;
         return `<button class="resize-btn${active ? ' resize-btn--active' : ''}" data-w="${p.w}" data-h="${p.h}">
@@ -1003,7 +1048,9 @@
         customValues,
         campaigns,
         rfcEntries,
-        rfcTestsCampaignId: getRfcTestsCampaignId()
+        rfcTestsCampaignId: getRfcTestsCampaignId(),
+        aBugsCampaignId: getABugsCampaignId(),
+        aBugsValues: getABugsValues()
       }, null, 2);
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1053,6 +1100,12 @@
         }
         if (data.rfcTestsCampaignId) {
           setRfcTestsCampaignId(data.rfcTestsCampaignId);
+        }
+        if (data.aBugsCampaignId) {
+          setABugsCampaignId(data.aBugsCampaignId);
+        }
+        if (data.aBugsValues) {
+          try { localStorage.setItem(ABUGS_VALUES_KEY, JSON.stringify(data.aBugsValues)); } catch {}
         }
         saveState();
         render();
@@ -1150,7 +1203,21 @@
         }
         saveCampaigns();
         render();
-        toast(`„RFC Tests" → ${formatExportValue(value)} Tests`);
+        toast(`„${kpiMap[kpiId]?.name || 'RFC Tests'}" → ${formatExportValue(value)} Tests`);
+        return;
+      }
+      if (kpiId === 'a-bugs-post-release') {
+        const campaignId = getABugsCampaignId();
+        if (campaignId) {
+          saveABugsValue(campaignId, value);
+        } else if (campaigns.length > 0) {
+          saveABugsValue(campaigns[0].id, value);
+          setABugsCampaignId(campaigns[0].id);
+        } else {
+          setCustomValue(kpiId, value);
+        }
+        render();
+        toast(`„${kpiMap[kpiId]?.name || 'A-Fehler'}" → ${formatExportValue(value)} ${kpiMap[kpiId]?.unit || ''}`);
         return;
       }
       const existing = getCustomValues()[kpiId];
@@ -1163,10 +1230,14 @@
       if (kpi && !isAc && !isRc && !isTe) toast(`„${kpi.name}" → ${formatExportValue(value)}${kpi.unit ? ' ' + kpi.unit : ''}`);
     });
 
-    /* RFC campaign version change (from tile version selector) */
+    /* Campaign version change (from tile version selector) */
     document.addEventListener('tile:rfc-campaign-change', (e) => {
-      const { campaignId } = e.detail;
-      setRfcTestsCampaignId(campaignId);
+      const { campaignId, kpiId } = e.detail;
+      if (kpiId === 'a-bugs-post-release') {
+        setABugsCampaignId(campaignId);
+      } else {
+        setRfcTestsCampaignId(campaignId);
+      }
       render();
     });
 

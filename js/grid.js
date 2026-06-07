@@ -350,16 +350,16 @@ const GridEngine = (() => {
     }
 
     let rfcVersionHtml = '';
-    if (tile.kpi_id === 'rfc-tests') {
+    if (tile.kpi_id === 'rfc-tests' || tile.kpi_id === 'a-bugs-post-release') {
       let optionsHtml = '<option value="">Version wählen...</option>';
       for (const c of state.campaigns) {
         const selected = c.id === state.selectedRfcCampaignId ? ' selected' : '';
         optionsHtml += `<option value="${c.id}"${selected}>${c.version}</option>`;
       }
-      rfcVersionHtml = `<select class="tile-rfc-version-select">${optionsHtml}</select>`;
+      rfcVersionHtml = `<select class="tile-rfc-version-select" data-kpi-id="${tile.kpi_id}">${optionsHtml}</select>`;
     }
 
-    const hasResizeHandle = chartType !== 'numeric' || tile.kpi_id === 'rfc-tests';
+    const hasResizeHandle = chartType !== 'numeric' || tile.kpi_id === 'rfc-tests' || tile.kpi_id === 'a-bugs-post-release';
 
     el.innerHTML = `
       <div class="tile-status-bar"></div>
@@ -444,8 +444,9 @@ const GridEngine = (() => {
     if (versionSelect) {
       versionSelect.addEventListener('change', (e) => {
         e.stopPropagation();
+        const kpiId = versionSelect.dataset.kpiId || 'rfc-tests';
         const evt = new CustomEvent('tile:rfc-campaign-change', {
-          detail: { campaignId: e.target.value }
+          detail: { campaignId: e.target.value, kpiId }
         });
         document.dispatchEvent(evt);
       });

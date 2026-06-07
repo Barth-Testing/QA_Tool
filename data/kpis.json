@@ -105,7 +105,7 @@
   },
   {
     "id": "a-bugs-post-release",
-    "name": "A-Bugs nach Kunden-Übergabe",
+    "name": "A-Fehler nach Stage Deployment",
     "category": "dev",
     "description": "Kritische Fehler (Severity A), die nach Go-Live gefunden wurden",
     "formula": "COUNT(Bugs WHERE severity='A' AND found_in_prod=true) im Zeitraum",
