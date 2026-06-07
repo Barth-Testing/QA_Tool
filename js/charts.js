@@ -233,7 +233,7 @@ const ChartEngine = (() => {
     const versionLabels = [data.currentVersion, data.previousVersion, data.referenceVersion];
 
     /* ---- layout ---- */
-    const headerH = 44;
+    const headerH = 58;
 
     /* chart-area padding */
     const pad = {
@@ -271,28 +271,34 @@ const ChartEngine = (() => {
     ctx.fillRect(0, 0, w, h);
 
     /* ---- HEADER ---- */
-    ctx.fillStyle = textColor;
-    ctx.font = 'bold 16px -apple-system, sans-serif';
+    ctx.fillStyle = mutedColor;
+    ctx.font = '9px -apple-system, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText('Frontend Response Times im Vergleich', Math.round(w * 0.03), 10);
-    ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillText('QA Dashboard · Performance Test Report', Math.round(w * 0.03), 6);
+
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 18px -apple-system, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText('Frontend Response Times im Vergleich', Math.round(w * 0.03), 18);
+    ctx.font = '11px -apple-system, sans-serif';
     ctx.fillStyle = mutedColor;
-    ctx.fillText(`${new Date().toLocaleDateString('de-DE')} · ${numRows} Testsituationen · 3 Versionen`, Math.round(w * 0.03), 30);
+    ctx.fillText(`${new Date().toLocaleDateString('de-DE')} · ${numRows} Testsituationen · 3 Versionen · ${data.currentVersion} (aktuell) vs ${data.previousVersion} (vorher) vs ${data.referenceVersion} (Referenz)`, Math.round(w * 0.03), 40);
 
     /* version legend */
-    const legX = Math.round(w * 0.50);
+    const legendY = 22;
+    const legX = Math.round(w * 0.55);
     ctx.textBaseline = 'middle';
-    ctx.font = '600 10px -apple-system, sans-serif';
+    ctx.font = '600 11px -apple-system, sans-serif';
     for (let vi = 0; vi < versions.length; vi++) {
       const lx = legX + vi * Math.round(w * 0.14);
       ctx.fillStyle = colors[vi];
       ctx.beginPath();
-      ctx.arc(lx + 6, 22, 4, 0, Math.PI * 2);
+      ctx.arc(lx + 6, legendY, 5, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = textColor;
       ctx.textAlign = 'left';
-      ctx.fillText(versionLabels[vi], lx + 14, 22);
+      ctx.fillText(versionLabels[vi], lx + 15, legendY);
     }
 
     /* header separator */
@@ -352,6 +358,29 @@ const ChartEngine = (() => {
         ctx.fillText(String(i + 1), cx, idxY);
       }
     }
+
+    /* x-axis label */
+    ctx.fillStyle = mutedColor;
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('Testsituationen (indiziert)', w / 2, pad.top + chartH + 16);
+
+    /* ---- FOOTER ---- */
+    const footY = h - 16;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(w * 0.03), footY - 6);
+    ctx.lineTo(w - Math.round(w * 0.03), footY - 6);
+    ctx.stroke();
+    ctx.fillStyle = mutedColor;
+    ctx.font = '8px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('Erstellt mit QA Dashboard', Math.round(w * 0.03), footY);
+    ctx.textAlign = 'right';
+    ctx.fillText(`Seite 1/1 · ${new Date().toLocaleDateString('de-DE')}`, w - Math.round(w * 0.03), footY);
   }
 
   /* ===== Segmented Donut (Campaign) ===== */
@@ -865,8 +894,8 @@ const ChartEngine = (() => {
 
     } else {
       /* ===== FULL MODAL VERSION ===== */
-      const headerH = 52;
-      const pad2 = { top: headerH + 12, left: Math.max(55, Math.round(w * 0.055)), right: Math.max(120, Math.round(w * 0.08)), bottom: Math.max(48, Math.round(h * 0.065)) };
+      const headerH = 62;
+      const pad2 = { top: headerH + 12, left: Math.max(55, Math.round(w * 0.055)), right: Math.max(120, Math.round(w * 0.08)), bottom: Math.max(64, Math.round(h * 0.08)) };
       const chartW = w - pad2.left - pad2.right;
       const chartH = h - pad2.top - pad2.bottom;
 
@@ -875,14 +904,19 @@ const ChartEngine = (() => {
       ctx.fillRect(0, 0, w, h);
 
       /* title */
-      ctx.fillStyle = textColor;
-      ctx.font = 'bold 17px -apple-system, sans-serif';
+      ctx.fillStyle = mutedColor;
+      ctx.font = '9px -apple-system, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.fillText('Empfängersuche nach Parametern — Evolution über Releases', Math.round(w * 0.03), 12);
+      ctx.fillText('QA Dashboard · Performance Test Report', Math.round(w * 0.03), 6);
+
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 17px -apple-system, sans-serif';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Empfängersuche nach Parametern — Evolution über Releases', Math.round(w * 0.03), 18);
       ctx.font = '11px -apple-system, sans-serif';
       ctx.fillStyle = mutedColor;
-      ctx.fillText(`${new Date().toLocaleDateString('de-DE')} · ${numVersions} Releases · ${numSits} Suchdimensionen`, Math.round(w * 0.03), 33);
+      ctx.fillText(`${new Date().toLocaleDateString('de-DE')} · ${numVersions} Releases · ${numSits} Suchdimensionen`, Math.round(w * 0.03), 40);
 
       /* separator */
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
@@ -976,7 +1010,23 @@ const ChartEngine = (() => {
       ctx.font = '10px -apple-system, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillText('Release', w / 2, h - 12);
+      ctx.fillText('Release', w / 2, h - 32);
+
+      /* ---- FOOTER ---- */
+      const footY = h - 16;
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(w * 0.03), footY - 6);
+      ctx.lineTo(w - Math.round(w * 0.03), footY - 6);
+      ctx.stroke();
+      ctx.fillStyle = mutedColor;
+      ctx.font = '8px -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('Erstellt mit QA Dashboard', Math.round(w * 0.03), footY);
+      ctx.textAlign = 'right';
+      ctx.fillText(`Seite 1/1 · ${new Date().toLocaleDateString('de-DE')}`, w - Math.round(w * 0.03), footY);
 
       /* legend on the right side */
       const legX = w - Math.round(w * 0.075) + 4;

@@ -368,6 +368,7 @@ const GridEngine = (() => {
         ${rfcVersionHtml}
         <div class="tile-actions">
           <button class="tile-btn tile-btn-print" title="Als Bild speichern" aria-label="Als Bild speichern"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+          ${isRcKpi || isTeKpi ? '<button class="tile-btn tile-btn-chart" title="Diagramm in Dialog anzeigen" aria-label="Diagramm in Dialog anzeigen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>' : ''}
           ${hasResizeHandle ? '<button class="tile-btn tile-btn-resize" title="Größe ändern" aria-label="Größe ändern"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="3" y1="9" x2="9" y2="3"/></svg></button>' : ''}
           <button class="tile-btn tile-btn-info" title="Details">ℹ</button>
           <button class="tile-btn tile-btn-remove" title="Entfernen">✕</button>
@@ -391,8 +392,30 @@ const GridEngine = (() => {
 
     el.querySelector('.tile-btn-print').addEventListener('click', (e) => {
       e.stopPropagation();
-      downloadTileAsImage(el, kpi.name);
+      if (isRcKpi || isTeKpi) {
+        const rawValue = state.customValues[tile.kpi_id] !== undefined
+          ? state.customValues[tile.kpi_id] : kpi.example_value;
+        const evt = new CustomEvent('tile:chart-modal', {
+          detail: { kpiId: tile.kpi_id, kpi, data: rawValue }
+        });
+        document.dispatchEvent(evt);
+      } else {
+        downloadTileAsImage(el, kpi.name);
+      }
     });
+
+    const chartBtn = el.querySelector('.tile-btn-chart');
+    if (chartBtn) {
+      chartBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rawValue = state.customValues[tile.kpi_id] !== undefined
+          ? state.customValues[tile.kpi_id] : kpi.example_value;
+        const evt = new CustomEvent('tile:chart-modal', {
+          detail: { kpiId: tile.kpi_id, kpi, data: rawValue }
+        });
+        document.dispatchEvent(evt);
+      });
+    }
 
     el.querySelector('.tile-btn-info').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -437,19 +460,6 @@ const GridEngine = (() => {
     }
 
     if (isTeKpi) {
-      const chartBtn = el.querySelector('.tile-te-chart-btn');
-      if (chartBtn) {
-        chartBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const teVal = state.customValues[tile.kpi_id] !== undefined
-            ? state.customValues[tile.kpi_id] : kpi.example_value;
-          const evt = new CustomEvent('tile:chart-modal', {
-            detail: { kpiId: tile.kpi_id, kpi, data: teVal }
-          });
-          document.dispatchEvent(evt);
-        });
-      }
-
       const selA = el.querySelector('.te-version-select[data-te-side="a"]');
       const selB = el.querySelector('.te-version-select[data-te-side="b"]');
       if (selA && selB) {
