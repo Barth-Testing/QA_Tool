@@ -1433,6 +1433,79 @@ body {
   display: block;
 }
 
+.chart-modal-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.chart-tab {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+  font-family: inherit;
+}
+.chart-tab:hover { color: var(--text); }
+.chart-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.chart-modal-data {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 0.5rem;
+}
+.chart-modal-data table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+.chart-modal-data th {
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.chart-modal-data td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chart-modal-data td:nth-child(2) {
+  font-family: 'DM Sans', sans-serif;
+  min-width: 180px;
+  white-space: normal;
+  word-break: break-word;
+}
+.chart-modal-data tbody tr:hover { background: var(--surface-hover); }
+.chart-modal-data tbody tr.row-stripe { background: var(--row-stripe); }
+.chart-modal-data tbody tr.row-stripe:hover { background: var(--surface-hover); }
+.chart-modal-data .val-ms { text-align: right; min-width: 70px; }
+.chart-modal-data .val-current { color: var(--green); font-weight: 600; }
+.chart-modal-data .val-previous { color: #818cf8; font-weight: 600; }
+.chart-modal-data .val-reference { color: var(--red); font-weight: 600; }
+
 /* ===== RC Add Release Modal ===== */
 .rc-add-modal-content {
   width: 700px;

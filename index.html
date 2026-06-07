@@ -199,8 +199,13 @@
           <button id="btn-close-chart" class="btn-close">&times;</button>
         </div>
       </div>
+      <div class="chart-modal-tabs">
+        <button class="chart-tab active" data-chart-tab="chart">Diagramm</button>
+        <button class="chart-tab" data-chart-tab="data">Daten</button>
+      </div>
       <div class="chart-modal-body">
         <canvas id="chart-modal-canvas"></canvas>
+        <div id="chart-modal-data" class="chart-modal-data hidden"></div>
       </div>
     </div>
   </div>

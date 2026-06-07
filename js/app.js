@@ -1171,25 +1171,115 @@
     });
 
     /* Chart modal */
+    let chartModalData = null;
+    let chartModalIsTe = false;
+
     document.addEventListener('tile:chart-modal', (e) => {
       const { kpiId, kpi, data } = e.detail;
       if (!data) return;
-      const isTe = data.xAxisOrder && data.versionData;
-      $('#chart-modal-title').textContent = isTe
+      chartModalData = data;
+      chartModalIsTe = !!(data.xAxisOrder && data.versionData);
+      $('#chart-modal-title').textContent = chartModalIsTe
         ? `${kpi.name} — Evolution über Releases`
         : `${kpi.name} — Frontend Response Times im Vergleich`;
       $('#chart-modal').classList.remove('hidden');
+      /* reset to chart tab */
+      setChartTab('chart');
       requestAnimationFrame(() => {
         const canvas = $('#chart-modal-canvas');
-        if (isTe) {
+        if (chartModalIsTe) {
           ChartEngine.drawTimeEvolution(canvas, data, false);
         } else {
           ChartEngine.drawResponseComparison(canvas, data);
         }
       });
     });
-    $('#btn-close-chart').addEventListener('click', () => $('#chart-modal').classList.add('hidden'));
-    $('#chart-modal .modal-backdrop').addEventListener('click', () => $('#chart-modal').classList.add('hidden'));
+
+    function setChartTab(tab) {
+      document.querySelectorAll('.chart-tab').forEach(b => b.classList.toggle('active', b.dataset.chartTab === tab));
+      const isChart = tab === 'chart';
+      $('#chart-modal-canvas').classList.toggle('hidden', !isChart);
+      $('#chart-modal-data').classList.toggle('hidden', isChart);
+      if (!isChart && chartModalData) renderChartDataTable();
+    }
+
+    function renderChartDataTable() {
+      const data = chartModalData;
+      const container = $('#chart-modal-data');
+      if (!data || !container) return;
+      if (chartModalIsTe) {
+        renderTeDataTable(container, data);
+      } else {
+        renderRcDataTable(container, data);
+      }
+    }
+
+    function renderRcDataTable(container, data) {
+      const versions = [data.currentVersion, data.previousVersion, data.referenceVersion];
+      const versionLabels = ['Aktuell', 'Vorher', 'Referenz'];
+      const versionColors = ['val-current', 'val-previous', 'val-reference'];
+      const sits = data.testSituations;
+      let html = `<table><thead><tr><th>#</th><th>Testsituation</th>`;
+      for (let vi = 0; vi < versions.length; vi++) {
+        html += `<th class="val-ms ${versionColors[vi]}">${versionLabels[vi]}<br>${versions[vi]}</th>`;
+      }
+      html += `</tr></thead><tbody>`;
+      for (let i = 0; i < sits.length; i++) {
+        const valClasses = [];
+        for (let vi = 0; vi < versions.length; vi++) {
+          const vals = data.versionData[versions[vi]] || [];
+          const v = vals[i];
+          valClasses.push(v != null ? v + ' ms' : '<span style="color:var(--text-muted);font-style:italic">n.a.</span>');
+        }
+        html += `<tr${i % 2 === 1 ? ' class="row-stripe"' : ''}>
+          <td style="text-align:center;color:var(--text-muted);font-weight:500">${i + 1}</td>
+          <td>${sits[i]}</td>
+          ${valClasses.map((vc, vi) => `<td class="val-ms ${versionColors[vi]}">${vc}</td>`).join('')}
+        </tr>`;
+      }
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+    }
+
+    function renderTeDataTable(container, data) {
+      const versions = data.xAxisOrder;
+      const sits = data.testSituations;
+      const lineColors = ['#6366f1', '#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6'];
+      let html = `<table><thead><tr><th>Release</th>`;
+      for (let si = 0; si < sits.length; si++) {
+        html += `<th style="color:${lineColors[si]}">${sits[si]}</th>`;
+      }
+      html += `</tr></thead><tbody>`;
+      for (let vi = 0; vi < versions.length; vi++) {
+        const vals = data.versionData[versions[vi]] || [];
+        html += `<tr${vi % 2 === 1 ? ' class="row-stripe"' : ''}><td style="font-weight:600;color:var(--text)">${versions[vi]}</td>`;
+        for (let si = 0; si < sits.length; si++) {
+          const v = vals[si];
+          if (v === null || v === undefined) {
+            html += '<td style="color:var(--text-muted)">—</td>';
+          } else {
+            const isLatest = versions[vi] === data.latestVersion;
+            html += `<td style="text-align:right;${isLatest ? 'color:var(--green);font-weight:600' : ''}">${v.toFixed(2)} s</td>`;
+          }
+        }
+        html += `</tr>`;
+      }
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+    }
+
+    document.querySelectorAll('.chart-tab').forEach(tab => {
+      tab.addEventListener('click', () => setChartTab(tab.dataset.chartTab));
+    });
+
+    $('#btn-close-chart').addEventListener('click', () => {
+      $('#chart-modal').classList.add('hidden');
+      chartModalData = null;
+    });
+    $('#chart-modal .modal-backdrop').addEventListener('click', () => {
+      $('#chart-modal').classList.add('hidden');
+      chartModalData = null;
+    });
 
     /* Chart modal download */
     $('#btn-chart-download').addEventListener('click', () => {
