@@ -2226,14 +2226,14 @@
       filterHtml += `<option value="${c.id}"${sel}>${c.version}</option>`;
     }
     /* ensure dropdown exists or create it */
-    let filterEl = container.querySelector('.rfc-filter-select');
-    if (!filterEl) {
-      filterEl = document.createElement('div');
-      filterEl.className = 'rfc-filter-wrap';
-      filterEl.innerHTML = `<label class="rfc-filter-label">Release:</label><select class="rfc-filter-select">${filterHtml}</select>`;
-      container.insertBefore(filterEl, list);
+    let filterWrap = container.querySelector('.rfc-filter-wrap');
+    if (!filterWrap) {
+      filterWrap = document.createElement('div');
+      filterWrap.className = 'rfc-filter-wrap';
+      filterWrap.innerHTML = `<label class="rfc-filter-label">Release:</label><select class="rfc-filter-select">${filterHtml}</select>`;
+      container.insertBefore(filterWrap, list);
     } else {
-      filterEl.querySelector('.rfc-filter-select').innerHTML = filterHtml;
+      filterWrap.querySelector('.rfc-filter-select').innerHTML = filterHtml;
     }
 
     const campaignVersionMap = {};
