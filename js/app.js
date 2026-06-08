@@ -8,6 +8,36 @@
   const EXPORT_URL = 'data/qa-dashboard-export.json';
   const STORAGE_KEY = 'qa_dashboard_state';
   const VALUES_KEY = 'qa_dashboard_values';
+  const SERVER_BASE = window.location.origin;
+
+  /* ===== Server-Synchronisation (Multi-User) ===== */
+  async function loadFromServer() {
+    try {
+      const resp = await fetch(`${SERVER_BASE}/api/data`);
+      if (!resp.ok) return;
+      const all = await resp.json();
+      for (const [key, data] of Object.entries(all)) {
+        if (data && data.value !== null && data.value !== undefined) {
+          try {
+            const val = data.value;
+            localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  function syncToServer(key, value) {
+    setTimeout(async () => {
+      try {
+        await fetch(`${SERVER_BASE}/api/data/${encodeURIComponent(key)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value })
+        });
+      } catch {}
+    }, 0);
+  }
 
   let kpis = [];
   let kpiMap = {};
@@ -43,6 +73,7 @@
     const next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem(THEME_KEY, next);
+    syncToServer(THEME_KEY, next);
     updateThemeBtn(next);
     render();
   }
@@ -60,6 +91,7 @@
   async function init() {
     initTheme();
     await loadData();
+    await loadFromServer();
     migrateAcStorage();
     setupEventListeners();
     const savedColumns = {};
@@ -143,6 +175,7 @@
         kpis
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      syncToServer(STORAGE_KEY, state);
     } catch (e) { /* localStorage full or unavailable */ }
   }
 
@@ -437,8 +470,10 @@
     try {
       if (id) {
         localStorage.setItem(RFC_TESTS_CAMPAIGN_KEY, id);
+        syncToServer(RFC_TESTS_CAMPAIGN_KEY, id);
       } else {
         localStorage.removeItem(RFC_TESTS_CAMPAIGN_KEY);
+        syncToServer(RFC_TESTS_CAMPAIGN_KEY, null);
       }
     } catch {}
   }
@@ -453,8 +488,10 @@
     try {
       if (id) {
         localStorage.setItem(ABUGS_CAMPAIGN_KEY, id);
+        syncToServer(ABUGS_CAMPAIGN_KEY, id);
       } else {
         localStorage.removeItem(ABUGS_CAMPAIGN_KEY);
+        syncToServer(ABUGS_CAMPAIGN_KEY, null);
       }
     } catch {}
   }
@@ -471,6 +508,7 @@
     vals[campaignId] = value;
     try {
       localStorage.setItem(ABUGS_VALUES_KEY, JSON.stringify(vals));
+      syncToServer(ABUGS_VALUES_KEY, vals);
     } catch {}
   }
 
@@ -521,6 +559,7 @@
     const vals = getCustomValues();
     vals[kpiId] = value;
     localStorage.setItem(VALUES_KEY, JSON.stringify(vals));
+    syncToServer(VALUES_KEY, vals);
   }
 
   /* ===== Render ===== */
@@ -1078,6 +1117,7 @@
         if (data.theme) {
           document.documentElement.setAttribute('data-theme', data.theme);
           localStorage.setItem(THEME_KEY, data.theme);
+          syncToServer(THEME_KEY, data.theme);
           updateThemeBtn(data.theme);
         }
         if (data.dashboards) dashboards = data.dashboards;
@@ -1089,6 +1129,7 @@
         if (data.currentDashboardId) currentDashboardId = data.currentDashboardId;
         if (data.customValues) {
           localStorage.setItem(VALUES_KEY, JSON.stringify(data.customValues));
+          syncToServer(VALUES_KEY, data.customValues);
         }
         if (data.campaigns) {
           campaigns = data.campaigns;
@@ -1105,7 +1146,10 @@
           setABugsCampaignId(data.aBugsCampaignId);
         }
         if (data.aBugsValues) {
-          try { localStorage.setItem(ABUGS_VALUES_KEY, JSON.stringify(data.aBugsValues)); } catch {}
+          try {
+            localStorage.setItem(ABUGS_VALUES_KEY, JSON.stringify(data.aBugsValues));
+            syncToServer(ABUGS_VALUES_KEY, data.aBugsValues);
+          } catch {}
         }
         saveState();
         render();
@@ -1459,6 +1503,7 @@
   function saveCampaigns() {
     try {
       localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
+      syncToServer(CAMPAIGNS_KEY, campaigns);
     } catch {}
   }
 
@@ -1958,6 +2003,7 @@
   function saveRfcEntries() {
     try {
       localStorage.setItem(RFC_KEY, JSON.stringify(rfcEntries));
+      syncToServer(RFC_KEY, rfcEntries);
     } catch {}
   }
 

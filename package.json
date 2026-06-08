@@ -1,0 +1,12 @@
+{
+  "name": "qa-dashboard",
+  "version": "2.0.0",
+  "description": "QA Dashboard mit Multi-User Support",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
