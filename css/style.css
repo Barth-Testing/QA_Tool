@@ -357,6 +357,124 @@ body {
   color: var(--text);
 }
 
+/* ===== RFC Filter Dropdown ===== */
+.rfc-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0;
+}
+.rfc-filter-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.rfc-filter-select {
+  flex: 1;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.78rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.rfc-filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* ===== RFC Archive Button ===== */
+.rfc-btn-archive {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  opacity: 0;
+}
+.rfc-tile:hover .rfc-btn-archive {
+  opacity: 1;
+}
+.rfc-btn-archive:hover {
+  color: var(--yellow);
+  background: var(--yellow-bg);
+}
+
+/* ===== RFC Detail Modal Editable ===== */
+.rfc-detail-text-input {
+  flex: 1;
+  min-width: 80px;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: inherit;
+}
+.rfc-detail-text-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.rfc-detail-testref {
+  width: 100px;
+  flex-shrink: 0;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.rfc-detail-testref:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.rfc-detail-testref::placeholder {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+.rfc-detail-ac-remove {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+.rfc-detail-ac-remove:hover {
+  opacity: 1;
+  background: var(--red-bg);
+}
+.rfc-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+.rfc-detail-ac-add {
+  font-size: 0.78rem;
+}
+
 /* ===== Campaign Tile ===== */
 .campaign-tile {
   background: var(--surface);

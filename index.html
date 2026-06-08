@@ -135,6 +135,10 @@
           <input type="text" id="rfc-add-name" placeholder="z.B. RFC-231, RFC-378.01">
         </div>
         <div class="rfc-add-field">
+          <label for="rfc-add-campaign">Release</label>
+          <select id="rfc-add-campaign-field"></select>
+        </div>
+        <div class="rfc-add-field">
           <label for="rfc-add-ac-count">Anzahl Acceptance Criteria</label>
           <select id="rfc-add-ac-count">
             <option value="1">1</option>
@@ -166,6 +170,17 @@
         <button id="btn-close-rfc-detail" class="btn-close">&times;</button>
       </div>
       <div class="rfc-detail-body" id="rfc-detail-body"></div>
+    </div>
+  </div>
+
+  <div id="rfc-archive-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content archive-modal-content">
+      <div class="modal-header">
+        <h2>Archivierte RFCs</h2>
+        <button id="btn-close-rfc-archive" class="btn-close">&times;</button>
+      </div>
+      <div id="rfc-archive-list" class="archive-modal-body"></div>
     </div>
   </div>
 

@@ -2186,10 +2186,20 @@
         if (old && old.acs && typeof old.acs === 'object') {
           const acs = {};
           for (const [k, v] of Object.entries(old.acs)) {
-            acs[k] = { text: v.text || k, passed: !!v.passed };
+            acs[k] = { text: v.text || k, passed: !!v.passed, testRef: v.testRef || '' };
           }
-          rfcEntries.push({ id: 'rfc_' + Date.now(), name: 'RFC (migriert)', acs });
+          rfcEntries.push({ id: 'rfc_' + Date.now(), name: 'RFC (migriert)', campaignId: null, archived: false, acs });
           saveRfcEntries();
+        }
+      }
+      /* migrate existing entries: add missing fields */
+      for (const entry of rfcEntries) {
+        if (entry.campaignId === undefined) entry.campaignId = null;
+        if (entry.archived === undefined) entry.archived = false;
+        if (entry.acs) {
+          for (const ac of Object.values(entry.acs)) {
+            if (ac.testRef === undefined) ac.testRef = '';
+          }
         }
       }
     } catch { rfcEntries = []; }
@@ -2203,17 +2213,53 @@
   }
 
   function renderRfcSidebar() {
+    const container = $('#sidebar-rfc');
     const list = $('#rfc-list');
-    if (!rfcEntries || rfcEntries.length === 0) {
+
+    /* build campaign filter dropdown */
+    const activeCampaigns = campaigns.filter(c => !c.archived);
+    const storedFilter = localStorage.getItem('qa_dashboard_rfc_filter') || '';
+    let filterCampaignId = storedFilter || '';
+    let filterHtml = '<option value="" selected>Alle RFCs</option>';
+    for (const c of activeCampaigns) {
+      const sel = c.id === filterCampaignId ? ' selected' : '';
+      filterHtml += `<option value="${c.id}"${sel}>${c.version}</option>`;
+    }
+    /* ensure dropdown exists or create it */
+    let filterEl = container.querySelector('.rfc-filter-select');
+    if (!filterEl) {
+      filterEl = document.createElement('div');
+      filterEl.className = 'rfc-filter-wrap';
+      filterEl.innerHTML = `<label class="rfc-filter-label">Release:</label><select class="rfc-filter-select">${filterHtml}</select>`;
+      container.insertBefore(filterEl, list);
+    } else {
+      filterEl.querySelector('.rfc-filter-select').innerHTML = filterHtml;
+    }
+
+    const campaignVersionMap = {};
+    for (const c of activeCampaigns) campaignVersionMap[c.id] = c.version;
+
+    /* filter: show active (non-archived) entries matching campaign filter */
+    const visible = rfcEntries.filter(e => {
+      if (e.archived) return false;
+      if (filterCampaignId && e.campaignId !== filterCampaignId) return false;
+      return true;
+    });
+
+    if (visible.length === 0) {
       list.innerHTML = '<div class="empty-state-text" style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem">Keine RFC-Daten vorhanden</div>';
+      /* still update archive link */
+      updateRfcArchiveLink();
       return;
     }
 
-    list.innerHTML = rfcEntries.map((entry, idx) => {
+    list.innerHTML = visible.map((entry) => {
       const acEntries = Object.entries(entry.acs);
       const total = acEntries.length;
       const covered = acEntries.filter(([, ac]) => ac.passed).length;
       const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+      const campaignLabel = entry.campaignId && campaignVersionMap[entry.campaignId]
+        ? campaignVersionMap[entry.campaignId] : '';
 
       let acGridHtml = '';
       for (const [acId, ac] of acEntries) {
@@ -2224,8 +2270,9 @@
       return `
         <div class="rfc-tile">
           <div class="rfc-tile-header">
-            <span>${entry.name}</span>
+            <span>${entry.name}${campaignLabel ? ' <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(' + campaignLabel + ')</span>' : ''}</span>
             <div style="display:flex;gap:0.2rem;align-items:center">
+              <button class="rfc-btn-archive" title="Archivieren" data-entry-id="${entry.id}">📦</button>
               <button class="rfc-btn-print" title="Als Bild speichern" aria-label="Als Bild speichern" data-entry-id="${entry.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
               <button class="rfc-btn-remove" title="Entfernen" data-entry-id="${entry.id}">✕</button>
             </div>
@@ -2241,7 +2288,28 @@
         </div>`;
     }).join('');
 
+    updateRfcArchiveLink();
     requestAnimationFrame(drawRfcDonuts);
+  }
+
+  function updateRfcArchiveLink() {
+    const container = $('#sidebar-rfc');
+    let link = container.querySelector('.rfc-archive-link');
+    const archivedCount = rfcEntries.filter(e => e.archived).length;
+    if (archivedCount > 0) {
+      if (!link) {
+        link = document.createElement('div');
+        link.className = 'sidebar-archive-link rfc-archive-link';
+        link.innerHTML = `<button class="btn-archive-link">📦 Archiv (${archivedCount})</button>`;
+        container.appendChild(link);
+        link.querySelector('.btn-archive-link').addEventListener('click', () => openRfcArchive());
+      } else {
+        link.innerHTML = `<button class="btn-archive-link">📦 Archiv (${archivedCount})</button>`;
+        link.querySelector('.btn-archive-link').addEventListener('click', () => openRfcArchive());
+      }
+    } else if (link) {
+      link.remove();
+    }
   }
 
   function drawRfcDonuts() {
@@ -2257,21 +2325,22 @@
     }
   }
 
+  function saveRfcSync() {
+    const merged = getCustomValues();
+    merged['test-coverage-rfc'] = { entries: rfcEntries };
+    setCustomValue('test-coverage-rfc', merged['test-coverage-rfc']);
+    saveRfcEntries();
+  }
+
   function toggleRfcAc(entryId, acId) {
     const entry = rfcEntries.find(e => e.id === entryId);
     if (!entry || !entry.acs[acId]) return;
     entry.acs[acId].passed = !entry.acs[acId].passed;
-    const merged = getCustomValues();
-    /* sync first entry to the KPI value for consistency */
-    if (rfcEntries.length > 0) {
-      merged['test-coverage-rfc'] = { entries: rfcEntries };
-    }
-    setCustomValue('test-coverage-rfc', merged['test-coverage-rfc']);
-    saveRfcEntries();
+    saveRfcSync();
     renderRfcSidebar();
   }
 
-  function createRfcEntry(name) {
+  function createRfcEntry(name, campaignId) {
     const id = 'rfc_' + Date.now();
     const acCount = parseInt(document.getElementById('rfc-add-ac-count').value) || 3;
     const acInputs = document.querySelectorAll('.rfc-add-ac-row input');
@@ -2279,9 +2348,9 @@
     for (let i = 0; i < acCount; i++) {
       const acId = 'AC' + (i + 1);
       const text = acInputs[i] ? acInputs[i].value.trim() : 'AC ' + (i + 1);
-      acs[acId] = { text: text || 'AC ' + (i + 1), passed: true };
+      acs[acId] = { text: text || 'AC ' + (i + 1), passed: true, testRef: '' };
     }
-    const newEntry = { id, name, acs };
+    const newEntry = { id, name, campaignId: campaignId || null, archived: false, acs };
     rfcEntries.unshift(newEntry);
     saveRfcEntries();
     renderRfcSidebar();
@@ -2308,9 +2377,89 @@
     toast('RFC entfernt');
   }
 
+  function openRfcArchive() {
+    const modal = document.getElementById('rfc-archive-modal');
+    const list = document.getElementById('rfc-archive-list');
+    const archived = rfcEntries.filter(e => e.archived);
+    if (archived.length === 0) {
+      list.innerHTML = '<div class="archive-empty">Keine archivierten RFCs</div>';
+    } else {
+      list.innerHTML = archived.map(e => {
+        const acEntries = Object.entries(e.acs);
+        const total = acEntries.length;
+        const covered = acEntries.filter(([, ac]) => ac.passed).length;
+        const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+        return `
+          <div class="archive-campaign-tile" data-entry-id="${e.id}">
+            <div class="archive-campaign-header">
+              <span>${e.name}</span>
+              <button class="btn-campaign-restore" data-entry-id="${e.id}">Wiederherstellen</button>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">${covered}/${total} ACs · ${pct}% abgedeckt</div>
+          </div>`;
+      }).join('');
+    }
+    modal.classList.remove('hidden');
+  }
+
+  function archiveRfc(id) {
+    const entry = rfcEntries.find(e => e.id === id);
+    if (!entry) return;
+    entry.archived = true;
+    saveRfcSync();
+    renderRfcSidebar();
+    toast('RFC archiviert');
+  }
+
+  function unarchiveRfc(id) {
+    const entry = rfcEntries.find(e => e.id === id);
+    if (!entry) return;
+    entry.archived = false;
+    saveRfcSync();
+    renderRfcSidebar();
+    toast('RFC wiederhergestellt');
+  }
+
+  function renderRfcDetailModal(entry) {
+    document.getElementById('rfc-detail-title').textContent = 'Details: ' + entry.name;
+    const body = document.getElementById('rfc-detail-body');
+    body.innerHTML = Object.entries(entry.acs).map(([acId, ac]) => {
+      const st = ac.passed ? 'green' : 'red';
+      const statusText = ac.passed ? 'Bestanden' : 'Offen';
+      return `
+        <div class="rfc-detail-item" data-entry-id="${entry.id}" data-ac-id="${acId}">
+          <span class="rfc-detail-dot ${st}"></span>
+          <span class="rfc-detail-id">${acId}</span>
+          <input class="rfc-detail-text-input" value="${(ac.text || '').replace(/"/g, '&quot;')}" placeholder="AC Beschreibung">
+          <input class="rfc-detail-testref" value="${(ac.testRef || '').replace(/"/g, '&quot;')}" placeholder="BEAR-xxxx">
+          <span class="rfc-detail-status ${st}">${statusText}</span>
+          <button class="rfc-detail-ac-remove" title="AC entfernen">×</button>
+        </div>`;
+    }).join('');
+    body.innerHTML += `<div class="rfc-detail-actions"><button class="btn btn-sm btn-secondary rfc-detail-ac-add">+ AC hinzufügen</button></div>`;
+    document.getElementById('rfc-detail-modal').classList.remove('hidden');
+  }
+
   function setupRfcEvents() {
+    /* RFC filter change */
+    const container = $('#sidebar-rfc');
+    container.addEventListener('change', (e) => {
+      const sel = e.target.closest('.rfc-filter-select');
+      if (!sel) return;
+      localStorage.setItem('qa_dashboard_rfc_filter', sel.value);
+      renderRfcSidebar();
+    });
+
+    /* archive button */
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.rfc-btn-archive');
+      if (!btn) return;
+      e.stopPropagation();
+      archiveRfc(btn.dataset.entryId);
+    });
+
     /* delete RFC */
-    $('#rfc-list').addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       const btn = e.target.closest('.rfc-btn-remove');
       if (!btn) return;
       e.stopPropagation();
@@ -2318,7 +2467,7 @@
     });
 
     /* print RFC tile */
-    $('#rfc-list').addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       const btn = e.target.closest('.rfc-btn-print');
       if (!btn) return;
       e.stopPropagation();
@@ -2371,49 +2520,42 @@
         toast('Bitte einen RFC-Namen eingeben');
         return;
       }
-      createRfcEntry(name);
+      const campaignSelect = document.getElementById('rfc-add-campaign-field');
+      const campaignId = campaignSelect ? campaignSelect.value : '';
+      createRfcEntry(name, campaignId);
       document.getElementById('rfc-add-modal').classList.add('hidden');
       toast(`RFC ${name} erstellt`);
     });
 
     /* AC toggle in sidebar */
-    $('#rfc-list').addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       const item = e.target.closest('.rfc-ac-item');
       if (!item) return;
       toggleRfcAc(item.dataset.entryId, item.dataset.acId);
     });
 
     /* Detail button → open detail modal */
-    $('#rfc-list').addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
       const btn = e.target.closest('.rfc-detail-btn');
       if (!btn) return;
-      const entryId = btn.dataset.entryId;
-      const entry = rfcEntries.find(e => e.id === entryId);
+      const entry = rfcEntries.find(e => e.id === btn.dataset.entryId);
       if (!entry) return;
-      document.getElementById('rfc-detail-title').textContent = 'Details: ' + entry.name;
-      const body = document.getElementById('rfc-detail-body');
-      body.innerHTML = Object.entries(entry.acs).map(([acId, ac]) => {
-        const st = ac.passed ? 'green' : 'red';
-        const statusText = ac.passed ? 'Bestanden' : 'Offen';
-        return `
-          <div class="rfc-detail-item" data-entry-id="${entry.id}" data-ac-id="${acId}">
-            <span class="rfc-detail-dot ${st}"></span>
-            <span class="rfc-detail-id">${acId}</span>
-            <span class="rfc-detail-text">${ac.text || ''}</span>
-            <span class="rfc-detail-status ${st}">${statusText}</span>
-          </div>`;
-      }).join('');
-      document.getElementById('rfc-detail-modal').classList.remove('hidden');
+      renderRfcDetailModal(entry);
     });
 
-    /* toggle AC from detail modal — update in place, no close/reopen */
-    document.getElementById('rfc-detail-body').addEventListener('click', (e) => {
-      const item = e.target.closest('.rfc-detail-item');
+    /* --- Detail modal events --- */
+    const detailBody = document.getElementById('rfc-detail-body');
+
+    /* toggle AC pass/fail from detail modal */
+    detailBody.addEventListener('click', (e) => {
+      const dot = e.target.closest('.rfc-detail-dot');
+      if (!dot) return;
+      const item = dot.closest('.rfc-detail-item');
       if (!item) return;
       const entryId = item.dataset.entryId;
       const acId = item.dataset.acId;
       toggleRfcAc(entryId, acId);
-      /* update this item's appearance only */
+      /* update appearance */
       const entry = rfcEntries.find(e => e.id === entryId);
       if (!entry || !entry.acs[acId]) return;
       const ac = entry.acs[acId];
@@ -2424,10 +2566,102 @@
       item.querySelector('.rfc-detail-status').textContent = statusText;
     });
 
+    /* save AC text/testRef on input change */
+    detailBody.addEventListener('change', (e) => {
+      const input = e.target.closest('.rfc-detail-text-input, .rfc-detail-testref');
+      if (!input) return;
+      const item = input.closest('.rfc-detail-item');
+      if (!item) return;
+      const entryId = item.dataset.entryId;
+      const acId = item.dataset.acId;
+      const entry = rfcEntries.find(e => e.id === entryId);
+      if (!entry || !entry.acs[acId]) return;
+      const ac = entry.acs[acId];
+      if (input.classList.contains('rfc-detail-text-input')) {
+        ac.text = input.value;
+      } else if (input.classList.contains('rfc-detail-testref')) {
+        ac.testRef = input.value;
+      }
+      saveRfcSync();
+      renderRfcSidebar();
+    });
+
+    /* remove AC from detail modal */
+    detailBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('.rfc-detail-ac-remove');
+      if (!btn) return;
+      const item = btn.closest('.rfc-detail-item');
+      if (!item) return;
+      const entryId = item.dataset.entryId;
+      const acId = item.dataset.acId;
+      const entry = rfcEntries.find(e => e.id === entryId);
+      if (!entry || !entry.acs[acId]) return;
+      delete entry.acs[acId];
+      saveRfcSync();
+      renderRfcSidebar();
+      /* update modal in-place */
+      const entry2 = rfcEntries.find(e => e.id === entryId);
+      if (entry2) renderRfcDetailModal(entry2);
+    });
+
+    /* add AC in detail modal */
+    detailBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('.rfc-detail-ac-add');
+      if (!btn) return;
+      const item = detailBody.querySelector('.rfc-detail-item');
+      if (!item) return;
+      const entryId = item.dataset.entryId;
+      const entry = rfcEntries.find(e => e.id === entryId);
+      if (!entry) return;
+      /* find next available AC id */
+      let maxNum = 0;
+      for (const k of Object.keys(entry.acs)) {
+        const m = k.match(/^AC(\d+)$/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
+      }
+      const newId = 'AC' + (maxNum + 1);
+      entry.acs[newId] = { text: '', passed: true, testRef: '' };
+      saveRfcSync();
+      renderRfcSidebar();
+      renderRfcDetailModal(entry);
+      /* focus the new AC text input */
+      setTimeout(() => {
+        const newItem = detailBody.querySelector(`[data-ac-id="${newId}"]`);
+        if (newItem) newItem.querySelector('.rfc-detail-text-input').focus();
+      }, 50);
+    });
+
     /* close detail modal */
-    const closeDetail = () => document.getElementById('rfc-detail-modal').classList.add('hidden');
+    const closeDetail = () => {
+      document.getElementById('rfc-detail-modal').classList.add('hidden');
+      renderRfcSidebar();
+    };
     $('#btn-close-rfc-detail').addEventListener('click', closeDetail);
     document.querySelector('#rfc-detail-modal .modal-backdrop').addEventListener('click', closeDetail);
+
+    /* --- Archive modal events --- */
+    document.getElementById('rfc-archive-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-campaign-restore');
+      if (!btn) return;
+      unarchiveRfc(btn.dataset.entryId);
+      /* update archive list in-place */
+      openRfcArchive();
+    });
+    $('#btn-close-rfc-archive').addEventListener('click', () => document.getElementById('rfc-archive-modal').classList.add('hidden'));
+    document.querySelector('#rfc-archive-modal .modal-backdrop').addEventListener('click', () => document.getElementById('rfc-archive-modal').classList.add('hidden'));
+
+    /* --- Add modal campaign dropdown --- */
+    function renderRfcAddCampaignSelect() {
+      const field = document.getElementById('rfc-add-campaign-field');
+      if (!field) return;
+      const active = campaigns.filter(c => !c.archived);
+      let html = '<option value="">Kein Release</option>';
+      for (const c of active) {
+        html += `<option value="${c.id}">${c.version}</option>`;
+      }
+      field.innerHTML = html;
+    }
+    renderRfcAddCampaignSelect();
   }
 
   /* ===== Start ===== */
