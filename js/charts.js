@@ -233,17 +233,17 @@ const ChartEngine = (() => {
     const versionLabels = [data.currentVersion, data.previousVersion, data.referenceVersion];
 
     /* ---- layout ---- */
-    const headerH = 72;
+    const headerH = 54;
 
     /* chart-area padding */
     const pad = {
-      top: headerH + 10,
+      top: headerH + 8,
       left: Math.max(52, Math.round(w * 0.055)),
-      right: Math.max(10, Math.round(w * 0.015)),
-      bottom: Math.max(16, Math.round((h - headerH) * 0.08))
+      right: Math.max(8, Math.round(w * 0.015)),
+      bottom: 30
     };
 
-    const chartH = h - pad.top - pad.bottom;
+    const chartH = Math.max(40, h - pad.top - pad.bottom);
     const chartW = w - pad.left - pad.right;
 
     /* per-group width for the 26 test situations */
@@ -253,7 +253,7 @@ const ChartEngine = (() => {
     const groupOffset = (groupW - (barW * 3 + barGap * 2)) / 2;
 
     /* font sizes */
-    const axisFontSize = Math.min(Math.max(9, Math.round(groupW * 0.13)), 11);
+    const axisFontSize = 10;
     const barRound = Math.min(2, Math.round(barW * 0.25));
 
     /* max value */
@@ -352,11 +352,10 @@ const ChartEngine = (() => {
     ctx.font = `600 ${axisFontSize}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    const idxY = pad.top + chartH + 2;
     for (let i = 0; i < numRows; i++) {
       if (i % 2 === 0 || i === numRows - 1) {
         const cx = pad.left + i * groupW + groupW / 2;
-        ctx.fillText(String(i + 1), cx, idxY);
+        ctx.fillText(String(i + 1), cx, pad.top + chartH + 2);
       }
     }
 
@@ -365,23 +364,22 @@ const ChartEngine = (() => {
     ctx.font = '10px -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('Testsituationen (indiziert)', w / 2, pad.top + chartH + 16);
+    ctx.fillText('Testsituationen (indiziert)', w / 2, pad.top + chartH + 14);
 
     /* ---- FOOTER ---- */
-    const footY = h - 16;
     ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(Math.round(w * 0.03), footY - 6);
-    ctx.lineTo(w - Math.round(w * 0.03), footY - 6);
+    ctx.moveTo(Math.round(w * 0.03), h - 14);
+    ctx.lineTo(w - Math.round(w * 0.03), h - 14);
     ctx.stroke();
     ctx.fillStyle = mutedColor;
     ctx.font = '8px -apple-system, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
-    ctx.fillText('Erstellt mit QA Dashboard', Math.round(w * 0.03), footY);
+    ctx.fillText('Erstellt mit QA Dashboard', Math.round(w * 0.03), h - 8);
     ctx.textAlign = 'right';
-    ctx.fillText(`Seite 1/1 · ${new Date().toLocaleDateString('de-DE')}`, w - Math.round(w * 0.03), footY);
+    ctx.fillText(`Seite 1/1 · ${new Date().toLocaleDateString('de-DE')}`, w - Math.round(w * 0.03), h - 8);
   }
 
   /* ===== Segmented Donut (Campaign) ===== */
