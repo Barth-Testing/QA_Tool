@@ -7,7 +7,7 @@ const GridEngine = (() => {
     customValues: {},
     callbacks: { onUpdate: null },
     campaigns: [],
-    selectedRfcCampaignId: null
+    selectedCampaignIds: {}
   };
 
   function init(columns, kpiMap) {
@@ -78,14 +78,11 @@ const GridEngine = (() => {
     state.customValues = vals || {};
   }
 
-  function setCampaigns(campaigns, selectedId) {
+  function setCampaigns(campaigns, selectedMap) {
     state.campaigns = campaigns || [];
-    if (selectedId && state.campaigns.some(c => c.id === selectedId)) {
-      state.selectedRfcCampaignId = selectedId;
-    } else if (state.campaigns.length > 0) {
-      state.selectedRfcCampaignId = state.campaigns[0].id;
-    } else {
-      state.selectedRfcCampaignId = null;
+    state.selectedCampaignIds = { ...selectedMap };
+    if (!state.selectedCampaignIds['rfc-tests']) {
+      state.selectedCampaignIds['rfc-tests'] = state.campaigns.length > 0 ? state.campaigns[0].id : null;
     }
   }
 
@@ -349,17 +346,19 @@ const GridEngine = (() => {
         </div>`;
     }
 
+    const campaignTileIds = ['rfc-tests', 'a-bugs-post-release', 'fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
     let rfcVersionHtml = '';
-    if (tile.kpi_id === 'rfc-tests' || tile.kpi_id === 'a-bugs-post-release') {
+    if (campaignTileIds.includes(tile.kpi_id)) {
+      const selCampId = state.selectedCampaignIds[tile.kpi_id] || (state.campaigns.length > 0 ? state.campaigns[0].id : '');
       let optionsHtml = '<option value="">Version wählen...</option>';
       for (const c of state.campaigns) {
-        const selected = c.id === state.selectedRfcCampaignId ? ' selected' : '';
+        const selected = c.id === selCampId ? ' selected' : '';
         optionsHtml += `<option value="${c.id}"${selected}>${c.version}</option>`;
       }
       rfcVersionHtml = `<select class="tile-rfc-version-select" data-kpi-id="${tile.kpi_id}">${optionsHtml}</select>`;
     }
 
-    const hasResizeHandle = chartType !== 'numeric' || tile.kpi_id === 'rfc-tests' || tile.kpi_id === 'a-bugs-post-release';
+    const hasResizeHandle = chartType !== 'numeric' || campaignTileIds.includes(tile.kpi_id);
 
     el.innerHTML = `
       <div class="tile-status-bar"></div>

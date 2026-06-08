@@ -496,6 +496,39 @@
     } catch {}
   }
 
+  /* ===== Response Times Campaign Selection ===== */
+  const RESPONSEDEV_CAMPAIGN_KEY = 'qa_dashboard_responsedev_campaign';
+  const RESPONSESTA_CAMPAIGN_KEY = 'qa_dashboard_responsesta_campaign';
+  const RECIPIENTSEARCH_CAMPAIGN_KEY = 'qa_dashboard_recipientsearch_campaign';
+
+  function getResponseDevCampaignId() {
+    try { return localStorage.getItem(RESPONSEDEV_CAMPAIGN_KEY); } catch { return null; }
+  }
+  function setResponseDevCampaignId(id) {
+    try {
+      if (id) { localStorage.setItem(RESPONSEDEV_CAMPAIGN_KEY, id); syncToServer(RESPONSEDEV_CAMPAIGN_KEY, id); }
+      else { localStorage.removeItem(RESPONSEDEV_CAMPAIGN_KEY); syncToServer(RESPONSEDEV_CAMPAIGN_KEY, null); }
+    } catch {}
+  }
+  function getResponseStaCampaignId() {
+    try { return localStorage.getItem(RESPONSESTA_CAMPAIGN_KEY); } catch { return null; }
+  }
+  function setResponseStaCampaignId(id) {
+    try {
+      if (id) { localStorage.setItem(RESPONSESTA_CAMPAIGN_KEY, id); syncToServer(RESPONSESTA_CAMPAIGN_KEY, id); }
+      else { localStorage.removeItem(RESPONSESTA_CAMPAIGN_KEY); syncToServer(RESPONSESTA_CAMPAIGN_KEY, null); }
+    } catch {}
+  }
+  function getRecipientSearchCampaignId() {
+    try { return localStorage.getItem(RECIPIENTSEARCH_CAMPAIGN_KEY); } catch { return null; }
+  }
+  function setRecipientSearchCampaignId(id) {
+    try {
+      if (id) { localStorage.setItem(RECIPIENTSEARCH_CAMPAIGN_KEY, id); syncToServer(RECIPIENTSEARCH_CAMPAIGN_KEY, id); }
+      else { localStorage.removeItem(RECIPIENTSEARCH_CAMPAIGN_KEY); syncToServer(RECIPIENTSEARCH_CAMPAIGN_KEY, null); }
+    } catch {}
+  }
+
   function getABugsValues() {
     try {
       const raw = localStorage.getItem(ABUGS_VALUES_KEY);
@@ -510,6 +543,29 @@
       localStorage.setItem(ABUGS_VALUES_KEY, JSON.stringify(vals));
       syncToServer(ABUGS_VALUES_KEY, vals);
     } catch {}
+  }
+
+  /* ===== Parse version for comparison ===== */
+  function parseCampVersion(ver) {
+    const m = (ver || '').match(/(\d+)\.(\d+)\.(\d+)/);
+    return m ? { major: parseInt(m[1]), minor: parseInt(m[2]), patch: parseInt(m[3]) } : null;
+  }
+
+  function findPreviousCampaign(campaigns, currentId) {
+    const cur = campaigns.find(c => c.id === currentId);
+    if (!cur) return null;
+    const curVer = parseCampVersion(cur.version);
+    if (!curVer) return null;
+    const sorted = campaigns
+      .filter(c => c.id !== currentId && !c.archived)
+      .map(c => ({ ...c, _parsed: parseCampVersion(c.version) }))
+      .filter(c => c._parsed)
+      .sort((a, b) => b._parsed.major - a._parsed.major || b._parsed.minor - a._parsed.minor || b._parsed.patch - a._parsed.patch);
+    return sorted.find(c =>
+      c._parsed.major < curVer.major ||
+      (c._parsed.major === curVer.major && c._parsed.minor < curVer.minor) ||
+      (c._parsed.major === curVer.major && c._parsed.minor === curVer.minor && c._parsed.patch < curVer.patch)
+    ) || sorted[0] || null;
   }
 
   /* ===== Custom Values (Inline Editing) ===== */
@@ -551,6 +607,82 @@
         }
         if (!bugsCamp && bugsFallback) setABugsCampaignId(bugsFallback.id);
       }
+      /* FE Response DEV from campaigns */
+      const rcDevId = getResponseDevCampaignId();
+      const rcDevCamp = rcDevId ? campaigns.find(c => c.id === rcDevId) : null;
+      const rcDevFallback = !rcDevCamp && campaigns.length > 0 ? campaigns[0] : null;
+      const rcDevSrc = rcDevCamp || rcDevFallback;
+      if (rcDevSrc && rcDevSrc.responseDev) {
+        const prevDev = findPreviousCampaign(campaigns, rcDevSrc.id);
+        const kpiDev = kpiMap['fe-response-dev'];
+        const testSits = kpiDev?.example_value?.testSituations || [];
+        const refData = kpiDev?.example_value?.versionData?.['R3.18.1'] || [];
+        const vd = {};
+        vd[rcDevSrc.version] = [...rcDevSrc.responseDev];
+        if (prevDev) vd[prevDev.version] = [...prevDev.responseDev];
+        vd['R3.18.1'] = refData.length === 26 ? refData : new Array(26).fill(null);
+        merged['fe-response-dev'] = {
+          currentVersion: rcDevSrc.version,
+          previousVersion: prevDev ? prevDev.version : '',
+          referenceVersion: 'R3.18.1',
+          testSituations: testSits,
+          versionData: vd
+        };
+        if (!rcDevCamp && rcDevFallback) setResponseDevCampaignId(rcDevFallback.id);
+      }
+      /* FE Response STA from campaigns */
+      const rcStaId = getResponseStaCampaignId();
+      const rcStaCamp = rcStaId ? campaigns.find(c => c.id === rcStaId) : null;
+      const rcStaFallback = !rcStaCamp && campaigns.length > 0 ? campaigns[0] : null;
+      const rcStaSrc = rcStaCamp || rcStaFallback;
+      if (rcStaSrc && rcStaSrc.responseSta) {
+        const prevSta = findPreviousCampaign(campaigns, rcStaSrc.id);
+        const kpiSta = kpiMap['fe-response-sta'];
+        const testSits = kpiSta?.example_value?.testSituations || [];
+        const refData = kpiSta?.example_value?.versionData?.['R3.18.1'] || [];
+        const vd = {};
+        vd[rcStaSrc.version] = [...rcStaSrc.responseSta];
+        if (prevSta) vd[prevSta.version] = [...prevSta.responseSta];
+        vd['R3.18.1'] = refData.length === 26 ? refData : new Array(26).fill(null);
+        merged['fe-response-sta'] = {
+          currentVersion: rcStaSrc.version,
+          previousVersion: prevSta ? prevSta.version : '',
+          referenceVersion: 'R3.18.1',
+          testSituations: testSits,
+          versionData: vd
+        };
+        if (!rcStaCamp && rcStaFallback) setResponseStaCampaignId(rcStaFallback.id);
+      }
+      /* Recipient Search from campaigns */
+      const teId = getRecipientSearchCampaignId();
+      const teCamp = teId ? campaigns.find(c => c.id === teId) : null;
+      const teFallback = !teCamp && campaigns.length > 0 ? campaigns[0] : null;
+      const teSrc = teCamp || teFallback;
+      if (teSrc && campaigns.some(c => c.recipientSearch && c.recipientSearch.some(v => v !== null))) {
+        const kpiTe = kpiMap['recipient-search-time'];
+        const testSits = kpiTe?.example_value?.testSituations || [];
+        const withData = campaigns.filter(c => !c.archived && c.recipientSearch && c.recipientSearch.some(v => v !== null))
+          .sort((a, b) => {
+            const av = parseCampVersion(a.version), bv = parseCampVersion(b.version);
+            if (!av || !bv) return 0;
+            return av.major - bv.major || av.minor - bv.minor || av.patch - bv.patch;
+          });
+        const xAxisOrder = withData.map(c => c.version);
+        const vd = {};
+        for (const c of withData) vd[c.version] = [...c.recipientSearch];
+        const latest = withData[withData.length - 1];
+        const prev = withData.length > 1 ? withData[withData.length - 2] : null;
+        if (latest) {
+          merged['recipient-search-time'] = {
+            latestVersion: latest.version,
+            previousVersion: prev ? prev.version : '',
+            testSituations: testSits,
+            xAxisOrder,
+            versionData: vd
+          };
+        }
+        if (!teCamp && teFallback) setRecipientSearchCampaignId(teFallback.id ? teFallback.id : (withData[withData.length - 1]?.id || ''));
+      }
       return merged;
     } catch { return { ...fileValues }; }
   }
@@ -573,7 +705,13 @@
     currentTiles = Grid.compactGrid(db.tiles);
     Grid.init(db.columns, kpiMap);
     Grid.setCustomValues(getCustomValues());
-    Grid.setCampaigns(campaigns, getRfcTestsCampaignId());
+    Grid.setCampaigns(campaigns, {
+      'rfc-tests': getRfcTestsCampaignId(),
+      'a-bugs-post-release': getABugsCampaignId(),
+      'fe-response-dev': getResponseDevCampaignId(),
+      'fe-response-sta': getResponseStaCampaignId(),
+      'recipient-search-time': getRecipientSearchCampaignId()
+    });
     Grid.renderGrid(gridEl, currentTiles, db.columns);
     renderDashboardSelect();
     selectEl.value = db.id;
@@ -615,9 +753,11 @@
       return;
     }
     const statusLabels = { green: 'Gut', yellow: 'Warnung', red: 'Kritisch', neutral: '—' };
+    const noValueChangeTiles = ['fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
     const hasChanges = tiles.some(t => {
       const kpi = kpiMap[t.kpi_id];
-      return kpi && vals[t.kpi_id] !== undefined && vals[t.kpi_id] !== kpi.example_value;
+      if (!kpi || noValueChangeTiles.includes(t.kpi_id)) return false;
+      return vals[t.kpi_id] !== undefined && vals[t.kpi_id] !== kpi.example_value;
     });
 
     let html = '';
@@ -635,10 +775,19 @@
 
       if (isAcKpi) {
         html += renderAcValuesField(kpi, currentVal, vals);
-      } else if (isRcKpi) {
-        html += renderRcValuesField(kpi, currentVal);
-      } else if (isTeKpi) {
-        html += renderTeValuesField(kpi, currentVal);
+      } else if (isRcKpi || isTeKpi) {
+        const campaignSuffix = isRcKpi ? 'Response-Zeiten' : 'Empfängersuchzeiten';
+        html += `
+          <div class="values-field values-field--computed" data-kpi-id="${kpi.id}">
+            <div class="values-field-label">
+              <div class="values-field-name">${kpi.name}</div>
+              <div class="values-field-unit">${kpi.unit || '—'} · wird pro Release-Kandidat verwaltet</div>
+            </div>
+            <div class="values-field-computed-value" style="font-size:0.8rem;color:var(--text-muted)">
+              ${isRcKpi ? `${currentVal.testSituations.length} Testsituationen · ${Object.keys(currentVal.versionData).length} Versionen` : `${currentVal.testSituations.length} Suchdimensionen · ${currentVal.xAxisOrder.length} Releases`}
+            </div>
+            <span class="values-field-badge neutral">—</span>
+          </div>`;
       } else if (isComputedKpi(kpi.id)) {
         const status = GridEngine.getStatus(kpi, currentVal);
         html += `
@@ -664,6 +813,18 @@
           </div>`;
       }
     }
+
+    /* ===== Response Times Editor ===== */
+    const activeCamps = campaigns.filter(c => !c.archived);
+    if (activeCamps.length > 0) {
+      html += '<div class="values-section-divider"><span>Response Times pro Release-Kandidat</span></div>';
+      const testSitsDev = kpiMap['fe-response-dev']?.example_value?.testSituations || [];
+      const testSitsSearch = kpiMap['recipient-search-time']?.example_value?.testSituations || [];
+      for (const camp of activeCamps) {
+        html += renderCampaignResponseTimes(camp, testSitsDev, testSitsSearch);
+      }
+    }
+
     valuesForm.innerHTML = html;
 
     valuesForm.querySelectorAll('.values-field-input').forEach(input => {
@@ -684,96 +845,76 @@
       });
     });
 
-    setupRcFormEvents();
+    setupResponseTimesEvents();
     setupAcFormEvents();
   }
 
-  function renderRcValuesField(kpi, currentVal) {
-    const availableVersions = Object.keys(currentVal.versionData);
-    const currentVer = currentVal.currentVersion;
-    const previousVer = currentVal.previousVersion;
-
+  function renderCampaignResponseTimes(camp, testSitsDev, testSitsSearch) {
     return `
-      <div class="values-rc-field" data-kpi-id="${kpi.id}">
-        <div class="values-rc-header">
-          <div class="values-field-label">
-            <div class="values-field-name">${kpi.name}</div>
-            <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
-          </div>
-          <span class="values-rc-info">${currentVal.testSituations.length} Testsituationen · Referenz ${currentVal.referenceVersion} fest</span>
-        </div>
-        <div class="values-rc-config">
-          <div class="values-rc-config-item">
-            <label>Aktuelle Version</label>
-            <select class="values-rc-select" data-rc-key="currentVersion">
-              ${availableVersions.map(v => `<option value="${v}" ${v === currentVer ? 'selected' : ''}>${v}</option>`).join('')}
-            </select>
-          </div>
-          <div class="values-rc-config-item">
-            <label>Vorherige Version</label>
-            <select class="values-rc-select" data-rc-key="previousVersion">
-              ${availableVersions.map(v => `<option value="${v}" ${v === previousVer ? 'selected' : ''}>${v}</option>`).join('')}
-            </select>
-          </div>
-          <div class="values-rc-config-item values-rc-add-item">
-            <label>&nbsp;</label>
-            <button class="btn btn-sm btn-secondary btn-rc-add-release" data-kpi-id="${kpi.id}">+ Neues Release</button>
+      <div class="campaign-rt-block" data-campaign-id="${camp.id}">
+        <div class="campaign-rt-header">
+          <span class="campaign-rt-version">${camp.version}</span>
+          <div class="campaign-rt-tabs" data-camp="${camp.id}">
+            <button class="rt-tab-btn active" data-rt-tab="dev">FE Response DEV</button>
+            <button class="rt-tab-btn" data-rt-tab="sta">FE Response STA</button>
+            <button class="rt-tab-btn" data-rt-tab="search">Empfängersuche</button>
           </div>
         </div>
-        <div class="values-rc-version-list">
-          ${availableVersions.map(v => `
-            <div class="values-rc-version-row">
-              <span class="values-rc-version-name">${v}</span>
-              <span class="values-rc-version-count">${currentVal.versionData[v].length} Werte</span>
-              <button class="btn btn-sm btn-secondary btn-rc-edit-release" data-kpi-id="${kpi.id}" data-version="${v}">Bearbeiten</button>
-            </div>
-          `).join('')}
+        <div class="campaign-rt-body">
+          <div class="campaign-rt-panel active" data-rt-panel="${camp.id}-dev">
+            ${renderRtInputs('responseDev', camp.id, camp.responseDev, testSitsDev, 'ms')}
+          </div>
+          <div class="campaign-rt-panel" data-rt-panel="${camp.id}-sta">
+            ${renderRtInputs('responseSta', camp.id, camp.responseSta, testSitsDev, 'ms')}
+          </div>
+          <div class="campaign-rt-panel" data-rt-panel="${camp.id}-search">
+            ${renderRtInputs('recipientSearch', camp.id, camp.recipientSearch, testSitsSearch, 's')}
+          </div>
         </div>
       </div>`;
   }
 
-  function renderTeValuesField(kpi, currentVal) {
-    const versions = currentVal.xAxisOrder;
-    const sits = currentVal.testSituations;
-    const lineColors = ['#6366f1', '#22c55e', '#eab308', '#f97316', '#ef4444', '#3b82f6'];
-    const verCount = versions.length;
-    const sitCount = sits.length;
+  function renderRtInputs(field, campId, values, labels, unit) {
+    return `<div class="rt-input-grid">${labels.map((label, i) => `
+      <div class="rt-input-row">
+        <span class="rt-input-label" title="${label}">${i + 1}. ${label}</span>
+        <input type="number" step="any" class="rt-input" data-camp="${campId}" data-field="${field}" data-idx="${i}" value="${values && values[i] !== null ? values[i] : ''}" placeholder="—">
+        <span class="rt-input-unit">${unit}</span>
+      </div>`).join('')}</div>`;
+  }
 
-    return `
-      <div class="values-rc-field" data-kpi-id="${kpi.id}">
-        <div class="values-rc-header">
-          <div class="values-field-label">
-            <div class="values-field-name">${kpi.name}</div>
-            <div class="values-field-unit">${kpi.unit || '—'} · ${kpi.category === 'dev' ? 'Dev' : 'Ops'}</div>
-          </div>
-          <span class="values-rc-info">${verCount} Releases · ${sitCount} Suchdimensionen · Aktuell ${currentVal.latestVersion}</span>
-        </div>
-        <div class="tile-rc-table-wrap" style="max-height:300px;overflow:auto">
-          <table class="tile-rc-table" style="font-size:0.75rem">
-            <thead>
-              <tr>
-                <th style="width:80px">Release</th>
-                ${sits.map((sit, si) => `<th style="color:${lineColors[si]}">${sit}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${versions.map(ver => {
-                const vals = currentVal.versionData[ver] || [];
-                return `
-                  <tr>
-                    <td style="font-weight:600;color:var(--text)">${ver}</td>
-                    ${sits.map((_, si) => {
-                      const v = vals[si];
-                      if (v === null || v === undefined) return '<td style="color:var(--text-muted)">—</td>';
-                      const isLatest = ver === currentVal.latestVersion;
-                      return `<td${isLatest ? ' style="color:var(--green);font-weight:600"' : ''}>${v.toFixed(2)} s</td>`;
-                    }).join('')}
-                  </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+  function setupResponseTimesEvents() {
+    valuesForm.querySelectorAll('.rt-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const block = btn.closest('.campaign-rt-block');
+        if (!block) return;
+        const campId = btn.closest('.campaign-rt-tabs')?.dataset.camp;
+        const tab = btn.dataset.rtTab;
+        block.querySelectorAll('.rt-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        block.querySelectorAll('.campaign-rt-panel').forEach(p => p.classList.remove('active'));
+        const panel = block.querySelector(`[data-rt-panel="${campId}-${tab}"]`);
+        if (panel) panel.classList.add('active');
+      });
+    });
+
+    valuesForm.querySelectorAll('.rt-input').forEach(input => {
+      const commit = () => {
+        const campId = input.dataset.camp;
+        const field = input.dataset.field;
+        const idx = parseInt(input.dataset.idx);
+        const camp = campaigns.find(c => c.id === campId);
+        if (!camp || !camp[field]) return;
+        const raw = input.value.trim();
+        const num = raw !== '' ? parseFloat(raw) : null;
+        camp[field][idx] = (num !== null && !isNaN(num)) ? num : null;
+        saveCampaigns();
+      };
+      input.addEventListener('change', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      });
+    });
   }
 
   /* ===== Resize Modal ===== */
@@ -889,39 +1030,6 @@
     closeRcAddModal();
     render();
     toast(`Release „${version}" ${rcEditVersion ? 'aktualisiert' : 'mit ' + newValues.length + ' Messwerten hinzugefügt'}`);
-  }
-
-  function setupRcFormEvents() {
-    valuesForm.querySelectorAll('.values-rc-select').forEach(select => {
-      select.addEventListener('change', () => {
-        const field = select.closest('.values-rc-field');
-        if (!field) return;
-        const kpiId = field.dataset.kpiId;
-        const vals = getCustomValues();
-        const rcVal = vals[kpiId];
-        if (!rcVal || !rcVal.versionData) return;
-        const key = select.dataset.rcKey;
-        rcVal[key] = select.value;
-        setCustomValue(kpiId, rcVal);
-        render();
-        const kpi = kpiMap[kpiId];
-        if (kpi) toast(`„${kpi.name}" — ${key === 'currentVersion' ? 'Aktuelle Version' : 'Vorherige Version'} auf ${select.value} geändert`);
-      });
-    });
-
-    valuesForm.querySelectorAll('.btn-rc-add-release').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openRcAddModal(btn.dataset.kpiId);
-      });
-    });
-
-    valuesForm.querySelectorAll('.btn-rc-edit-release').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openRcAddModal(btn.dataset.kpiId, btn.dataset.version);
-      });
-    });
   }
 
   /* ===== AC Form Helpers ===== */
@@ -1279,6 +1387,12 @@
       const { campaignId, kpiId } = e.detail;
       if (kpiId === 'a-bugs-post-release') {
         setABugsCampaignId(campaignId);
+      } else if (kpiId === 'fe-response-dev') {
+        setResponseDevCampaignId(campaignId);
+      } else if (kpiId === 'fe-response-sta') {
+        setResponseStaCampaignId(campaignId);
+      } else if (kpiId === 'recipient-search-time') {
+        setRecipientSearchCampaignId(campaignId);
       } else {
         setRfcTestsCampaignId(campaignId);
       }
@@ -1495,6 +1609,55 @@
           c.archived = false;
           changed = true;
         }
+        if (!c.responseDev || c.responseDev.length !== 26) {
+          c.responseDev = new Array(26).fill(null);
+          changed = true;
+        }
+        if (!c.responseSta || c.responseSta.length !== 26) {
+          c.responseSta = new Array(26).fill(null);
+          changed = true;
+        }
+        if (!c.recipientSearch || c.recipientSearch.length !== 6) {
+          c.recipientSearch = new Array(6).fill(null);
+          changed = true;
+        }
+      }
+      /* Migration: alte RC/TE-Daten aus values.json in erste Campaign übernehmen */
+      if (campaigns.length > 0 && !campaigns[0]._migrated) {
+        const oldVals = getCustomValues();
+        const oldRcDev = oldVals['fe-response-dev'];
+        const oldRcSta = oldVals['fe-response-sta'];
+        const oldTe = oldVals['recipient-search-time'];
+        if (oldRcDev && oldRcDev.versionData) {
+          const versions = Object.keys(oldRcDev.versionData).filter(v => v !== 'R3.18.1');
+          for (const v of versions) {
+            const camp = campaigns.find(c => c.version === v.replace('R', ''));
+            if (camp && oldRcDev.versionData[v]) {
+              camp.responseDev = [...oldRcDev.versionData[v]];
+              changed = true;
+            }
+          }
+        }
+        if (oldRcSta && oldRcSta.versionData) {
+          const versions = Object.keys(oldRcSta.versionData).filter(v => v !== 'R3.18.1');
+          for (const v of versions) {
+            const camp = campaigns.find(c => c.version === v.replace('R', ''));
+            if (camp && oldRcSta.versionData[v]) {
+              camp.responseSta = [...oldRcSta.versionData[v]];
+              changed = true;
+            }
+          }
+        }
+        if (oldTe && oldTe.versionData) {
+          for (const v of oldTe.xAxisOrder || []) {
+            const camp = campaigns.find(c => c.version === v.replace('R', ''));
+            if (camp && oldTe.versionData[v]) {
+              camp.recipientSearch = [...oldTe.versionData[v]];
+              changed = true;
+            }
+          }
+        }
+        for (const c of campaigns) c._migrated = true;
       }
       if (changed) saveCampaigns();
     } catch { campaigns = []; }
@@ -1606,7 +1769,10 @@
       ],
       colors: ['green', 'green', 'green', 'green', 'green'],
       operational: 'passed',
-      completed: 'passed'
+      completed: 'passed',
+      responseDev: new Array(26).fill(null),
+      responseSta: new Array(26).fill(null),
+      recipientSearch: new Array(6).fill(null)
     };
     campaigns.unshift(newCampaign);
     saveCampaigns();

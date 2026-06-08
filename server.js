@@ -27,7 +27,10 @@ const ALLOWED_KEYS = new Set([
   'qa_dashboard_rfc_entries',
   'qa_dashboard_rfc_tests_campaign',
   'qa_dashboard_abugs_campaign',
-  'qa_dashboard_abugs_values'
+  'qa_dashboard_abugs_values',
+  'qa_dashboard_responsedev_campaign',
+  'qa_dashboard_responsesta_campaign',
+  'qa_dashboard_recipientsearch_campaign'
 ]);
 
 function sanitizeKey(key) {
