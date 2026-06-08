@@ -1691,6 +1691,34 @@ body {
   color: var(--text);
 }
 
+.tile-rc-selects {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.tile-rc-select-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tile-rc-select-label select {
+  max-width: 90px;
+}
+
+.tile--rc .tile-header {
+  min-height: 4rem;
+  align-items: flex-start;
+}
+
 /* ===== Campaign Archive ===== */
 .campaign-btn-archive {
   background: none;

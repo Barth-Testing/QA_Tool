@@ -92,6 +92,7 @@
     initTheme();
     await loadData();
     await loadFromServer();
+    loadCampaigns();
     migrateAcStorage();
     setupEventListeners();
     const savedColumns = {};
@@ -497,26 +498,46 @@
   }
 
   /* ===== Response Times Campaign Selection ===== */
-  const RESPONSEDEV_CAMPAIGN_KEY = 'qa_dashboard_responsedev_campaign';
-  const RESPONSESTA_CAMPAIGN_KEY = 'qa_dashboard_responsesta_campaign';
+  const RESPONSEDEV_CURRENT_KEY = 'qa_dashboard_responsedev_current';
+  const RESPONSEDEV_PREVIOUS_KEY = 'qa_dashboard_responsedev_previous';
+  const RESPONSESTA_CURRENT_KEY = 'qa_dashboard_responsesta_current';
+  const RESPONSESTA_PREVIOUS_KEY = 'qa_dashboard_responsesta_previous';
   const RECIPIENTSEARCH_CAMPAIGN_KEY = 'qa_dashboard_recipientsearch_campaign';
 
-  function getResponseDevCampaignId() {
-    try { return localStorage.getItem(RESPONSEDEV_CAMPAIGN_KEY); } catch { return null; }
+  function getResponseDevCurrentCampaignId() {
+    try { return localStorage.getItem(RESPONSEDEV_CURRENT_KEY); } catch { return null; }
   }
-  function setResponseDevCampaignId(id) {
+  function setResponseDevCurrentCampaignId(id) {
     try {
-      if (id) { localStorage.setItem(RESPONSEDEV_CAMPAIGN_KEY, id); syncToServer(RESPONSEDEV_CAMPAIGN_KEY, id); }
-      else { localStorage.removeItem(RESPONSEDEV_CAMPAIGN_KEY); syncToServer(RESPONSEDEV_CAMPAIGN_KEY, null); }
+      if (id) { localStorage.setItem(RESPONSEDEV_CURRENT_KEY, id); syncToServer(RESPONSEDEV_CURRENT_KEY, id); }
+      else { localStorage.removeItem(RESPONSEDEV_CURRENT_KEY); syncToServer(RESPONSEDEV_CURRENT_KEY, null); }
     } catch {}
   }
-  function getResponseStaCampaignId() {
-    try { return localStorage.getItem(RESPONSESTA_CAMPAIGN_KEY); } catch { return null; }
+  function getResponseDevPreviousCampaignId() {
+    try { return localStorage.getItem(RESPONSEDEV_PREVIOUS_KEY); } catch { return null; }
   }
-  function setResponseStaCampaignId(id) {
+  function setResponseDevPreviousCampaignId(id) {
     try {
-      if (id) { localStorage.setItem(RESPONSESTA_CAMPAIGN_KEY, id); syncToServer(RESPONSESTA_CAMPAIGN_KEY, id); }
-      else { localStorage.removeItem(RESPONSESTA_CAMPAIGN_KEY); syncToServer(RESPONSESTA_CAMPAIGN_KEY, null); }
+      if (id) { localStorage.setItem(RESPONSEDEV_PREVIOUS_KEY, id); syncToServer(RESPONSEDEV_PREVIOUS_KEY, id); }
+      else { localStorage.removeItem(RESPONSEDEV_PREVIOUS_KEY); syncToServer(RESPONSEDEV_PREVIOUS_KEY, null); }
+    } catch {}
+  }
+  function getResponseStaCurrentCampaignId() {
+    try { return localStorage.getItem(RESPONSESTA_CURRENT_KEY); } catch { return null; }
+  }
+  function setResponseStaCurrentCampaignId(id) {
+    try {
+      if (id) { localStorage.setItem(RESPONSESTA_CURRENT_KEY, id); syncToServer(RESPONSESTA_CURRENT_KEY, id); }
+      else { localStorage.removeItem(RESPONSESTA_CURRENT_KEY); syncToServer(RESPONSESTA_CURRENT_KEY, null); }
+    } catch {}
+  }
+  function getResponseStaPreviousCampaignId() {
+    try { return localStorage.getItem(RESPONSESTA_PREVIOUS_KEY); } catch { return null; }
+  }
+  function setResponseStaPreviousCampaignId(id) {
+    try {
+      if (id) { localStorage.setItem(RESPONSESTA_PREVIOUS_KEY, id); syncToServer(RESPONSESTA_PREVIOUS_KEY, id); }
+      else { localStorage.removeItem(RESPONSESTA_PREVIOUS_KEY); syncToServer(RESPONSESTA_PREVIOUS_KEY, null); }
     } catch {}
   }
   function getRecipientSearchCampaignId() {
@@ -608,50 +629,54 @@
         if (!bugsCamp && bugsFallback) setABugsCampaignId(bugsFallback.id);
       }
       /* FE Response DEV from campaigns */
-      const rcDevId = getResponseDevCampaignId();
-      const rcDevCamp = rcDevId ? campaigns.find(c => c.id === rcDevId) : null;
+      const rcDevCurrentId = getResponseDevCurrentCampaignId();
+      const rcDevPrevId = getResponseDevPreviousCampaignId();
+      const rcDevCamp = rcDevCurrentId ? campaigns.find(c => c.id === rcDevCurrentId) : null;
       const rcDevFallback = !rcDevCamp && campaigns.length > 0 ? campaigns[0] : null;
       const rcDevSrc = rcDevCamp || rcDevFallback;
+      let rcDevPrevCamp = rcDevPrevId ? campaigns.find(c => c.id === rcDevPrevId) : null;
+      if (!rcDevPrevCamp && rcDevSrc) rcDevPrevCamp = findPreviousCampaign(campaigns, rcDevSrc.id);
       if (rcDevSrc && rcDevSrc.responseDev) {
-        const prevDev = findPreviousCampaign(campaigns, rcDevSrc.id);
         const kpiDev = kpiMap['fe-response-dev'];
         const testSits = kpiDev?.example_value?.testSituations || [];
         const refData = kpiDev?.example_value?.versionData?.['R3.18.1'] || [];
         const vd = {};
         vd[rcDevSrc.version] = [...rcDevSrc.responseDev];
-        if (prevDev) vd[prevDev.version] = [...prevDev.responseDev];
+        if (rcDevPrevCamp) vd[rcDevPrevCamp.version] = [...rcDevPrevCamp.responseDev];
         vd['R3.18.1'] = refData.length === 26 ? refData : new Array(26).fill(null);
         merged['fe-response-dev'] = {
           currentVersion: rcDevSrc.version,
-          previousVersion: prevDev ? prevDev.version : '',
+          previousVersion: rcDevPrevCamp ? rcDevPrevCamp.version : '',
           referenceVersion: 'R3.18.1',
           testSituations: testSits,
           versionData: vd
         };
-        if (!rcDevCamp && rcDevFallback) setResponseDevCampaignId(rcDevFallback.id);
+        if (!rcDevCamp && rcDevFallback) setResponseDevCurrentCampaignId(rcDevFallback.id);
       }
       /* FE Response STA from campaigns */
-      const rcStaId = getResponseStaCampaignId();
-      const rcStaCamp = rcStaId ? campaigns.find(c => c.id === rcStaId) : null;
+      const rcStaCurrentId = getResponseStaCurrentCampaignId();
+      const rcStaPrevId = getResponseStaPreviousCampaignId();
+      const rcStaCamp = rcStaCurrentId ? campaigns.find(c => c.id === rcStaCurrentId) : null;
       const rcStaFallback = !rcStaCamp && campaigns.length > 0 ? campaigns[0] : null;
       const rcStaSrc = rcStaCamp || rcStaFallback;
+      let rcStaPrevCamp = rcStaPrevId ? campaigns.find(c => c.id === rcStaPrevId) : null;
+      if (!rcStaPrevCamp && rcStaSrc) rcStaPrevCamp = findPreviousCampaign(campaigns, rcStaSrc.id);
       if (rcStaSrc && rcStaSrc.responseSta) {
-        const prevSta = findPreviousCampaign(campaigns, rcStaSrc.id);
         const kpiSta = kpiMap['fe-response-sta'];
         const testSits = kpiSta?.example_value?.testSituations || [];
         const refData = kpiSta?.example_value?.versionData?.['R3.18.1'] || [];
         const vd = {};
         vd[rcStaSrc.version] = [...rcStaSrc.responseSta];
-        if (prevSta) vd[prevSta.version] = [...prevSta.responseSta];
+        if (rcStaPrevCamp) vd[rcStaPrevCamp.version] = [...rcStaPrevCamp.responseSta];
         vd['R3.18.1'] = refData.length === 26 ? refData : new Array(26).fill(null);
         merged['fe-response-sta'] = {
           currentVersion: rcStaSrc.version,
-          previousVersion: prevSta ? prevSta.version : '',
+          previousVersion: rcStaPrevCamp ? rcStaPrevCamp.version : '',
           referenceVersion: 'R3.18.1',
           testSituations: testSits,
           versionData: vd
         };
-        if (!rcStaCamp && rcStaFallback) setResponseStaCampaignId(rcStaFallback.id);
+        if (!rcStaCamp && rcStaFallback) setResponseStaCurrentCampaignId(rcStaFallback.id);
       }
       /* Recipient Search from campaigns */
       const teId = getRecipientSearchCampaignId();
@@ -708,8 +733,10 @@
     Grid.setCampaigns(campaigns, {
       'rfc-tests': getRfcTestsCampaignId(),
       'a-bugs-post-release': getABugsCampaignId(),
-      'fe-response-dev': getResponseDevCampaignId(),
-      'fe-response-sta': getResponseStaCampaignId(),
+      'fe-response-dev-current': getResponseDevCurrentCampaignId(),
+      'fe-response-dev-previous': getResponseDevPreviousCampaignId(),
+      'fe-response-sta-current': getResponseStaCurrentCampaignId(),
+      'fe-response-sta-previous': getResponseStaPreviousCampaignId(),
       'recipient-search-time': getRecipientSearchCampaignId()
     });
     Grid.renderGrid(gridEl, currentTiles, db.columns);
@@ -1384,13 +1411,15 @@
 
     /* Campaign version change (from tile version selector) */
     document.addEventListener('tile:rfc-campaign-change', (e) => {
-      const { campaignId, kpiId } = e.detail;
+      const { campaignId, kpiId, versionType } = e.detail;
       if (kpiId === 'a-bugs-post-release') {
         setABugsCampaignId(campaignId);
       } else if (kpiId === 'fe-response-dev') {
-        setResponseDevCampaignId(campaignId);
+        if (versionType === 'previous') setResponseDevPreviousCampaignId(campaignId);
+        else setResponseDevCurrentCampaignId(campaignId);
       } else if (kpiId === 'fe-response-sta') {
-        setResponseStaCampaignId(campaignId);
+        if (versionType === 'previous') setResponseStaPreviousCampaignId(campaignId);
+        else setResponseStaCurrentCampaignId(campaignId);
       } else if (kpiId === 'recipient-search-time') {
         setRecipientSearchCampaignId(campaignId);
       } else {
@@ -2403,7 +2432,6 @@
 
   /* ===== Start ===== */
   document.addEventListener('DOMContentLoaded', () => {
-    loadCampaigns();
     loadRfcEntries();
     init().then(() => {
       renderCampaigns();

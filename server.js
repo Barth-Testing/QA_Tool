@@ -28,8 +28,10 @@ const ALLOWED_KEYS = new Set([
   'qa_dashboard_rfc_tests_campaign',
   'qa_dashboard_abugs_campaign',
   'qa_dashboard_abugs_values',
-  'qa_dashboard_responsedev_campaign',
-  'qa_dashboard_responsesta_campaign',
+  'qa_dashboard_responsedev_current',
+  'qa_dashboard_responsedev_previous',
+  'qa_dashboard_responsesta_current',
+  'qa_dashboard_responsesta_previous',
   'qa_dashboard_recipientsearch_campaign'
 ]);
 

@@ -918,7 +918,7 @@
     },
     {
       "id": "fe-response-dev",
-      "name": "FE Response DEV",
+      "name": "Response Times DEV",
       "category": "dev",
       "description": "Frontend-Response-Zeiten auf DEV: vergleicht aktuelle Vorversion und R3.18.1 als Referenz über 26 Testsituationen",
       "formula": "Gemessene Ladezeiten in ms pro Testsituation",
@@ -1054,7 +1054,7 @@
     },
     {
       "id": "fe-response-sta",
-      "name": "FE Response STA",
+      "name": "Response Times STA",
       "category": "dev",
       "description": "Frontend-Response-Zeiten auf STA: vergleicht aktuelle Vorversion und R3.18.1 als Referenz über 26 Testsituationen",
       "formula": "Gemessene Ladezeiten in ms pro Testsituation",

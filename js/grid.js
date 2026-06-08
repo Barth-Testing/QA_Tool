@@ -347,8 +347,23 @@ const GridEngine = (() => {
     }
 
     const campaignTileIds = ['rfc-tests', 'a-bugs-post-release', 'fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
+    const rcTileIds = ['fe-response-dev', 'fe-response-sta'];
     let rfcVersionHtml = '';
-    if (campaignTileIds.includes(tile.kpi_id)) {
+    if (rcTileIds.includes(tile.kpi_id)) {
+      const currentId = state.selectedCampaignIds[tile.kpi_id + '-current'] || (state.campaigns.length > 0 ? state.campaigns[0].id : '');
+      const previousId = state.selectedCampaignIds[tile.kpi_id + '-previous'] || '';
+      let opts = '<option value="">Version wählen...</option>';
+      for (const c of state.campaigns) opts += `<option value="${c.id}">${c.version}</option>`;
+      rfcVersionHtml = `
+        <div class="tile-rc-selects">
+          <label class="tile-rc-select-label">Aktuell
+            <select class="tile-rfc-version-select" data-kpi-id="${tile.kpi_id}" data-compare-type="current">${opts.replace('<option value="' + currentId + '">', '<option value="' + currentId + '" selected>')}</select>
+          </label>
+          <label class="tile-rc-select-label">Vergleich
+            <select class="tile-rfc-version-select" data-kpi-id="${tile.kpi_id}" data-compare-type="previous">${previousId ? opts.replace('<option value="' + previousId + '">', '<option value="' + previousId + '" selected>') : opts}</select>
+          </label>
+        </div>`;
+    } else if (campaignTileIds.includes(tile.kpi_id)) {
       const selCampId = state.selectedCampaignIds[tile.kpi_id] || (state.campaigns.length > 0 ? state.campaigns[0].id : '');
       let optionsHtml = '<option value="">Version wählen...</option>';
       for (const c of state.campaigns) {
@@ -439,15 +454,18 @@ const GridEngine = (() => {
       document.dispatchEvent(evt);
     });
 
-    const versionSelect = el.querySelector('.tile-rfc-version-select');
-    if (versionSelect) {
-      versionSelect.addEventListener('change', (e) => {
-        e.stopPropagation();
-        const kpiId = versionSelect.dataset.kpiId || 'rfc-tests';
-        const evt = new CustomEvent('tile:rfc-campaign-change', {
-          detail: { campaignId: e.target.value, kpiId }
+    const versionSelects = el.querySelectorAll('.tile-rfc-version-select');
+    if (versionSelects.length > 0) {
+      versionSelects.forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          e.stopPropagation();
+          const kpiId = sel.dataset.kpiId || 'rfc-tests';
+          const versionType = sel.dataset.compareType || '';
+          const evt = new CustomEvent('tile:rfc-campaign-change', {
+            detail: { campaignId: e.target.value, kpiId, versionType }
+          });
+          document.dispatchEvent(evt);
         });
-        document.dispatchEvent(evt);
       });
     }
 
