@@ -204,7 +204,7 @@ const ChartEngine = (() => {
     ctx.fillText(Math.round(value) + '%', cx, cy);
   }
 
-  function drawResponseComparison(canvas, data) {
+  function drawResponseComparison(canvas, data, kpiName) {
     const dpr = window.devicePixelRatio || 1;
 
     canvas.style.width = '100%';
@@ -233,7 +233,7 @@ const ChartEngine = (() => {
     const versionLabels = [data.currentVersion, data.previousVersion, data.referenceVersion];
 
     /* ---- layout ---- */
-    const headerH = 58;
+    const headerH = 72;
 
     /* chart-area padding */
     const pad = {
@@ -278,27 +278,28 @@ const ChartEngine = (() => {
     ctx.fillText('QA Dashboard · Performance Test Report', Math.round(w * 0.03), 6);
 
     ctx.fillStyle = textColor;
-    ctx.font = 'bold 18px -apple-system, sans-serif';
+    ctx.font = 'bold 14px -apple-system, sans-serif';
     ctx.textBaseline = 'top';
-    ctx.fillText('Frontend Response Times im Vergleich', Math.round(w * 0.03), 18);
-    ctx.font = '11px -apple-system, sans-serif';
+    ctx.fillText(kpiName || 'Response Times', Math.round(w * 0.03), 18);
+    ctx.font = '10px -apple-system, sans-serif';
     ctx.fillStyle = mutedColor;
-    ctx.fillText(`${new Date().toLocaleDateString('de-DE')} · ${numRows} Testsituationen · 3 Versionen · ${data.currentVersion} (aktuell) vs ${data.previousVersion} (vorher) vs ${data.referenceVersion} (Referenz)`, Math.round(w * 0.03), 40);
+    const subText = `${new Date().toLocaleDateString('de-DE')} · ${numRows} Testsituationen · ${data.currentVersion} (aktuell) vs ${data.previousVersion} (vorher) vs ${data.referenceVersion} (Referenz)`;
+    ctx.fillText(subText, Math.round(w * 0.03), 36);
 
-    /* version legend */
-    const legendY = 22;
-    const legX = Math.round(w * 0.55);
+    /* version legend - right-aligned, below header text */
+    const legendY = 20;
+    const legX = Math.round(w * 0.50);
     ctx.textBaseline = 'middle';
-    ctx.font = '600 11px -apple-system, sans-serif';
+    ctx.font = '600 10px -apple-system, sans-serif';
     for (let vi = 0; vi < versions.length; vi++) {
-      const lx = legX + vi * Math.round(w * 0.14);
+      const lx = legX + vi * Math.round(w * 0.16);
       ctx.fillStyle = colors[vi];
       ctx.beginPath();
-      ctx.arc(lx + 6, legendY, 5, 0, Math.PI * 2);
+      ctx.arc(lx + 6, legendY, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = textColor;
       ctx.textAlign = 'left';
-      ctx.fillText(versionLabels[vi], lx + 15, legendY);
+      ctx.fillText(versionLabels[vi], lx + 13, legendY);
     }
 
     /* header separator */

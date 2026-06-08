@@ -149,7 +149,7 @@ const GridEngine = (() => {
         if (chartType === 'donut') {
           ChartEngine.drawDonut(canvas, value, kpi.unit, status);
         } else if (chartType === 'response-comparison' && rcInfo) {
-          ChartEngine.drawResponseComparison(canvas, rawValue);
+          ChartEngine.drawResponseComparison(canvas, rawValue, kpi.name);
         } else if (chartType === 'time-evolution' && teInfo) {
           ChartEngine.drawTimeEvolution(canvas, rawValue, true);
         } else if (chartType !== 'numeric') {

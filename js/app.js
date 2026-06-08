@@ -1438,8 +1438,8 @@
       chartModalData = data;
       chartModalIsTe = !!(data.xAxisOrder && data.versionData);
       $('#chart-modal-title').textContent = chartModalIsTe
-        ? `${kpi.name} — Evolution über Releases`
-        : `${kpi.name} — Frontend Response Times im Vergleich`;
+        ? `${kpi.name} — Evolution`
+        : kpi.name;
       $('#chart-modal').classList.remove('hidden');
       /* reset to chart tab */
       setChartTab('chart');
@@ -1448,7 +1448,7 @@
         if (chartModalIsTe) {
           ChartEngine.drawTimeEvolution(canvas, data, false);
         } else {
-          ChartEngine.drawResponseComparison(canvas, data);
+          ChartEngine.drawResponseComparison(canvas, data, kpi.name);
         }
       });
     });
