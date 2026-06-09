@@ -371,7 +371,7 @@ const GridEngine = (() => {
         </div>`;
     }
 
-    const campaignTileIds = ['rfc-tests', 'a-bugs-post-release', 'fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
+    const campaignTileIds = ['rfc-tests', 'test-coverage-new-features', 'a-bugs-post-release', 'fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
     const rcTileIds = ['fe-response-dev', 'fe-response-sta'];
     let rfcVersionHtml = '';
     if (rcTileIds.includes(tile.kpi_id)) {

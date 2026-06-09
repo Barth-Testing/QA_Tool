@@ -450,7 +450,7 @@
     }
   };
 
-  const COMPUTED_KPI_IDS = new Set(Object.keys(COMPUTED_KPIS));
+  const COMPUTED_KPI_IDS = new Set([...Object.keys(COMPUTED_KPIS), 'test-coverage-new-features']);
 
   function isComputedKpi(kpiId) {
     return COMPUTED_KPI_IDS.has(kpiId);
@@ -620,6 +620,22 @@
       rfcSrc.values[2].planned = total;
       if (!rfcC && rfcFallback) setRfcTestsCampaignId(rfcFallback.id);
     }
+      /* Testabdeckung neuer Funktionen — AC coverage per campaign */
+      const acNewCampId = getRfcTestsCampaignId();
+      const acNewC = acNewCampId ? campaigns.find(c => c.id === acNewCampId) : null;
+      const acNewSrc = acNewC || (campaigns.length > 0 ? campaigns[0] : null);
+      if (acNewSrc) {
+        const relevantRfcs = rfcEntries.filter(e => !e.archived && e.campaignId === acNewSrc.id);
+        let totalAcs = 0;
+        let passedAcs = 0;
+        for (const entry of relevantRfcs) {
+          for (const ac of Object.values(entry.acs)) {
+            totalAcs++;
+            if (ac.status === 'passed') passedAcs++;
+          }
+        }
+        merged['test-coverage-new-features'] = totalAcs > 0 ? Math.round((passedAcs / totalAcs) * 100) : 0;
+      }
       /* A-Bugs value from per-campaign storage */
       const bugsCampId = getABugsCampaignId();
       const bugsCamp = bugsCampId ? campaigns.find(c => c.id === bugsCampId) : null;
@@ -736,6 +752,7 @@
     Grid.setCustomValues(getCustomValues());
     Grid.setCampaigns(campaigns, {
       'rfc-tests': getRfcTestsCampaignId(),
+      'test-coverage-new-features': getRfcTestsCampaignId(),
       'a-bugs-post-release': getABugsCampaignId(),
       'fe-response-dev-current': getResponseDevCurrentCampaignId(),
       'fe-response-dev-previous': getResponseDevPreviousCampaignId(),
@@ -819,7 +836,7 @@
             </div>
             <span class="values-field-badge neutral">—</span>
           </div>`;
-      } else if (isComputedKpi(kpi.id)) {
+      } else if (isComputedKpi(kpi.id) || kpi.data_source_type === 'computed') {
         const status = GridEngine.getStatus(kpi, currentVal);
         html += `
           <div class="values-field values-field--computed" data-kpi-id="${kpi.id}">

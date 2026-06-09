@@ -58,6 +58,17 @@ const ChartEngine = (() => {
     ctx.lineWidth = lw;
     ctx.stroke();
 
+    /* Subtle 3D rim highlight + shadow */
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - 0.25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,0.04)`;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR + 0.25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0,0,0,0.10)`;
+    ctx.stroke();
+
     if (pct > 0) {
       ctx.beginPath();
       ctx.arc(cx, cy, outerR - lw / 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
@@ -72,13 +83,7 @@ const ChartEngine = (() => {
     ctx.font = `bold ${Math.round(outerR * 0.4)}px -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(displayVal, cx, cy - 6);
-
-    if (unit) {
-      ctx.fillStyle = _dMuted;
-      ctx.font = `${Math.round(outerR * 0.18)}px -apple-system, sans-serif`;
-      ctx.fillText(unit, cx, cy + outerR * 0.3);
-    }
+    ctx.fillText(displayVal + (unit || ''), cx, cy);
   }
 
   function drawBar(canvas, value, unit, status, thresholds) {
@@ -186,6 +191,17 @@ const ChartEngine = (() => {
     ctx.arc(cx, cy, outerR - lw / 2, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(${_mBase},${_mBase},${_mBase},0.15)`;
     ctx.lineWidth = lw;
+    ctx.stroke();
+
+    /* Subtle 3D rim highlight + shadow */
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - 0.25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,0.04)`;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR + 0.25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0,0,0,0.10)`;
     ctx.stroke();
 
     if (pct > 0) {
@@ -775,6 +791,17 @@ const ChartEngine = (() => {
     const base2 = isDark2 ? 255 : 0;
     ctx.strokeStyle = `rgba(${base2},${base2},${base2},0.15)`;
     ctx.lineWidth = lw;
+    ctx.stroke();
+
+    /* Subtle 3D rim highlight + shadow */
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - 0.25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,0.04)`;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR + 0.25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0,0,0,0.10)`;
     ctx.stroke();
 
     /* segmented foreground */

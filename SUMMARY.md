@@ -4,7 +4,7 @@
 Vanilla HTML/CSS/JS, Canvas 2D API, kein Framework, keine Build-Tools.
 Hosting: GitHub Pages (`Barth-Testing/QA_Tool`).
 
-## Aktueller Stand (2026-06-04)
+## Aktueller Stand (2026-06-09)
 
 ### Dateien
 ```
@@ -31,23 +31,27 @@ qa-dashboard/
 - `response-comparison` (`fe-response-dev`, `fe-response-sta`): 26 Testsituationen × 3 Versionen
 - `time-evolution` (`recipient-search-time`): Multi-Line-Chart über Releases, 6 Suchdimensionen
 
-## Neu in dieser Session
+## Neu in dieser Session (2026-06-09)
 
-### Empfängersuche nach Parametern (`recipient-search-time`)
-- Neuer KPI-Typ `time-evolution`: Multi-Line-Chart über 12 Releases (R4.1.3–R4.5.1)
-- 6 Suchdimensionen: Kanzleinamen, Nachnamen, Vornamen, PLZ, Ort, Kombinierte Suchen
-- Werte in Sekunden, `null` für nicht ausgeführte Releases
-- Tile: kompakter Linien-Chart + Datentabelle + Chart-Modal
-- Chart-Modal: voller Linien-Chart mit Legende, Datenpunkten, berechneter Skala
+### Donut-Prozentsätze vereinheitlicht
+- `drawDonut()` zeigt nun `75%` inline im Zentrum (vorher: `75` + `%` getrennt) — konsistent zu `drawMiniDonut` / `_drawMiniDonutAt`
 
-### RC Chart poliert (`drawResponseComparison`)
-- Titelzeile mit Chart-Name + Datum + Versions-Legende
-- Verbesserte Tabelle: Header-Hintergrund, abgerundete Ecken, bessere Spaltenaufteilung
-- Überarbeitete Trend-Indikatoren (→, ↑, ↓ statt Sonderzeichen)
-- Größere Schrift für bessere Lesbarkeit in Testreports
+### 3D-Rand bei Donuts
+- Alle drei Donut-Funktionen (`drawDonut`, `drawMiniDonut`, `_drawMiniDonutAt`) haben jetzt einen subtilen 3D-Rand: heller Highlight aussen + dunkler Schatten innen am Ring
 
-## Neue KPIs (diese Session)
-- **Empfängersuche nach Parametern** (`recipient-search-time`): Suchzeiten in s, time-evolution, 6 Dim. × 12 Releases
+### Neue KPI: Testabdeckung neuer Funktionen (`test-coverage-new-features`)
+- Automatisch berechnet aus den AC-Status der RFC-Sidebar-Einträge
+- Abhängig vom globalen Release (Dropdown, teilt sich die Campaign-Auswahl mit `rfc-tests`)
+- Datenquelle: `computed`, nicht manuell editierbar
+- Schwellwerte: grün ≥ 80 %, gelb ≥ 50 %, rot < 50 %
+
+### AC 3-State-Zyklus
+- AC-Status zyklisiert nun `BLOCKED → FAILED → PASSED → BLOCKED …`
+- BLOCKED ist der dritte Zustand: blau dargestellt, zählt im Sidebar-Donut als ausgeführt
+
+### RFC Release Reassignment
+- RFC-Einträge können per Dropdown einem anderen Release zugewiesen werden
+- Dropdown erscheint in der rechten Sidebar pro RFC-Entry
 
 ## Linke Sidebar (Testkampagnen)
 - Multi-Entry mit Donut-Farben (grün/gelb/rot), durchklickbar

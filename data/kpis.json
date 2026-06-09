@@ -182,6 +182,23 @@
     "example_value": 45
   },
   {
+    "id": "test-coverage-new-features",
+    "name": "Testabdeckung neuer Funktionen",
+    "category": "dev",
+    "description": "Anteil der bestandenen Acceptance Criteria (ACs) an allen ACs eines Releases — berechnet automatisch aus dem RFC-Sidebar",
+    "formula": "(bestandene ACs / totale ACs) × 100",
+    "benefit": "Zeigt die tatsächliche Testabdeckung der in einem Release umgesetzten neuen Funktionen auf Basis der AC-Ergebnisse",
+    "unit": "%",
+    "thresholds": {
+      "green": { "operator": "gte", "value": 80 },
+      "yellow": { "operator": "gte", "value": 50 },
+      "red": { "operator": "lt", "value": 50 }
+    },
+    "data_source_type": "computed",
+    "tags": ["coverage", "acceptance-criteria", "release", "computed"],
+    "example_value": 0
+  },
+  {
     "id": "flaky-test-rate",
     "name": "Flaky Test Rate",
     "category": "dev",
