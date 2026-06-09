@@ -2240,6 +2240,19 @@
     return bears.size;
   }
 
+  function renumberAcs(acs) {
+    const entries = Object.entries(acs).sort((a, b) => {
+      const ma = a[0].match(/^AC(\d+)$/);
+      const mb = b[0].match(/^AC(\d+)$/);
+      return (ma ? parseInt(ma[1]) : 0) - (mb ? parseInt(mb[1]) : 0);
+    });
+    const renumbered = {};
+    entries.forEach(([, ac], i) => {
+      renumbered['AC' + (i + 1)] = ac;
+    });
+    return renumbered;
+  }
+
   function loadRfcEntries() {
     try {
       const saved = localStorage.getItem(RFC_KEY);
@@ -2683,6 +2696,7 @@
       const entry = rfcEntries.find(e => e.id === entryId);
       if (!entry || !entry.acs[acId]) return;
       delete entry.acs[acId];
+      entry.acs = renumberAcs(entry.acs);
       saveRfcSync();
       renderRfcSidebar();
       /* update modal in-place */
@@ -2705,7 +2719,7 @@
         const m = k.match(/^AC(\d+)$/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       }
-      const newId = 'AC' + (maxNum + 1);
+      const newId = 'AC' + (Object.keys(entry.acs).length + 1);
       entry.acs[newId] = { text: '', status: 'passed', testRef: '' };
       saveRfcSync();
       renderRfcSidebar();
