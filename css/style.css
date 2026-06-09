@@ -481,6 +481,38 @@ body {
   padding: 0.5rem 1rem;
 }
 
+.rfc-detail-campaign-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.25rem;
+}
+.rfc-detail-campaign-row label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.rfc-detail-campaign-select {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.rfc-detail-campaign-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* ===== Campaign Tile ===== */
 .campaign-tile {
   background: var(--surface);
@@ -1990,6 +2022,60 @@ body {
   color: var(--text-muted);
   letter-spacing: 0;
   margin-left: 0.15rem;
+}
+.tile-rfc-tests-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+}
+.tile-rfc-tests-computed {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.tile-rfc-tests-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.tile-rfc-tests-total {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  min-width: 4rem;
+  text-align: center;
+}
+.tile-rfc-tests-total .tile-numeric-unit {
+  font-size: 1rem;
+}
+.tile-rfc-offset-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  line-height: 1;
+}
+.tile-rfc-offset-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.tile-rfc-tests-offset {
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 /* ===== Value Input ===== */

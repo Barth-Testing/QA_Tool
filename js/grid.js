@@ -342,10 +342,27 @@ const GridEngine = (() => {
     } else if (isTeKpi) {
       chartAreaHtml = `<div class="tile-chart-area"><canvas class="tile-chart" data-chart-type="time-evolution"></canvas></div>`;
     } else if (chartType === 'numeric') {
-      chartAreaHtml = `
-        <div class="tile-chart-area tile-chart-area--numeric">
-          <div class="tile-numeric-value">${value} <span class="tile-numeric-unit">${kpi.unit || ''}</span></div>
-        </div>`;
+      if (tile.kpi_id === 'rfc-tests') {
+        const selCampId = state.selectedCampaignIds['rfc-tests'] || '';
+        const campaign = state.campaigns.find(c => c.id === selCampId);
+        const offset = campaign ? (campaign.rfcTestOffset || 0) : 0;
+        const computed = value - offset;
+        chartAreaHtml = `
+          <div class="tile-chart-area tile-chart-area--numeric tile-rfc-tests-area">
+            <div class="tile-rfc-tests-computed">Basis: ${computed}</div>
+            <div class="tile-rfc-tests-row">
+              <button class="tile-rfc-offset-btn" data-offset="-1">−</button>
+              <div class="tile-rfc-tests-total">${value} <span class="tile-numeric-unit">${kpi.unit || ''}</span></div>
+              <button class="tile-rfc-offset-btn" data-offset="+1">+</button>
+            </div>
+            <div class="tile-rfc-tests-offset">Offset: ${offset >= 0 ? '+' : ''}${offset}</div>
+          </div>`;
+      } else {
+        chartAreaHtml = `
+          <div class="tile-chart-area tile-chart-area--numeric">
+            <div class="tile-numeric-value">${value} <span class="tile-numeric-unit">${kpi.unit || ''}</span></div>
+          </div>`;
+      }
     } else {
       chartAreaHtml = `
         <div class="tile-chart-area">
@@ -477,7 +494,20 @@ const GridEngine = (() => {
       });
     }
 
-    if (!isRcKpi && kpi.data_source_type !== 'computed') {
+    if (tile.kpi_id === 'rfc-tests') {
+      el.querySelectorAll('.tile-rfc-offset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const delta = parseInt(btn.dataset.offset);
+          const evt = new CustomEvent('tile:rfc-offset-change', {
+            detail: { delta }
+          });
+          document.dispatchEvent(evt);
+        });
+      });
+    }
+
+    if (!isRcKpi && kpi.data_source_type !== 'computed' && tile.kpi_id !== 'rfc-tests') {
       el.querySelector('.tile-chart-area').addEventListener('click', (e) => {
         if (e.target.closest('.tile-edit-input')) return;
         e.stopPropagation();

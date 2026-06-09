@@ -607,15 +607,19 @@
       for (const [kpiId, fn] of Object.entries(COMPUTED_KPIS)) {
         merged[kpiId] = fn(merged);
       }
-      /* RFC Tests value from campaigns */
-      const rfcCampId = getRfcTestsCampaignId();
-      const rfcC = rfcCampId ? campaigns.find(c => c.id === rfcCampId) : null;
-      const rfcFallback = !rfcC && campaigns.length > 0 ? campaigns[0] : null;
-      const rfcSrc = rfcC || rfcFallback;
-      if (rfcSrc && rfcSrc.values[2]) {
-        merged['rfc-tests'] = rfcSrc.values[2].planned || 0;
-        if (!rfcC && rfcFallback) setRfcTestsCampaignId(rfcFallback.id);
-      }
+    /* RFC Tests value from campaigns — auto-computed from unique BEAR refs + offset */
+    const rfcCampId = getRfcTestsCampaignId();
+    const rfcC = rfcCampId ? campaigns.find(c => c.id === rfcCampId) : null;
+    const rfcFallback = !rfcC && campaigns.length > 0 ? campaigns[0] : null;
+    const rfcSrc = rfcC || rfcFallback;
+    if (rfcSrc && rfcSrc.values[2]) {
+      const computed = countUniqueBearRefs(rfcSrc.id);
+      const offset = rfcSrc.rfcTestOffset || 0;
+      const total = computed + offset;
+      merged['rfc-tests'] = total;
+      rfcSrc.values[2].planned = total;
+      if (!rfcC && rfcFallback) setRfcTestsCampaignId(rfcFallback.id);
+    }
       /* A-Bugs value from per-campaign storage */
       const bugsCampId = getABugsCampaignId();
       const bugsCamp = bugsCampId ? campaigns.find(c => c.id === bugsCampId) : null;
@@ -1428,6 +1432,20 @@
       render();
     });
 
+    /* RFC Tests offset adjustment */
+    document.addEventListener('tile:rfc-offset-change', (e) => {
+      const { delta } = e.detail;
+      const campaignId = getRfcTestsCampaignId();
+      const campaign = campaigns.find(c => c.id === campaignId);
+      if (!campaign) {
+        toast('Kein Release für RFC-Tests ausgewählt');
+        return;
+      }
+      campaign.rfcTestOffset = (campaign.rfcTestOffset || 0) + delta;
+      saveCampaigns();
+      render();
+    });
+
     /* Chart modal */
     let chartModalData = null;
     let chartModalIsTe = false;
@@ -1650,6 +1668,10 @@
           c.recipientSearch = new Array(6).fill(null);
           changed = true;
         }
+        if (c.rfcTestOffset === undefined) {
+          c.rfcTestOffset = 0;
+          changed = true;
+        }
       }
       /* Migration: alte RC/TE-Daten aus values.json in erste Campaign übernehmen */
       if (campaigns.length > 0 && !campaigns[0]._migrated) {
@@ -1801,7 +1823,8 @@
       completed: 'passed',
       responseDev: new Array(26).fill(null),
       responseSta: new Array(26).fill(null),
-      recipientSearch: new Array(6).fill(null)
+      recipientSearch: new Array(6).fill(null),
+      rfcTestOffset: 0
     };
     campaigns.unshift(newCampaign);
     saveCampaigns();
@@ -2187,6 +2210,19 @@
     return 'Offen';
   }
 
+  function countUniqueBearRefs(campaignId) {
+    if (!campaignId) return 0;
+    const bears = new Set();
+    for (const entry of rfcEntries) {
+      if (entry.archived || entry.campaignId !== campaignId) continue;
+      for (const ac of Object.values(entry.acs)) {
+        const ref = (ac.testRef || '').trim();
+        if (ref) bears.add(ref);
+      }
+    }
+    return bears.size;
+  }
+
   function loadRfcEntries() {
     try {
       const saved = localStorage.getItem(RFC_KEY);
@@ -2440,7 +2476,20 @@
   function renderRfcDetailModal(entry) {
     document.getElementById('rfc-detail-title').textContent = 'Details: ' + entry.name;
     const body = document.getElementById('rfc-detail-body');
-    body.innerHTML = Object.entries(entry.acs).map(([acId, ac]) => {
+
+    const activeCampaigns = campaigns.filter(c => !c.archived);
+    let campaignOpts = '<option value="">Kein Release</option>';
+    for (const c of activeCampaigns) {
+      const sel = c.id === entry.campaignId ? ' selected' : '';
+      campaignOpts += `<option value="${c.id}"${sel}>${c.version}</option>`;
+    }
+    const campaignSelectHtml = `
+      <div class="rfc-detail-campaign-row">
+        <label>Release:</label>
+        <select class="rfc-detail-campaign-select" data-entry-id="${entry.id}">${campaignOpts}</select>
+      </div>`;
+
+    body.innerHTML = campaignSelectHtml + Object.entries(entry.acs).map(([acId, ac]) => {
       const st = acStatusClass(ac.status);
       const statusText = acStatusLabel(ac.status);
       return `
@@ -2663,6 +2712,18 @@
     };
     $('#btn-close-rfc-detail').addEventListener('click', closeDetail);
     document.querySelector('#rfc-detail-modal .modal-backdrop').addEventListener('click', closeDetail);
+
+    /* change RFC release from detail modal */
+    detailBody.addEventListener('change', (e) => {
+      const sel = e.target.closest('.rfc-detail-campaign-select');
+      if (!sel) return;
+      const entryId = sel.dataset.entryId;
+      const entry = rfcEntries.find(e => e.id === entryId);
+      if (!entry) return;
+      entry.campaignId = sel.value || null;
+      saveRfcSync();
+      renderRfcSidebar();
+    });
 
     /* --- Archive modal events --- */
     document.getElementById('rfc-archive-list').addEventListener('click', (e) => {
