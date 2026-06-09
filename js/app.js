@@ -2222,9 +2222,9 @@
     return 'red';
   }
   function acStatusLabel(status) {
-    if (status === 'passed') return 'Bestanden';
-    if (status === 'blocked') return 'Blockiert';
-    return 'Offen';
+    if (status === 'passed') return 'PASSED';
+    if (status === 'blocked') return 'BLOCKED';
+    return 'FAILED';
   }
 
   function countUniqueBearRefs(campaignId) {
@@ -2515,7 +2515,7 @@
           <span class="rfc-detail-id">${acId}</span>
           <input class="rfc-detail-text-input" value="${(ac.text || '').replace(/"/g, '&quot;')}" placeholder="AC Beschreibung">
           <input class="rfc-detail-testref" value="${(ac.testRef || '').replace(/"/g, '&quot;')}" placeholder="BEAR-xxxx">
-          <span class="rfc-detail-status ${st}">${statusText}</span>
+          <button class="rfc-detail-status-btn ${st}" title="Status umschalten">${statusText}</button>
           <button class="rfc-detail-ac-remove" title="AC entfernen">×</button>
         </div>`;
     }).join('');
@@ -2640,19 +2640,14 @@
       const st = acStatusClass(ac.status);
       const statusText = acStatusLabel(ac.status);
       item.querySelector('.rfc-detail-dot').className = 'rfc-detail-dot ' + st;
-      item.querySelector('.rfc-detail-status').className = 'rfc-detail-status ' + st;
-      item.querySelector('.rfc-detail-status').textContent = statusText;
+      item.querySelector('.rfc-detail-status-btn').className = 'rfc-detail-status-btn ' + st;
+      item.querySelector('.rfc-detail-status-btn').textContent = statusText;
     }
 
     detailBody.addEventListener('click', (e) => {
-      const dot = e.target.closest('.rfc-detail-dot');
-      if (dot) {
-        cycleDetailAcState(dot.closest('.rfc-detail-item'));
-        return;
-      }
-      const textInput = e.target.closest('.rfc-detail-text-input');
-      if (textInput) {
-        cycleDetailAcState(textInput.closest('.rfc-detail-item'));
+      const btn = e.target.closest('.rfc-detail-status-btn');
+      if (btn) {
+        cycleDetailAcState(btn.closest('.rfc-detail-item'));
         return;
       }
     });
