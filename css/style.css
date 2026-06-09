@@ -333,6 +333,11 @@ body {
   border-color: var(--red);
   color: var(--red);
 }
+.rfc-ac-item.blocked {
+  background: rgba(59,130,246,0.18);
+  border-color: var(--blue);
+  color: var(--blue);
+}
 .rfc-ac-item:hover {
   opacity: 0.8;
   transform: scale(1.06);
@@ -756,6 +761,7 @@ body {
 }
 .rfc-detail-dot.green { background: var(--green); }
 .rfc-detail-dot.red { background: var(--red); }
+.rfc-detail-dot.blue { background: var(--blue); }
 .rfc-detail-id {
   font-size: 0.85rem;
   font-weight: 600;
@@ -776,6 +782,7 @@ body {
 }
 .rfc-detail-status.green { background: var(--green-bg); color: var(--green); }
 .rfc-detail-status.red { background: var(--red-bg); color: var(--red); }
+.rfc-detail-status.blue { background: var(--blue-bg); color: var(--blue); }
 
 /* ===== Campaign Edit Modal ===== */
 .campaign-edit-modal-content {
@@ -1366,6 +1373,7 @@ body {
 }
 .tile-ac-dot.green { background: var(--green); box-shadow: 0 0 4px var(--green); }
 .tile-ac-dot.red { background: var(--red); box-shadow: 0 0 4px var(--red); }
+.tile-ac-dot.blue { background: var(--blue); box-shadow: 0 0 4px var(--blue); }
 .tile-ac-name {
   color: var(--text-muted);
   font-weight: 600;

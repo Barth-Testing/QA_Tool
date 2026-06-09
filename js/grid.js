@@ -67,7 +67,10 @@ const GridEngine = (() => {
     if (value && typeof value === 'object' && value.acs) {
       const keys = Object.keys(value.acs);
       const total = keys.length;
-      const covered = keys.filter(k => value.acs[k].passed).length;
+      const covered = keys.filter(k => {
+        const ac = value.acs[k];
+        return ac.status === 'passed' || ac.passed;
+      }).length;
       const pct = total > 0 ? (covered / total) * 100 : 0;
       return { pct, total, covered, acs: value.acs, raw: value };
     }
@@ -205,12 +208,17 @@ const GridEngine = (() => {
 
     let acListHtml = '';
     if (isAcKpi) {
-      const dots = { true: 'green', false: 'red' };
+      function acDotClass(ac) {
+        if (ac.status === 'passed') return 'green';
+        if (ac.status === 'blocked') return 'blue';
+        if (ac.passed) return 'green';
+        return 'red';
+      }
       acListHtml = `<div class="tile-ac-list">`;
       for (const [acId, ac] of Object.entries(acInfo.acs)) {
         acListHtml += `
           <div class="tile-ac-item" data-ac="${acId}" data-ac-text="${ac.text.replace(/"/g, '&quot;')}">
-            <span class="tile-ac-dot ${dots[ac.passed]}"></span>
+            <span class="tile-ac-dot ${acDotClass(ac)}"></span>
             <span class="tile-ac-name">${acId}</span>
           </div>`;
       }

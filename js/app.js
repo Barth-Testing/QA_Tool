@@ -2176,6 +2176,17 @@
   const RFC_KEY = 'qa_dashboard_rfc_entries';
   let rfcEntries = [];
 
+    function acStatusClass(status) {
+    if (status === 'passed') return 'green';
+    if (status === 'blocked') return 'blue';
+    return 'red';
+  }
+  function acStatusLabel(status) {
+    if (status === 'passed') return 'Bestanden';
+    if (status === 'blocked') return 'Blockiert';
+    return 'Offen';
+  }
+
   function loadRfcEntries() {
     try {
       const saved = localStorage.getItem(RFC_KEY);
@@ -2186,19 +2197,23 @@
         if (old && old.acs && typeof old.acs === 'object') {
           const acs = {};
           for (const [k, v] of Object.entries(old.acs)) {
-            acs[k] = { text: v.text || k, passed: !!v.passed, testRef: v.testRef || '' };
+            acs[k] = { text: v.text || k, status: v.passed ? 'passed' : 'failed', testRef: v.testRef || '' };
           }
           rfcEntries.push({ id: 'rfc_' + Date.now(), name: 'RFC (migriert)', campaignId: null, archived: false, acs });
           saveRfcEntries();
         }
       }
-      /* migrate existing entries: add missing fields */
+      /* migrate existing entries: add missing fields + passed→status */
       for (const entry of rfcEntries) {
         if (entry.campaignId === undefined) entry.campaignId = null;
         if (entry.archived === undefined) entry.archived = false;
         if (entry.acs) {
           for (const ac of Object.values(entry.acs)) {
             if (ac.testRef === undefined) ac.testRef = '';
+            if (ac.status === undefined) {
+              ac.status = ac.passed ? 'passed' : 'failed';
+              delete ac.passed;
+            }
           }
         }
       }
@@ -2256,15 +2271,14 @@
     list.innerHTML = visible.map((entry) => {
       const acEntries = Object.entries(entry.acs);
       const total = acEntries.length;
-      const covered = acEntries.filter(([, ac]) => ac.passed).length;
+      const covered = acEntries.filter(([, ac]) => ac.status === 'passed').length;
       const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
       const campaignLabel = entry.campaignId && campaignVersionMap[entry.campaignId]
         ? campaignVersionMap[entry.campaignId] : '';
 
       let acGridHtml = '';
       for (const [acId, ac] of acEntries) {
-        const st = ac.passed ? 'passed' : 'failed';
-        acGridHtml += `<div class="rfc-ac-item ${st}" data-entry-id="${entry.id}" data-ac-id="${acId}">${acId}</div>`;
+        acGridHtml += `<div class="rfc-ac-item ${ac.status || 'failed'}" data-entry-id="${entry.id}" data-ac-id="${acId}">${acId}</div>`;
       }
 
       return `
@@ -2318,7 +2332,7 @@
       if (!canvas) continue;
       const acEntries = Object.entries(entry.acs);
       const total = acEntries.length;
-      const covered = acEntries.filter(([, ac]) => ac.passed).length;
+      const covered = acEntries.filter(([, ac]) => ac.status === 'passed').length;
       const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
       const status = pct >= 80 ? 'green' : pct >= 50 ? 'yellow' : 'red';
       ChartEngine.drawDonut(canvas, pct, '%', status);
@@ -2335,7 +2349,10 @@
   function toggleRfcAc(entryId, acId) {
     const entry = rfcEntries.find(e => e.id === entryId);
     if (!entry || !entry.acs[acId]) return;
-    entry.acs[acId].passed = !entry.acs[acId].passed;
+    const ac = entry.acs[acId];
+    if (ac.status === 'passed') ac.status = 'failed';
+    else if (ac.status === 'failed') ac.status = 'blocked';
+    else ac.status = 'passed';
     saveRfcSync();
     renderRfcSidebar();
   }
@@ -2348,7 +2365,7 @@
     for (let i = 0; i < acCount; i++) {
       const acId = 'AC' + (i + 1);
       const text = acInputs[i] ? acInputs[i].value.trim() : 'AC ' + (i + 1);
-      acs[acId] = { text: text || 'AC ' + (i + 1), passed: true, testRef: '' };
+      acs[acId] = { text: text || 'AC ' + (i + 1), status: 'passed', testRef: '' };
     }
     const newEntry = { id, name, campaignId: campaignId || null, archived: false, acs };
     rfcEntries.unshift(newEntry);
@@ -2387,7 +2404,7 @@
       list.innerHTML = archived.map(e => {
         const acEntries = Object.entries(e.acs);
         const total = acEntries.length;
-        const covered = acEntries.filter(([, ac]) => ac.passed).length;
+        const covered = acEntries.filter(([, ac]) => ac.status === 'passed').length;
         const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
         return `
           <div class="archive-campaign-tile" data-entry-id="${e.id}">
@@ -2424,8 +2441,8 @@
     document.getElementById('rfc-detail-title').textContent = 'Details: ' + entry.name;
     const body = document.getElementById('rfc-detail-body');
     body.innerHTML = Object.entries(entry.acs).map(([acId, ac]) => {
-      const st = ac.passed ? 'green' : 'red';
-      const statusText = ac.passed ? 'Bestanden' : 'Offen';
+      const st = acStatusClass(ac.status);
+      const statusText = acStatusLabel(ac.status);
       return `
         <div class="rfc-detail-item" data-entry-id="${entry.id}" data-ac-id="${acId}">
           <span class="rfc-detail-dot ${st}"></span>
@@ -2546,24 +2563,32 @@
     /* --- Detail modal events --- */
     const detailBody = document.getElementById('rfc-detail-body');
 
-    /* toggle AC pass/fail from detail modal */
-    detailBody.addEventListener('click', (e) => {
-      const dot = e.target.closest('.rfc-detail-dot');
-      if (!dot) return;
-      const item = dot.closest('.rfc-detail-item');
-      if (!item) return;
+    /* toggle AC state from detail modal (dot or text input click) */
+    function cycleDetailAcState(item) {
       const entryId = item.dataset.entryId;
       const acId = item.dataset.acId;
       toggleRfcAc(entryId, acId);
-      /* update appearance */
       const entry = rfcEntries.find(e => e.id === entryId);
       if (!entry || !entry.acs[acId]) return;
       const ac = entry.acs[acId];
-      const st = ac.passed ? 'green' : 'red';
-      const statusText = ac.passed ? 'Bestanden' : 'Offen';
+      const st = acStatusClass(ac.status);
+      const statusText = acStatusLabel(ac.status);
       item.querySelector('.rfc-detail-dot').className = 'rfc-detail-dot ' + st;
       item.querySelector('.rfc-detail-status').className = 'rfc-detail-status ' + st;
       item.querySelector('.rfc-detail-status').textContent = statusText;
+    }
+
+    detailBody.addEventListener('click', (e) => {
+      const dot = e.target.closest('.rfc-detail-dot');
+      if (dot) {
+        cycleDetailAcState(dot.closest('.rfc-detail-item'));
+        return;
+      }
+      const textInput = e.target.closest('.rfc-detail-text-input');
+      if (textInput) {
+        cycleDetailAcState(textInput.closest('.rfc-detail-item'));
+        return;
+      }
     });
 
     /* save AC text/testRef on input change */
@@ -2620,7 +2645,7 @@
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       }
       const newId = 'AC' + (maxNum + 1);
-      entry.acs[newId] = { text: '', passed: true, testRef: '' };
+      entry.acs[newId] = { text: '', status: 'passed', testRef: '' };
       saveRfcSync();
       renderRfcSidebar();
       renderRfcDetailModal(entry);
