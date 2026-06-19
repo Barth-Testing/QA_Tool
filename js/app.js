@@ -625,7 +625,7 @@
       const acNewC = acNewCampId ? campaigns.find(c => c.id === acNewCampId) : null;
       const acNewSrc = acNewC || (campaigns.length > 0 ? campaigns[0] : null);
       if (acNewSrc) {
-        const relevantRfcs = rfcEntries.filter(e => !e.archived && e.campaignId === acNewSrc.id);
+        const relevantRfcs = rfcEntries.filter(e => !e.archived && (e.campaignIds || []).includes(acNewSrc.id));
         let totalAcs = 0;
         let passedAcs = 0;
         for (const entry of relevantRfcs) {
@@ -1293,6 +1293,12 @@
         }
         if (data.rfcEntries) {
           rfcEntries = data.rfcEntries;
+          for (const entry of rfcEntries) {
+            if (entry.campaignIds === undefined) {
+              entry.campaignIds = entry.campaignId ? [entry.campaignId] : [];
+            }
+            delete entry.campaignId;
+          }
           saveRfcEntries();
         }
         if (data.rfcTestsCampaignId) {
@@ -2231,7 +2237,7 @@
     if (!campaignId) return 0;
     const bears = new Set();
     for (const entry of rfcEntries) {
-      if (entry.archived || entry.campaignId !== campaignId) continue;
+      if (entry.archived || !(entry.campaignIds || []).includes(campaignId)) continue;
       for (const ac of Object.values(entry.acs)) {
         const ref = (ac.testRef || '').trim();
         if (ref) bears.add(ref);
@@ -2265,13 +2271,16 @@
           for (const [k, v] of Object.entries(old.acs)) {
             acs[k] = { text: v.text || k, status: v.passed ? 'passed' : 'failed', testRef: v.testRef || '' };
           }
-          rfcEntries.push({ id: 'rfc_' + Date.now(), name: 'RFC (migriert)', campaignId: null, archived: false, acs });
+          rfcEntries.push({ id: 'rfc_' + Date.now(), name: 'RFC (migriert)', campaignIds: [], archived: false, acs });
           saveRfcEntries();
         }
       }
       /* migrate existing entries: add missing fields + passed→status */
       for (const entry of rfcEntries) {
-        if (entry.campaignId === undefined) entry.campaignId = null;
+        if (entry.campaignIds === undefined) {
+          entry.campaignIds = entry.campaignId ? [entry.campaignId] : [];
+        }
+        delete entry.campaignId;
         if (entry.archived === undefined) entry.archived = false;
         if (entry.acs) {
           for (const ac of Object.values(entry.acs)) {
@@ -2323,7 +2332,7 @@
     /* filter: show active (non-archived) entries matching campaign filter */
     const visible = rfcEntries.filter(e => {
       if (e.archived) return false;
-      if (filterCampaignId && e.campaignId !== filterCampaignId) return false;
+      if (filterCampaignId && !(e.campaignIds || []).includes(filterCampaignId)) return false;
       return true;
     });
 
@@ -2339,8 +2348,9 @@
       const total = acEntries.length;
       const covered = acEntries.filter(([, ac]) => ac.status === 'passed').length;
       const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
-      const campaignLabel = entry.campaignId && campaignVersionMap[entry.campaignId]
-        ? campaignVersionMap[entry.campaignId] : '';
+      const campaignLabel = (entry.campaignIds || [])
+        .map(id => campaignVersionMap[id]).filter(Boolean)
+        .join(', ');
 
       let acGridHtml = '';
       for (const [acId, ac] of acEntries) {
@@ -2423,7 +2433,7 @@
     renderRfcSidebar();
   }
 
-  function createRfcEntry(name, campaignId) {
+  function createRfcEntry(name, campaignIds) {
     const id = 'rfc_' + Date.now();
     const acCount = parseInt(document.getElementById('rfc-add-ac-count').value) || 3;
     const acInputs = document.querySelectorAll('.rfc-add-ac-row input');
@@ -2433,7 +2443,7 @@
       const text = acInputs[i] ? acInputs[i].value.trim() : 'AC ' + (i + 1);
       acs[acId] = { text: text || 'AC ' + (i + 1), status: 'passed', testRef: '' };
     }
-    const newEntry = { id, name, campaignId: campaignId || null, archived: false, acs };
+    const newEntry = { id, name, campaignIds: campaignIds || [], archived: false, acs };
     rfcEntries.unshift(newEntry);
     saveRfcEntries();
     renderRfcSidebar();
@@ -2508,15 +2518,16 @@
     const body = document.getElementById('rfc-detail-body');
 
     const activeCampaigns = campaigns.filter(c => !c.archived);
-    let campaignOpts = '<option value="">Kein Release</option>';
-    for (const c of activeCampaigns) {
-      const sel = c.id === entry.campaignId ? ' selected' : '';
-      campaignOpts += `<option value="${c.id}"${sel}>${c.version}</option>`;
-    }
+    const entryCampaignIds = entry.campaignIds || [];
+    const campaignCheckHtml = activeCampaigns.map(c => `
+      <label class="rfc-campaign-check-label">
+        <input type="checkbox" class="rfc-detail-campaign-check" data-entry-id="${entry.id}" value="${c.id}"${entryCampaignIds.includes(c.id) ? ' checked' : ''}> ${c.version}
+      </label>
+    `).join('');
     const campaignSelectHtml = `
       <div class="rfc-detail-campaign-row">
-        <label>Release:</label>
-        <select class="rfc-detail-campaign-select" data-entry-id="${entry.id}">${campaignOpts}</select>
+        <label>Release(s):</label>
+        <div class="rfc-campaign-checklist rfc-campaign-checklist--detail" data-entry-id="${entry.id}">${campaignCheckHtml}</div>
       </div>`;
 
     body.innerHTML = campaignSelectHtml + Object.entries(entry.acs).map(([acId, ac]) => {
@@ -2616,9 +2627,9 @@
         toast('Bitte einen RFC-Namen eingeben');
         return;
       }
-      const campaignSelect = document.getElementById('rfc-add-campaign-field');
-      const campaignId = campaignSelect ? campaignSelect.value : '';
-      createRfcEntry(name, campaignId);
+      const checks = document.querySelectorAll('#rfc-add-campaigns .rfc-campaign-check:checked');
+      const campaignIds = Array.from(checks).map(cb => cb.value);
+      createRfcEntry(name, campaignIds);
       document.getElementById('rfc-add-modal').classList.add('hidden');
       toast(`RFC ${name} erstellt`);
     });
@@ -2739,14 +2750,15 @@
     $('#btn-close-rfc-detail').addEventListener('click', closeDetail);
     document.querySelector('#rfc-detail-modal .modal-backdrop').addEventListener('click', closeDetail);
 
-    /* change RFC release from detail modal */
+    /* change RFC releases from detail modal */
     detailBody.addEventListener('change', (e) => {
-      const sel = e.target.closest('.rfc-detail-campaign-select');
-      if (!sel) return;
-      const entryId = sel.dataset.entryId;
+      const cb = e.target.closest('.rfc-detail-campaign-check');
+      if (!cb) return;
+      const entryId = cb.dataset.entryId;
       const entry = rfcEntries.find(e => e.id === entryId);
       if (!entry) return;
-      entry.campaignId = sel.value || null;
+      const checks = detailBody.querySelectorAll(`.rfc-detail-campaign-check[data-entry-id="${entryId}"]`);
+      entry.campaignIds = Array.from(checks).filter(ch => ch.checked).map(ch => ch.value);
       saveRfcSync();
       renderRfcSidebar();
     });
@@ -2762,16 +2774,20 @@
     $('#btn-close-rfc-archive').addEventListener('click', () => document.getElementById('rfc-archive-modal').classList.add('hidden'));
     document.querySelector('#rfc-archive-modal .modal-backdrop').addEventListener('click', () => document.getElementById('rfc-archive-modal').classList.add('hidden'));
 
-    /* --- Add modal campaign dropdown --- */
+    /* --- Add modal campaign multi-select checkboxes --- */
     function renderRfcAddCampaignSelect() {
-      const field = document.getElementById('rfc-add-campaign-field');
+      const field = document.getElementById('rfc-add-campaigns');
       if (!field) return;
       const active = campaigns.filter(c => !c.archived);
-      let html = '<option value="">Kein Release</option>';
-      for (const c of active) {
-        html += `<option value="${c.id}">${c.version}</option>`;
+      if (active.length === 0) {
+        field.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Keine Releases vorhanden</span>';
+        return;
       }
-      field.innerHTML = html;
+      field.innerHTML = active.map(c => `
+        <label class="rfc-campaign-check-label">
+          <input type="checkbox" class="rfc-campaign-check" value="${c.id}"> ${c.version}
+        </label>
+      `).join('');
     }
     renderRfcAddCampaignSelect();
   }

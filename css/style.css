@@ -539,6 +539,38 @@ body {
   border-color: var(--primary);
 }
 
+/* ===== Multi-Campaign Checklist ===== */
+.rfc-campaign-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.rfc-campaign-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  user-select: none;
+}
+.rfc-campaign-check-label:hover {
+  border-color: var(--primary);
+}
+.rfc-campaign-check-label input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+.rfc-campaign-checklist--detail {
+  flex: 1;
+}
+
 /* ===== Campaign Tile ===== */
 .campaign-tile {
   background: var(--surface);
