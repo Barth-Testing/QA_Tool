@@ -1234,9 +1234,8 @@ body {
 }
 .tile-rc-table-wrap {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
-  scrollbar-gutter: stable;
   min-height: 0;
   margin: 0.15rem 0;
   border: 1px solid var(--border);
