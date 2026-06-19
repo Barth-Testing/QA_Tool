@@ -132,6 +132,30 @@ const GridEngine = (() => {
   function drawAllCharts(container) {
     requestAnimationFrame(() => {
       const canvases = container.querySelectorAll('.tile-chart');
+
+      /* compute shared y-axis max per unit across all response-comparison charts */
+      const globalRcMaxByUnit = {};
+      for (const canvas of canvases) {
+        const tile = canvas.closest('.tile');
+        if (!tile) continue;
+        const tileId = tile.dataset.tileId;
+        const tileData = state.tiles.find(t => t.id === tileId);
+        if (!tileData) continue;
+        const kpi = state.kpiMap[tileData.kpi_id];
+        if (!kpi) continue;
+        if (ChartEngine.getChartType(kpi) !== 'response-comparison') continue;
+        const rawValue = (state.customValues[tileData.kpi_id] !== undefined ? state.customValues[tileData.kpi_id] : kpi.example_value);
+        if (!rawValue || !rawValue.versionData) continue;
+        const unit = kpi.unit || 'ms';
+        if (!globalRcMaxByUnit[unit]) globalRcMaxByUnit[unit] = 0;
+        for (const v of [rawValue.currentVersion, rawValue.previousVersion, rawValue.referenceVersion]) {
+          const vals = rawValue.versionData[v] || [];
+          for (const val of vals) {
+            if (val !== null && val > globalRcMaxByUnit[unit]) globalRcMaxByUnit[unit] = val;
+          }
+        }
+      }
+
       for (const canvas of canvases) {
         const tile = canvas.closest('.tile');
         if (!tile) continue;
@@ -152,7 +176,7 @@ const GridEngine = (() => {
         if (chartType === 'donut') {
           ChartEngine.drawDonut(canvas, value, kpi.unit, status);
         } else if (chartType === 'response-comparison' && rcInfo) {
-          ChartEngine.drawResponseComparison(canvas, rawValue, kpi.name);
+          ChartEngine.drawResponseComparison(canvas, rawValue, kpi.name, globalRcMaxByUnit[kpi.unit || 'ms'], kpi.unit);
         } else if (chartType === 'time-evolution' && teInfo) {
           ChartEngine.drawTimeEvolution(canvas, rawValue, true);
         } else if (chartType !== 'numeric') {
@@ -372,7 +396,7 @@ const GridEngine = (() => {
     }
 
     const campaignTileIds = ['rfc-tests', 'test-coverage-new-features', 'a-bugs-post-release', 'fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
-    const rcTileIds = ['fe-response-dev', 'fe-response-sta'];
+    const rcTileIds = ['fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
     let rfcVersionHtml = '';
     if (rcTileIds.includes(tile.kpi_id)) {
       const currentId = state.selectedCampaignIds[tile.kpi_id + '-current'] || (state.campaigns.length > 0 ? state.campaigns[0].id : '');

@@ -11,7 +11,7 @@ const ChartEngine = (() => {
     ];
     if (donutIds.includes(kpi.id)) return 'donut';
     if (kpi.id === 'fe-response-dev' || kpi.id === 'fe-response-sta') return 'response-comparison';
-    if (kpi.id === 'recipient-search-time') return 'time-evolution';
+    if (kpi.id === 'recipient-search-time') return 'response-comparison';
     if (kpi.unit === 'Anzahl' || kpi.unit === 'Tests' || kpi.unit === 'PT') return 'numeric';
     return 'bar';
   }
@@ -220,7 +220,7 @@ const ChartEngine = (() => {
     ctx.fillText(Math.round(value) + '%', cx, cy);
   }
 
-  function drawResponseComparison(canvas, data, kpiName) {
+  function drawResponseComparison(canvas, data, kpiName, globalMaxVal, kpiUnit) {
     const dpr = window.devicePixelRatio || 1;
 
     canvas.style.width = '100%';
@@ -272,12 +272,14 @@ const ChartEngine = (() => {
     const axisFontSize = 10;
     const barRound = Math.min(2, Math.round(barW * 0.25));
 
-    /* max value */
-    let maxVal = 0;
-    for (const v of versions) {
-      const vals = data.versionData[v] || [];
-      for (const val of vals) {
-        if (val !== null && val > maxVal) maxVal = val;
+    /* max value — use global shared max when available */
+    let maxVal = globalMaxVal || 0;
+    if (!maxVal) {
+      for (const v of versions) {
+        const vals = data.versionData[v] || [];
+        for (const val of vals) {
+          if (val !== null && val > maxVal) maxVal = val;
+        }
       }
     }
     if (maxVal <= 0) maxVal = 1;
@@ -343,7 +345,7 @@ const ChartEngine = (() => {
       ctx.font = `${axisFontSize}px -apple-system, sans-serif`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(Math.round(val) + ' ms', pad.left - 5, y);
+      ctx.fillText(Math.round(val) + ' ' + (kpiUnit || 'ms'), pad.left - 5, y);
     }
 
     /* bars — vertical, grouped */

@@ -502,6 +502,8 @@
   const RESPONSEDEV_PREVIOUS_KEY = 'qa_dashboard_responsedev_previous';
   const RESPONSESTA_CURRENT_KEY = 'qa_dashboard_responsesta_current';
   const RESPONSESTA_PREVIOUS_KEY = 'qa_dashboard_responsesta_previous';
+  const RECIPIENTSEARCH_CURRENT_KEY = 'qa_dashboard_recipientsearch_current';
+  const RECIPIENTSEARCH_PREVIOUS_KEY = 'qa_dashboard_recipientsearch_previous';
   const RECIPIENTSEARCH_CAMPAIGN_KEY = 'qa_dashboard_recipientsearch_campaign';
 
   function getResponseDevCurrentCampaignId() {
@@ -538,6 +540,24 @@
     try {
       if (id) { localStorage.setItem(RESPONSESTA_PREVIOUS_KEY, id); syncToServer(RESPONSESTA_PREVIOUS_KEY, id); }
       else { localStorage.removeItem(RESPONSESTA_PREVIOUS_KEY); syncToServer(RESPONSESTA_PREVIOUS_KEY, null); }
+    } catch {}
+  }
+  function getRecipientSearchCurrentCampaignId() {
+    try { return localStorage.getItem(RECIPIENTSEARCH_CURRENT_KEY); } catch { return null; }
+  }
+  function setRecipientSearchCurrentCampaignId(id) {
+    try {
+      if (id) { localStorage.setItem(RECIPIENTSEARCH_CURRENT_KEY, id); syncToServer(RECIPIENTSEARCH_CURRENT_KEY, id); }
+      else { localStorage.removeItem(RECIPIENTSEARCH_CURRENT_KEY); syncToServer(RECIPIENTSEARCH_CURRENT_KEY, null); }
+    } catch {}
+  }
+  function getRecipientSearchPreviousCampaignId() {
+    try { return localStorage.getItem(RECIPIENTSEARCH_PREVIOUS_KEY); } catch { return null; }
+  }
+  function setRecipientSearchPreviousCampaignId(id) {
+    try {
+      if (id) { localStorage.setItem(RECIPIENTSEARCH_PREVIOUS_KEY, id); syncToServer(RECIPIENTSEARCH_PREVIOUS_KEY, id); }
+      else { localStorage.removeItem(RECIPIENTSEARCH_PREVIOUS_KEY); syncToServer(RECIPIENTSEARCH_PREVIOUS_KEY, null); }
     } catch {}
   }
   function getRecipientSearchCampaignId() {
@@ -698,35 +718,30 @@
         };
         if (!rcStaCamp && rcStaFallback) setResponseStaCurrentCampaignId(rcStaFallback.id);
       }
-      /* Recipient Search from campaigns */
-      const teId = getRecipientSearchCampaignId();
-      const teCamp = teId ? campaigns.find(c => c.id === teId) : null;
-      const teFallback = !teCamp && campaigns.length > 0 ? campaigns[0] : null;
-      const teSrc = teCamp || teFallback;
-      if (teSrc && campaigns.some(c => c.recipientSearch && c.recipientSearch.some(v => v !== null))) {
-        const kpiTe = kpiMap['recipient-search-time'];
-        const testSits = kpiTe?.example_value?.testSituations || [];
-        const withData = campaigns.filter(c => !c.archived && c.recipientSearch && c.recipientSearch.some(v => v !== null))
-          .sort((a, b) => {
-            const av = parseCampVersion(a.version), bv = parseCampVersion(b.version);
-            if (!av || !bv) return 0;
-            return av.major - bv.major || av.minor - bv.minor || av.patch - bv.patch;
-          });
-        const xAxisOrder = withData.map(c => c.version);
+      /* Recipient Search from campaigns (same format as response times) */
+      const rsCurrentId = getRecipientSearchCurrentCampaignId();
+      const rsPrevId = getRecipientSearchPreviousCampaignId();
+      const rsCamp = rsCurrentId ? campaigns.find(c => c.id === rsCurrentId) : null;
+      const rsFallback = !rsCamp && campaigns.length > 0 ? campaigns[0] : null;
+      const rsSrc = rsCamp || rsFallback;
+      let rsPrevCamp = rsPrevId ? campaigns.find(c => c.id === rsPrevId) : null;
+      if (!rsPrevCamp && rsSrc) rsPrevCamp = findPreviousCampaign(campaigns, rsSrc.id);
+      if (rsSrc && rsSrc.recipientSearch) {
+        const kpiRs = kpiMap['recipient-search-time'];
+        const testSits = kpiRs?.example_value?.testSituations || [];
+        const refData = kpiRs?.example_value?.versionData?.['R4.1.3'] || [];
         const vd = {};
-        for (const c of withData) vd[c.version] = [...c.recipientSearch];
-        const latest = withData[withData.length - 1];
-        const prev = withData.length > 1 ? withData[withData.length - 2] : null;
-        if (latest) {
-          merged['recipient-search-time'] = {
-            latestVersion: latest.version,
-            previousVersion: prev ? prev.version : '',
-            testSituations: testSits,
-            xAxisOrder,
-            versionData: vd
-          };
-        }
-        if (!teCamp && teFallback) setRecipientSearchCampaignId(teFallback.id ? teFallback.id : (withData[withData.length - 1]?.id || ''));
+        vd[rsSrc.version] = [...rsSrc.recipientSearch];
+        if (rsPrevCamp) vd[rsPrevCamp.version] = [...rsPrevCamp.recipientSearch];
+        vd['R4.1.3'] = refData.length === 6 ? refData : new Array(6).fill(null);
+        merged['recipient-search-time'] = {
+          currentVersion: rsSrc.version,
+          previousVersion: rsPrevCamp ? rsPrevCamp.version : '',
+          referenceVersion: 'R4.1.3',
+          testSituations: testSits,
+          versionData: vd
+        };
+        if (!rsCamp && rsFallback) setRecipientSearchCurrentCampaignId(rsFallback.id);
       }
       return merged;
     } catch { return { ...fileValues }; }
@@ -758,7 +773,8 @@
       'fe-response-dev-previous': getResponseDevPreviousCampaignId(),
       'fe-response-sta-current': getResponseStaCurrentCampaignId(),
       'fe-response-sta-previous': getResponseStaPreviousCampaignId(),
-      'recipient-search-time': getRecipientSearchCampaignId()
+      'recipient-search-time-current': getRecipientSearchCurrentCampaignId(),
+      'recipient-search-time-previous': getRecipientSearchPreviousCampaignId()
     });
     Grid.renderGrid(gridEl, currentTiles, db.columns);
     renderDashboardSelect();
@@ -1448,7 +1464,8 @@
         if (versionType === 'previous') setResponseStaPreviousCampaignId(campaignId);
         else setResponseStaCurrentCampaignId(campaignId);
       } else if (kpiId === 'recipient-search-time') {
-        setRecipientSearchCampaignId(campaignId);
+        if (versionType === 'previous') setRecipientSearchPreviousCampaignId(campaignId);
+        else setRecipientSearchCurrentCampaignId(campaignId);
       } else {
         setRfcTestsCampaignId(campaignId);
       }
@@ -1489,7 +1506,7 @@
         if (chartModalIsTe) {
           ChartEngine.drawTimeEvolution(canvas, data, false);
         } else {
-          ChartEngine.drawResponseComparison(canvas, data, kpi.name);
+          ChartEngine.drawResponseComparison(canvas, data, kpi.name, 0, kpi.unit);
         }
       });
     });
