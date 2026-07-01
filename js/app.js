@@ -796,6 +796,7 @@
     Grid.setCampaigns(campaigns, {
       'rfc-tests': getRfcTestsCampaignId(),
       'test-coverage-new-features': getRfcTestsCampaignId(),
+      'rfc-test-coverage': getRfcTestsCampaignId(),
       'a-bugs-post-release': getABugsCampaignId(),
       'fe-response-dev-current': getResponseDevCurrentCampaignId(),
       'fe-response-dev-previous': getResponseDevPreviousCampaignId(),
@@ -2782,13 +2783,10 @@
       const entryId = item.dataset.entryId;
       const entry = rfcEntries.find(e => e.id === entryId);
       if (!entry) return;
-      /* find next available AC id */
-      let maxNum = 0;
-      for (const k of Object.keys(entry.acs)) {
-        const m = k.match(/^AC(\d+)$/);
-        if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
-      }
-      const newId = 'AC' + (Object.keys(entry.acs).length + 1);
+      /* fill first gap in AC numbering, e.g. AC1+AC3 exist → add AC2 */
+      let newNum = 1;
+      while (entry.acs['AC' + newNum]) newNum++;
+      const newId = 'AC' + newNum;
       entry.acs[newId] = { text: '', status: 'passed', testRef: '' };
       saveRfcSync();
       renderRfcSidebar();

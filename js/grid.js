@@ -84,8 +84,11 @@ const GridEngine = (() => {
   function setCampaigns(campaigns, selectedMap) {
     state.campaigns = campaigns || [];
     state.selectedCampaignIds = { ...selectedMap };
-    if (!state.selectedCampaignIds['rfc-tests']) {
-      state.selectedCampaignIds['rfc-tests'] = state.campaigns.length > 0 ? state.campaigns[0].id : null;
+    const rfcLike = ['rfc-tests', 'test-coverage-new-features', 'rfc-test-coverage'];
+    for (const key of rfcLike) {
+      if (!state.selectedCampaignIds[key]) {
+        state.selectedCampaignIds[key] = state.campaigns.length > 0 ? state.campaigns[0].id : null;
+      }
     }
   }
 
