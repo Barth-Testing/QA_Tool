@@ -387,6 +387,19 @@
     }
   },
   {
+    "id": "rfc-test-coverage",
+    "name": "RFC Testabdeckung (Release)",
+    "category": "dev",
+    "description": "Testabdeckung aller RFCs eines Releases: ACs mit hinterlegtem BEAR-Ticket (testRef) im Verhältnis zu allen ACs. Pro RFC als kleine Donuts aufgeschlüsselt.",
+    "formula": "(ACs mit BEAR-Ticket / alle ACs) × 100",
+    "benefit": "Zeigt die tatsächliche Testabdeckung über alle RFCs eines Releases hinweg — unabhängig vom Implementierungsstatus",
+    "unit": "%",
+    "thresholds": { "green": { "operator": "gte", "value": 80 }, "yellow": { "operator": "gte", "value": 50 }, "red": { "operator": "lt", "value": 50 } },
+    "data_source_type": "computed",
+    "tags": ["rfc", "acceptance-criteria", "coverage", "release", "computed"],
+    "example_value": 0
+  },
+  {
     "id": "fe-response-dev",
     "name": "Response Times DEV",
     "category": "dev",

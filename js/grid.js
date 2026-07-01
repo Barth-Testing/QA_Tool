@@ -129,6 +129,34 @@ const GridEngine = (() => {
     return val && typeof val === 'object' && val.versionData && val.xAxisOrder && val.testSituations;
   }
 
+  function drawRfcCoverageTile(tile) {
+    const canvases = tile.querySelectorAll('.tile-chart[data-chart-type="rfc-coverage"]');
+    if (canvases.length === 0) return;
+    const canvas = canvases[0];
+    const tileId = tile.dataset.tileId;
+    const tileData = state.tiles.find(t => t.id === tileId);
+    if (!tileData) return;
+    const kpi = state.kpiMap[tileData.kpi_id];
+    if (!kpi) return;
+    const customVal = state.customValues[tileData.kpi_id];
+    const rawValue = customVal !== undefined ? customVal : kpi.example_value;
+    if (!rawValue || typeof rawValue !== 'object' || !rawValue.rfcs) return;
+
+    const overallPct = rawValue.totalAcs > 0 ? Math.round((rawValue.coveredAcs / rawValue.totalAcs) * 100) : 0;
+    const status = overallPct >= 80 ? 'green' : overallPct >= 50 ? 'yellow' : 'red';
+    ChartEngine.drawDonut(canvas, overallPct, '%', status);
+
+    const miniCanvases = tile.querySelectorAll('.tile-rfc-coverage-mini-canvas');
+    for (const miniCanvas of miniCanvases) {
+      const idx = parseInt(miniCanvas.dataset.rfcIdx);
+      const rfc = rawValue.rfcs[idx];
+      if (!rfc) continue;
+      const rfcPct = rfc.total > 0 ? Math.round((rfc.covered / rfc.total) * 100) : 0;
+      const miniStatus = rfcPct >= 80 ? 'green' : rfcPct >= 50 ? 'yellow' : 'red';
+      ChartEngine.drawMiniDonut(miniCanvas, rfcPct, miniStatus);
+    }
+  }
+
   function drawAllCharts(container) {
     requestAnimationFrame(() => {
       const canvases = container.querySelectorAll('.tile-chart');
@@ -156,6 +184,13 @@ const GridEngine = (() => {
         }
       }
 
+      /* draw rfc-test-coverage tiles first (special handling) */
+      const rfcCoverageTiles = container.querySelectorAll('.tile-chart-area--rfc-coverage');
+      for (const area of rfcCoverageTiles) {
+        const tile = area.closest('.tile');
+        if (tile) drawRfcCoverageTile(tile);
+      }
+
       for (const canvas of canvases) {
         const tile = canvas.closest('.tile');
         if (!tile) continue;
@@ -172,6 +207,8 @@ const GridEngine = (() => {
         const value = acInfo ? acInfo.pct : (rcInfo || teInfo ? null : rawValue);
         const status = (rcInfo || teInfo) ? 'neutral' : getStatus(kpi, value);
         const chartType = ChartEngine.getChartType(kpi);
+
+        if (tileData.kpi_id === 'rfc-test-coverage') continue; /* already handled above */
 
         if (chartType === 'donut') {
           ChartEngine.drawDonut(canvas, value, kpi.unit, status);
@@ -360,8 +397,31 @@ const GridEngine = (() => {
         </div>`;
     }
 
+    const isRfcCoverage = tile.kpi_id === 'rfc-test-coverage' && rawValue && typeof rawValue === 'object' && rawValue.rfcs;
+    
     let chartAreaHtml = '';
-    if (isRcKpi) {
+    if (isRfcCoverage) {
+      let miniDonutsHtml = '';
+      for (let i = 0; i < rawValue.rfcs.length; i++) {
+        const rfc = rawValue.rfcs[i];
+        const rfcPct = rfc.total > 0 ? Math.round((rfc.covered / rfc.total) * 100) : 0;
+        miniDonutsHtml += `
+          <div class="tile-rfc-coverage-mini">
+            <canvas class="tile-rfc-coverage-mini-canvas" data-rfc-idx="${i}" width="52" height="52"></canvas>
+            <span class="tile-rfc-coverage-mini-label">${rfc.name}</span>
+          </div>`;
+      }
+      const overallPct = rawValue.totalAcs > 0 ? Math.round((rawValue.coveredAcs / rawValue.totalAcs) * 100) : 0;
+      chartAreaHtml = `
+        <div class="tile-chart-area tile-chart-area--rfc-coverage">
+          <div class="tile-rfc-coverage-main">
+            <canvas class="tile-chart" data-chart-type="rfc-coverage"></canvas>
+          </div>
+          <div class="tile-rfc-coverage-breakdown">
+            ${miniDonutsHtml}
+          </div>
+        </div>`;
+    } else if (isRcKpi) {
       chartAreaHtml = `<div class="tile-chart-area tile-chart-area--rc"><canvas class="tile-chart" data-chart-type="response-comparison"></canvas></div>`;
     } else if (isTeKpi) {
       chartAreaHtml = `<div class="tile-chart-area"><canvas class="tile-chart" data-chart-type="time-evolution"></canvas></div>`;
@@ -395,7 +455,7 @@ const GridEngine = (() => {
         </div>`;
     }
 
-    const campaignTileIds = ['rfc-tests', 'test-coverage-new-features', 'a-bugs-post-release', 'fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
+    const campaignTileIds = ['rfc-tests', 'test-coverage-new-features', 'rfc-test-coverage', 'a-bugs-post-release', 'fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
     const rcTileIds = ['fe-response-dev', 'fe-response-sta', 'recipient-search-time'];
     let rfcVersionHtml = '';
     if (rcTileIds.includes(tile.kpi_id)) {
@@ -442,7 +502,7 @@ const GridEngine = (() => {
       ${isTeKpi ? teTableHtml : ''}
       ${acListHtml}
       <div class="tile-footer">
-        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}${isTeKpi ? ` · ${rawValue.xAxisOrder.length} Releases · ${rawValue.testSituations.length} Dim.` : ''}</span>
+        <span>${kpi.category === 'dev' ? 'Entwicklung' : 'Betrieb'}${isAcKpi ? ` · ${acInfo.covered}/${acInfo.total} ACs` : ''}${isRfcCoverage ? ` · ${rawValue.coveredAcs}/${rawValue.totalAcs} ACs abgedeckt` : ''}${isRcKpi ? ` · ${rawValue.testSituations.length} Testsituationen` : ''}${isTeKpi ? ` · ${rawValue.xAxisOrder.length} Releases · ${rawValue.testSituations.length} Dim.` : ''}</span>
         <button class="tile-info-btn" data-kpi-id="${kpi.id}">Details</button>
       </div>
     `;

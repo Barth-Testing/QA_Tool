@@ -323,6 +323,34 @@ body {
   color: var(--text-muted);
   font-weight: 500;
 }
+.rfc-coverage-bar-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.1rem;
+}
+.rfc-coverage-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.rfc-coverage-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+.rfc-coverage-bar-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
 .rfc-ac-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1421,6 +1449,53 @@ body {
   color: var(--primary-text);
   margin-left: 0.25rem;
   vertical-align: middle;
+}
+
+/* ===== RFC Test Coverage Tile ===== */
+.tile-chart-area--rfc-coverage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+.tile-rfc-coverage-main {
+  display: flex;
+  justify-content: center;
+}
+.tile-rfc-coverage-main .tile-chart {
+  width: 140px;
+  height: 140px;
+}
+.tile-rfc-coverage-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+.tile-rfc-coverage-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.tile-rfc-coverage-mini-canvas {
+  width: 52px;
+  height: 52px;
+}
+.tile-rfc-coverage-mini-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ===== AC Tile List ===== */

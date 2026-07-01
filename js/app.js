@@ -450,7 +450,7 @@
     }
   };
 
-  const COMPUTED_KPI_IDS = new Set([...Object.keys(COMPUTED_KPIS), 'test-coverage-new-features']);
+  const COMPUTED_KPI_IDS = new Set([...Object.keys(COMPUTED_KPIS), 'test-coverage-new-features', 'rfc-test-coverage']);
 
   function isComputedKpi(kpiId) {
     return COMPUTED_KPI_IDS.has(kpiId);
@@ -655,6 +655,34 @@
           }
         }
         merged['test-coverage-new-features'] = totalAcs > 0 ? Math.round((passedAcs / totalAcs) * 100) : 0;
+      }
+      /* RFC Testabdeckung (Release) — ACs mit testRef / alle ACs per Campaign */
+      const tcCampId = getRfcTestsCampaignId();
+      const tcC = tcCampId ? campaigns.find(c => c.id === tcCampId) : null;
+      const tcSrc = tcC || (campaigns.length > 0 ? campaigns[0] : null);
+      if (tcSrc) {
+        const relevantRfcs = rfcEntries.filter(e => !e.archived && (e.campaignIds || []).includes(tcSrc.id));
+        let totalAcs = 0;
+        let coveredAcs = 0;
+        const rfcBreakdown = [];
+        for (const entry of relevantRfcs) {
+          let entryTotal = 0;
+          let entryCovered = 0;
+          for (const ac of Object.values(entry.acs)) {
+            entryTotal++;
+            totalAcs++;
+            if ((ac.testRef || '').trim() !== '') {
+              entryCovered++;
+              coveredAcs++;
+            }
+          }
+          rfcBreakdown.push({ name: entry.name, total: entryTotal, covered: entryCovered });
+        }
+        merged['rfc-test-coverage'] = {
+          totalAcs,
+          coveredAcs,
+          rfcs: rfcBreakdown
+        };
       }
       /* A-Bugs value from per-campaign storage */
       const bugsCampId = getABugsCampaignId();
@@ -2363,8 +2391,15 @@
     list.innerHTML = visible.map((entry) => {
       const acEntries = Object.entries(entry.acs);
       const total = acEntries.length;
-      const covered = acEntries.filter(([, ac]) => ac.status === 'passed').length;
-      const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+
+      /* implementation progress = passed / total */
+      const implCovered = acEntries.filter(([, ac]) => ac.status === 'passed').length;
+      const implPct = total > 0 ? Math.round((implCovered / total) * 100) : 0;
+
+      /* test coverage = has testRef / total */
+      const testCovered = acEntries.filter(([, ac]) => (ac.testRef || '').trim() !== '').length;
+      const testPct = total > 0 ? Math.round((testCovered / total) * 100) : 0;
+
       const campaignLabel = (entry.campaignIds || [])
         .map(id => campaignVersionMap[id]).filter(Boolean)
         .join(', ');
@@ -2386,10 +2421,16 @@
           </div>
           <div class="rfc-main-donut-wrap">
             <canvas class="rfc-main-donut" data-entry-id="${entry.id}"></canvas>
-            <span class="rfc-coverage-label">${pct}% abgedeckt</span>
+            <span class="rfc-coverage-label">${implPct}% implementiert</span>
           </div>
           <div class="rfc-ac-grid">
             ${acGridHtml}
+          </div>
+          <div class="rfc-coverage-bar-wrap">
+            <div class="rfc-coverage-bar">
+              <div class="rfc-coverage-bar-fill" style="width:${testPct}%"></div>
+            </div>
+            <span class="rfc-coverage-bar-label">Testabdeckung: ${testPct}%</span>
           </div>
           <button class="rfc-detail-btn" data-entry-id="${entry.id}">Details</button>
         </div>`;
